@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Dimensions, Modal } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Dimensions, Modal, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -728,12 +728,13 @@ export default function DashboardScreen() {
       {/* Particle Background */}
       <ParticleBackground />
 
-      <View style={[styles.content, {
-        paddingTop: Math.max(insets.top, 20) + 10,
-        paddingBottom: Math.max(insets.bottom, 20) + 60,
-      }]}>
-        {/* Header */}
-        <View style={styles.header}>
+      <View style={styles.contentWrapper}>
+        <View style={[styles.content, {
+          paddingTop: Math.max(insets.top, 20) + 10,
+          paddingBottom: Math.max(insets.bottom, 20) + 60,
+        }]}>
+          {/* Header */}
+          <View style={styles.header}>
           <View style={styles.headerContent}>
             <View>
               <Text style={styles.title}>
@@ -1371,6 +1372,7 @@ export default function DashboardScreen() {
           </View>
         </View>
       </Modal>
+      </View>
     </View>
   );
 }
@@ -1397,9 +1399,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.25)',
     zIndex: 1,
   },
+  contentWrapper: {
+    flex: 1,
+    width: '100%',
+    maxWidth: Platform.OS === 'web' ? 768 : undefined,
+    alignSelf: 'center',
+    zIndex: 2,
+  },
   content: {
     flex: 1,
-    zIndex: 2,
     paddingHorizontal: 20,
   },
   loadingContainer: {
@@ -2365,7 +2373,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 14,
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 12,
   },
   startWorkoutButtonText: {
     fontSize: 15,

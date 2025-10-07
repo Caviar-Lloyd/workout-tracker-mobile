@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getWorkoutTemplate } from '../lib/supabase/workout-service';
@@ -72,13 +72,14 @@ export default function ProgramScreen() {
       {/* Particle Background */}
       <ParticleBackground />
 
-      {/* Content */}
-      <View style={[styles.content, {
-        paddingTop: Math.max(insets.top, 20) + 10, // Minimal top padding for safe area
-        paddingBottom: Math.max(insets.bottom, 20) + 60, // Space for bottom menu
-      }]}>
-      {/* Header */}
-      <View style={styles.header}>
+      {/* Content Wrapper */}
+      <View style={styles.contentWrapper}>
+        <View style={[styles.content, {
+          paddingTop: Math.max(insets.top, 20) + 10, // Minimal top padding for safe area
+          paddingBottom: Math.max(insets.bottom, 20) + 60, // Space for bottom menu
+        }]}>
+        {/* Header */}
+        <View style={styles.header}>
         <Text style={styles.title}>Program Overview</Text>
         <Text style={styles.subtitle}>Complete 12-Week Eccentric Training System</Text>
       </View>
@@ -252,6 +253,7 @@ export default function ProgramScreen() {
         </View>
       </View>
       </View>
+      </View>
     </View>
   );
 }
@@ -277,6 +279,13 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.25)',
     zIndex: 1,
+  },
+  contentWrapper: {
+    flex: 1,
+    width: '100%',
+    maxWidth: Platform.OS === 'web' ? 768 : undefined,
+    alignSelf: 'center',
+    zIndex: 2,
   },
   content: {
     flex: 1,

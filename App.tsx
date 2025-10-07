@@ -1,7 +1,7 @@
 import { NavigationContainer, DefaultTheme, useNavigation, useNavigationState } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View, TouchableOpacity, Text, Animated, Dimensions, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Text, Animated, Dimensions, ActivityIndicator, Platform } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from './lib/supabase/client';
@@ -9,11 +9,14 @@ import { Session } from '@supabase/supabase-js';
 import DashboardScreen from './screens/DashboardScreen';
 import WorkoutScreen from './screens/WorkoutScreen';
 import ProgramScreen from './screens/ProgramScreen';
+import ClientsScreen from './screens/ClientsScreen';
+import ClientDetailScreen from './screens/ClientDetailScreen';
 import AuthScreen from './screens/AuthScreen';
 import ProfileCompletionScreen from './screens/ProfileCompletionScreen';
 import DatabaseCheckScreen from './screens/DatabaseCheckScreen';
 import ParticleBackground from './components/ParticleBackground';
 import Svg, { Path } from 'react-native-svg';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 const Stack = createNativeStackNavigator();
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -56,18 +59,69 @@ const LogoutIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: stri
   </Svg>
 );
 
+const ClientsIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: string }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" fill={color} />
+  </Svg>
+);
+
+const ArrowUpIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: string }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z" fill={color} />
+  </Svg>
+);
+
 function ExpandableMenu() {
   const navigation = useNavigation();
   const [menuOpen, setMenuOpen] = useState(false);
-  const slideAnim = useRef(new Animated.Value(400)).current; // Start completely off-screen
+  const slideAnim = useRef(new Animated.Value(500)).current; // Start completely off-screen
+  const bounceAnim = useRef(new Animated.Value(0)).current; // For arrow bounce
+  const fadeAnim = useRef(new Animated.Value(1)).current; // For tooltip fade
+  const [showTooltip, setShowTooltip] = useState(true);
   const insets = useSafeAreaInsets();
   const isNavigatingRef = useRef(false);
+
+  // Animated arrow bounce effect
+  useEffect(() => {
+    if (showTooltip) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(bounceAnim, {
+            toValue: -10,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+          Animated.timing(bounceAnim, {
+            toValue: 0,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+
+      // Auto-hide tooltip after 5 seconds
+      const timer = setTimeout(() => {
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: true,
+        }).start(() => setShowTooltip(false));
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [showTooltip]);
 
   const toggleMenu = () => {
     // Don't toggle if currently navigating
     if (isNavigatingRef.current) return;
 
-    const toValue = menuOpen ? 400 : 0; // 400 = hidden off-screen, 0 = visible
+    // Hide tooltip when user interacts
+    if (showTooltip) {
+      setShowTooltip(false);
+    }
+
+    const toValue = menuOpen ? 500 : 0; // 400 = hidden off-screen, 0 = visible
     Animated.spring(slideAnim, {
       toValue,
       useNativeDriver: true,
@@ -97,7 +151,7 @@ function ExpandableMenu() {
 
   const handleLogout = async () => {
     slideAnim.stopAnimation(() => {
-      slideAnim.setValue(400);
+      slideAnim.setValue(500);
       setMenuOpen(false);
     });
     await supabase.auth.signOut();
@@ -105,7 +159,24 @@ function ExpandableMenu() {
 
   return (
     <>
-      {/* Menu Button */}
+      {/* Animated Arrow Tooltip */}
+      {showTooltip && (
+        <Animated.View
+          style={[
+            styles.tooltipContainer,
+            {
+              bottom: Math.max(insets.bottom, 20) + 30,
+              opacity: fadeAnim,
+              transform: [{ translateY: bounceAnim }],
+            },
+          ]}
+        >
+          <ArrowUpIcon size={28} color="#2ddbdb" />
+          <Text style={styles.tooltipText}>Menu</Text>
+        </Animated.View>
+      )}
+
+      {/* Menu Button with Holographic Effect */}
       <TouchableOpacity
         style={[
           styles.menuButton,
@@ -114,6 +185,7 @@ function ExpandableMenu() {
         onPress={toggleMenu}
         hitSlop={{ top: 40, bottom: 40, left: 40, right: 40 }} // Larger touch area - 40px all around
       >
+        <View style={styles.menuBarGlow} />
         <View style={styles.menuBar} />
       </TouchableOpacity>
 
@@ -136,7 +208,7 @@ function ExpandableMenu() {
           onPressIn={() => {
             // Close menu synchronously before anything else
             slideAnim.stopAnimation(() => {
-              slideAnim.setValue(400);
+              slideAnim.setValue(500);
               setMenuOpen(false);
               navigateTo('Dashboard');
             });
@@ -153,7 +225,7 @@ function ExpandableMenu() {
           onPressIn={() => {
             // Close menu synchronously before anything else
             slideAnim.stopAnimation(() => {
-              slideAnim.setValue(400);
+              slideAnim.setValue(500);
               setMenuOpen(false);
               navigateTo('Program');
             });
@@ -170,7 +242,7 @@ function ExpandableMenu() {
           onPressIn={() => {
             // Close menu synchronously before anything else
             slideAnim.stopAnimation(() => {
-              slideAnim.setValue(400);
+              slideAnim.setValue(500);
               setMenuOpen(false);
               navigateTo('Workout');
             });
@@ -178,6 +250,21 @@ function ExpandableMenu() {
         >
           <WorkoutIcon size={22} color="#2ddbdb" />
           <Text style={styles.menuItemText}>Workout Tracker</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.menuItem}
+          activeOpacity={0.7}
+          delayPressIn={0}
+          onPressIn={() => {
+            slideAnim.stopAnimation(() => {
+              slideAnim.setValue(500);
+              setMenuOpen(false);
+              navigateTo('Clients');
+            });
+          }}
+        >
+          <ClientsIcon size={22} color="#2ddbdb" />
+          <Text style={styles.menuItemText}>My Clients</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.menuItem}
@@ -206,6 +293,8 @@ function AppNavigator() {
         <Stack.Screen name="Dashboard" component={DashboardScreen} />
         <Stack.Screen name="Program" component={ProgramScreen} />
         <Stack.Screen name="Workout" component={WorkoutScreen} />
+        <Stack.Screen name="Clients" component={ClientsScreen} />
+        <Stack.Screen name="ClientDetail" component={ClientDetailScreen} />
       </Stack.Navigator>
       <ExpandableMenu />
     </>
@@ -276,6 +365,7 @@ export default function App() {
         Dashboard: 'dashboard',
         Program: 'program',
         Workout: 'workout',
+        Clients: 'clients',
       },
     },
   };
@@ -283,16 +373,19 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <View style={styles.container}>
-        <NavigationContainer theme={DarkTheme} linking={linking}>
-          {!session ? (
-            <AuthScreen />
-          ) : needsProfileCompletion ? (
-            <ProfileCompletionScreen />
-          ) : (
-            <AppNavigator />
-          )}
-        </NavigationContainer>
+        <View style={styles.contentWrapper}>
+          <NavigationContainer theme={DarkTheme} linking={linking}>
+            {!session ? (
+              <AuthScreen />
+            ) : needsProfileCompletion ? (
+              <ProfileCompletionScreen />
+            ) : (
+              <AppNavigator />
+            )}
+          </NavigationContainer>
+        </View>
         <StatusBar style="light" />
+        {Platform.OS === "web" && <SpeedInsights />}
       </View>
     </SafeAreaProvider>
   );
@@ -302,6 +395,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0a0e27',
+  },
+  contentWrapper: {
+    flex: 1,
+    width: '100%',
+    maxWidth: Platform.OS === 'web' ? 768 : undefined,
+    alignSelf: 'center',
   },
   loadingContainer: {
     justifyContent: 'center',
@@ -355,6 +454,25 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     fontWeight: '400',
   },
+  tooltipContainer: {
+    position: 'absolute',
+    left: SCREEN_WIDTH * 0.25,
+    width: SCREEN_WIDTH * 0.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 9998,
+    flexDirection: 'column',
+    gap: 4,
+  },
+  tooltipText: {
+    fontSize: 14,
+    color: '#2ddbdb',
+    fontWeight: '600',
+    letterSpacing: 1,
+    textShadowColor: 'rgba(45, 219, 219, 0.5)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 8,
+  },
   menuButton: {
     position: 'absolute',
     bottom: 20,
@@ -362,13 +480,32 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH * 0.5,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 1000,
+    zIndex: 9999,
+    elevation: 9999,
+  },
+  menuBarGlow: {
+    position: 'absolute',
+    width: '100%',
+    height: 5,
+    backgroundColor: '#2ddbdb',
+    borderRadius: 10,
+    opacity: 0.4,
+    shadowColor: '#2ddbdb',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    elevation: 8,
   },
   menuBar: {
     width: '100%',
     height: 5,
     backgroundColor: '#2ddbdb',
     borderRadius: 10,
+    shadowColor: '#2ddbdb',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 8,
+    elevation: 5,
   },
   overlay: {
     position: 'absolute',
@@ -384,17 +521,21 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     bottom: 80,
-    backgroundColor: 'rgba(10, 14, 39, 0.95)',
-    borderWidth: 1,
-    borderColor: 'rgba(45, 219, 219, 0.3)',
-    borderRadius: 16,
+    backgroundColor: 'rgba(10, 14, 39, 0.85)',
+    borderWidth: 2,
+    borderColor: 'rgba(45, 219, 219, 0.4)',
+    borderRadius: 20,
     zIndex: 1001,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
+    shadowColor: '#2ddbdb',
+    shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
-    elevation: 10,
+    elevation: 15,
+    ...(Platform.OS === 'web' && {
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+    }),
   },
   menuItem: {
     width: '100%',

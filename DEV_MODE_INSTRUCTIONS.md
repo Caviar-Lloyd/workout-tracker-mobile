@@ -102,3 +102,54 @@ if (Platform.OS === 'web') {
 - `/utils/devMode.ts` - Dev mode utilities
 - `eas.json` - Build configuration
 - `.env` - Added `EXPO_PUBLIC_DEV_MODE=true`
+
+---
+
+## Recent UI Improvements (Oct 7, 2025)
+
+### Holographic Menu Bar with Animated Tooltip
+**File:** `App.tsx`
+
+**Changes Made:**
+1. **Holographic/Glassmorphism Effect on Menu Bar**
+   - Added glow layer (`menuBarGlow`) behind menu bar with cyan shadow
+   - Updated slide-up menu with frosted glass effect (backdrop blur on web)
+   - Increased border width to 2px with brighter cyan color
+   - Added soft cyan shadow around menu for elevated holographic look
+
+2. **Animated Arrow Tooltip**
+   - Created bouncing arrow animation pointing up at menu bar
+   - Added "Menu" text label below arrow with glowing cyan color
+   - Tooltip auto-hides after 5 seconds with fade animation
+   - Dismisses on user interaction when menu is opened
+   - Everything contained within bounds - positioned above menu bar
+
+3. **Desktop Max-Width Constraints**
+   - Added `contentWrapper` with `maxWidth: 768px` for web platform
+   - Content stays mobile-sized and centered on desktop
+   - Background still fills full screen width
+   - Uses `alignSelf: 'center'` for horizontal centering
+
+**New Components Added:**
+- `ArrowUpIcon` SVG component
+- Animation refs: `bounceAnim`, `fadeAnim`
+- State: `showTooltip`
+
+**New Styles Added:**
+- `tooltipContainer` - Positions animated tooltip
+- `tooltipText` - Glowing cyan text styling
+- `menuBarGlow` - Holographic glow layer
+- `contentWrapper` - Desktop max-width container
+- Updated `menuBar` - Added cyan shadow
+- Updated `slideMenu` - Added glassmorphism with backdrop filter
+
+**Issues Resolved:**
+- Menu bar looked too similar to phone's native bottom bar
+- No visual indication that the bar was interactive
+- Content stretched infinitely on desktop view
+- Users weren't aware the menu existed
+
+**Cross-Platform Compatibility:**
+- Backdrop filter only applies on web (Platform.OS === 'web')
+- Max-width constraint only applies on web
+- Animations work on iOS, Android, and web

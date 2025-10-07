@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Alert, ActivityIndicator, Platform } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -303,13 +303,14 @@ export default function WorkoutScreen() {
       {/* Particle Background */}
       <ParticleBackground />
 
-      {/* Content */}
-      <View style={[styles.content, {
-        paddingTop: Math.max(insets.top, 20) + 10,
-        paddingBottom: Math.max(insets.bottom, 20) + 60,
-      }]}>
-        {/* Header */}
-        <View style={styles.header}>
+      {/* Content Wrapper */}
+      <View style={styles.contentWrapper}>
+        <View style={[styles.content, {
+          paddingTop: Math.max(insets.top, 20) + 10,
+          paddingBottom: Math.max(insets.bottom, 20) + 60,
+        }]}>
+          {/* Header */}
+          <View style={styles.header}>
           <Text style={styles.title}>{workoutName}</Text>
           <Text style={styles.subtitle}>Week {week}, Day {day}</Text>
         </View>
@@ -455,6 +456,7 @@ export default function WorkoutScreen() {
             )}
           </View>
         </View>
+        </View>
       </View>
     </View>
   );
@@ -482,9 +484,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.25)',
     zIndex: 1,
   },
+  contentWrapper: {
+    flex: 1,
+    width: '100%',
+    maxWidth: Platform.OS === 'web' ? 768 : undefined,
+    alignSelf: 'center',
+    zIndex: 2,
+  },
   content: {
     flex: 1,
-    zIndex: 2,
   },
   loadingContainer: {
     flex: 1,
