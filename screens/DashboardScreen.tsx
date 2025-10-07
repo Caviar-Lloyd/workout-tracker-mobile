@@ -393,58 +393,105 @@ export default function DashboardScreen() {
         // Load user profile and preferences
         const profile = await getUserProfile(user.id);
         console.log('=== PROFILE DATA ===', JSON.stringify(profile, null, 2));
+
+        // Check if user is a client (not coach/trainer)
+        const isClient = profile?.subscription_tier === 'client';
+
         if (profile) {
-          // Pre-fill saved schedule pattern and starting day if they exist
-          if (profile.schedule_pattern) {
-            console.log('Setting schedule pattern:', profile.schedule_pattern);
-            setSchedulePattern(profile.schedule_pattern);
-          } else {
-            console.log('No schedule_pattern in profile');
-          }
-          if (profile.starting_day_of_week !== null && profile.starting_day_of_week !== undefined) {
-            console.log('Setting starting day of week:', profile.starting_day_of_week);
-            setStartingDayOfWeek(profile.starting_day_of_week);
-            setRestDaysOfWeek([profile.starting_day_of_week]);
-          } else {
-            console.log('No starting_day_of_week in profile');
-          }
-
-          // Pre-fill program start date from workout history if it exists
-          if (profile.program_start_date) {
-            const startDate = new Date(profile.program_start_date);
-            setProgramStartDate(startDate);
-            // Also pre-fill starting day of week from that date if not already set
-            if (profile.starting_day_of_week === null) {
-              setStartingDayOfWeek(startDate.getDay());
+          // For clients: Auto-set to custom split and get earliest workout date
+          if (isClient) {
+            // Default to custom split for clients
+            if (!profile.schedule_pattern) {
+              setSchedulePattern('custom');
+            } else {
+              setSchedulePattern(profile.schedule_pattern);
             }
-          }
 
-          // Check if user has completed ALL required setup
-          const hasCompleteSetup =
-            profile.schedule_pattern &&
-            profile.starting_day_of_week !== null &&
-            profile.program_start_date;
+            // Auto-detect start date from earliest workout in database
+            if (!profile.program_start_date) {
+              const { data: earliestWorkout } = await supabase
+                .from('workout_starts')
+                .select('workout_date')
+                .eq('client_email', email.toLowerCase())
+                .order('workout_date', { ascending: true })
+                .limit(1)
+                .single();
 
-          if (hasCompleteSetup) {
-            // User has everything configured - regenerate schedule from completed workouts
-            // Don't load old schedule from DB, always regenerate to ensure rest days are correct
-            console.log('User has complete setup - will regenerate schedule...');
+              if (earliestWorkout) {
+                const startDate = new Date(earliestWorkout.workout_date + 'T00:00:00');
+                setProgramStartDate(startDate);
+                setRestDaysOfWeek([startDate.getDay()]);
+
+                // Auto-save this to profile
+                await supabase
+                  .from('clients')
+                  .update({
+                    program_start_date: earliestWorkout.workout_date,
+                    schedule_pattern: 'custom',
+                  })
+                  .eq('user_id', user.id);
+              }
+            } else {
+              const startDate = new Date(profile.program_start_date);
+              setProgramStartDate(startDate);
+            }
+
+            // Clients skip setup - go straight to confirmed
             setIsProgramConfirmed(true);
             setShowInitialSetup(false);
           } else {
-            // User is missing some info - show setup to fill in the gaps
-            // Determine which step to start at based on what's missing
-            if (!profile.schedule_pattern) {
-              setSetupStep('split');
-            } else if (profile.schedule_pattern !== 'custom' && profile.starting_day_of_week === null) {
-              setSetupStep('restday');
-            } else if (!profile.program_start_date) {
-              setSetupStep('date');
+            // For coaches/trainers: Use existing setup flow
+            if (profile.schedule_pattern) {
+              console.log('Setting schedule pattern:', profile.schedule_pattern);
+              setSchedulePattern(profile.schedule_pattern);
             } else {
-              // Has everything except workout_schedule, ask to confirm
-              setSetupStep('confirm');
+              console.log('No schedule_pattern in profile');
             }
-            setShowInitialSetup(true);
+            if (profile.starting_day_of_week !== null && profile.starting_day_of_week !== undefined) {
+              console.log('Setting starting day of week:', profile.starting_day_of_week);
+              setStartingDayOfWeek(profile.starting_day_of_week);
+              setRestDaysOfWeek([profile.starting_day_of_week]);
+            } else {
+              console.log('No starting_day_of_week in profile');
+            }
+
+            // Pre-fill program start date from workout history if it exists
+            if (profile.program_start_date) {
+              const startDate = new Date(profile.program_start_date);
+              setProgramStartDate(startDate);
+              // Also pre-fill starting day of week from that date if not already set
+              if (profile.starting_day_of_week === null) {
+                setStartingDayOfWeek(startDate.getDay());
+              }
+            }
+
+            // Check if user has completed ALL required setup
+            const hasCompleteSetup =
+              profile.schedule_pattern &&
+              profile.starting_day_of_week !== null &&
+              profile.program_start_date;
+
+            if (hasCompleteSetup) {
+              // User has everything configured - regenerate schedule from completed workouts
+              // Don't load old schedule from DB, always regenerate to ensure rest days are correct
+              console.log('User has complete setup - will regenerate schedule...');
+              setIsProgramConfirmed(true);
+              setShowInitialSetup(false);
+            } else {
+              // User is missing some info - show setup to fill in the gaps
+              // Determine which step to start at based on what's missing
+              if (!profile.schedule_pattern) {
+                setSetupStep('split');
+              } else if (profile.schedule_pattern !== 'custom' && profile.starting_day_of_week === null) {
+                setSetupStep('restday');
+              } else if (!profile.program_start_date) {
+                setSetupStep('date');
+              } else {
+                // Has everything except workout_schedule, ask to confirm
+                setSetupStep('confirm');
+              }
+              setShowInitialSetup(true);
+            }
           }
         }
 
@@ -729,10 +776,15 @@ export default function DashboardScreen() {
       <ParticleBackground />
 
       <View style={styles.contentWrapper}>
-        <View style={[styles.content, {
-          paddingTop: Math.max(insets.top, 20) + 10,
-          paddingBottom: Math.max(insets.bottom, 20) + 60,
-        }]}>
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={{
+            paddingTop: Math.max(insets.top, 20) + 10,
+            paddingBottom: Math.max(insets.bottom, 20) + 60,
+            paddingHorizontal: 20,
+          }}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Header */}
           <View style={styles.header}>
           <View style={styles.headerContent}>
@@ -1024,6 +1076,7 @@ export default function DashboardScreen() {
             </View>
           </View>
         </View>
+        </ScrollView>
       </View>
 
       {/* Initial Setup Overlay */}
@@ -1372,7 +1425,6 @@ export default function DashboardScreen() {
           </View>
         </View>
       </Modal>
-      </View>
     </View>
   );
 }
@@ -1400,15 +1452,22 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   contentWrapper: {
-    flex: 1,
-    width: '100%',
-    maxWidth: Platform.OS === 'web' ? 768 : undefined,
-    alignSelf: 'center',
+    ...(Platform.OS === 'web' ? {
+      width: '100%',
+      maxWidth: 768,
+      alignSelf: 'center',
+    } : {
+      flex: 1,
+      width: '100%',
+    }),
     zIndex: 2,
   },
   content: {
-    flex: 1,
-    paddingHorizontal: 20,
+    ...(Platform.OS === 'web' ? {
+      // No flex on web - let content define height
+    } : {
+      flex: 1,
+    }),
   },
   loadingContainer: {
     flex: 1,

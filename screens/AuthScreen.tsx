@@ -57,11 +57,26 @@ export default function AuthScreen() {
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            emailRedirectTo: undefined,
+          }
         });
 
         if (signUpError) throw signUpError;
 
-        Alert.alert('Account Created', 'Please check your email to verify your account, then sign in.');
+        // Try signing in immediately (works if email confirmation is disabled)
+        const { error: immediateSignInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (!immediateSignInError) {
+          Alert.alert('Success', 'Account created and signed in!');
+          setLoading(false);
+          return;
+        }
+
+        Alert.alert('Account Created', 'Please sign in with your credentials.');
         setLoading(false);
         return;
       }
