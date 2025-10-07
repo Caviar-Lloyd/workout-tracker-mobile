@@ -117,8 +117,7 @@ export default function WorkoutScreen() {
         idx === setIndex ? { ...set, [field]: value } : set
       ),
     }));
-
-    updateCurrentSet();
+    // Removed auto-advance - user manually selects exercises
   };
 
   const updateCurrentSet = () => {

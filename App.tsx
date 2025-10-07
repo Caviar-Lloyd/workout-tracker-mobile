@@ -456,8 +456,8 @@ const styles = StyleSheet.create({
   },
   tooltipContainer: {
     position: 'absolute',
-    left: SCREEN_WIDTH * 0.25,
-    width: SCREEN_WIDTH * 0.5,
+    left: '25%',
+    width: '50%',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 9998,
@@ -476,8 +476,8 @@ const styles = StyleSheet.create({
   menuButton: {
     position: 'absolute',
     bottom: 20,
-    left: SCREEN_WIDTH * 0.25,
-    width: SCREEN_WIDTH * 0.5,
+    left: '25%',
+    width: '50%',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 9999,
