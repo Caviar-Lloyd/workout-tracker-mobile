@@ -1,0 +1,45 @@
+  const checkProfileCompletion = async (session: Session | null) => {
+    if (!session) {
+      setLoading(false);
+      setNeedsProfileCompletion(false);
+      return;
+    }
+
+    // First check if user has a client profile by user_id
+    let { data: client, error } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .single();
+
+    // If not found by user_id, try to find by email and link it
+    if (error && error.code === 'PGRST116') {
+      const { data: clientByEmail, error: emailError } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('email', session.user.email)
+        .single();
+
+      if (clientByEmail && !emailError) {
+        // Found existing client by email - link it to the user_id
+        const { error: updateError } = await supabase
+          .from('clients')
+          .update({ user_id: session.user.id })
+          .eq('email', session.user.email);
+
+        if (!updateError) {
+          client = clientByEmail;
+          error = null;
+        }
+      }
+    }
+
+    if (error || !client) {
+      // No profile found - need to complete profile
+      setNeedsProfileCompletion(true);
+    } else {
+      setNeedsProfileCompletion(false);
+    }
+
+    setLoading(false);
+  };

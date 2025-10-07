@@ -1,0 +1,461 @@
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Dimensions } from 'react-native';
+import { supabase } from '../lib/supabase/client';
+import { getWorkoutTemplate, getAllExerciseHistory } from '../lib/supabase/workout-service';
+import type { WeekNumber, DayNumber } from '../types/workout';
+
+const WORKOUT_DAYS = [
+  { day: 1, name: "Chest, Triceps, Abs", type: "Multi-Joint" },
+  { day: 2, name: "Shoulders, Legs, Calves", type: "Multi-Joint" },
+  { day: 3, name: "Back, Traps, Biceps", type: "Multi-Joint" },
+  { day: 4, name: "Chest, Triceps, Abs", type: "Isolation" },
+  { day: 5, name: "Shoulders, Legs, Calves", type: "Isolation" },
+  { day: 6, name: "Back, Traps, Biceps", type: "Isolation" },
+];
+
+interface ExerciseData {
+  name: string;
+  setCount: number;
+  repRange: string;
+  index: number;
+  history: any[];
+}
+
+export default function ProgressScreen() {
+  const [userData, setUserData] = useState<{ email: string } | null>(null);
+  const [selectedPhase, setSelectedPhase] = useState<1 | 2>(1);
+  const [selectedWeek, setSelectedWeek] = useState<WeekNumber>(1);
+  const [selectedDay, setSelectedDay] = useState<DayNumber>(1);
+  const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
+  const [exercises, setExercises] = useState<ExerciseData[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isPhaseOpen, setIsPhaseOpen] = useState(false);
+  const [isWeekOpen, setIsWeekOpen] = useState(false);
+  const [isDayOpen, setIsDayOpen] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserData({ email: user.email || '' });
+      }
+    };
+    checkAuth();
+  }, []);
+
+  useEffect(() => {
+    if (!userData) return;
+
+    const fetchExercises = async () => {
+      setIsLoading(true);
+      try {
+        const template = await getWorkoutTemplate(selectedWeek, selectedDay);
+        const history = await getAllExerciseHistory(userData.email, selectedWeek, selectedDay);
+
+        if (template && template.exercises.length > 0) {
+          const exerciseData: ExerciseData[] = template.exercises.map((exercise: any) => {
+            const exerciseHistory = history.filter((h: any) => h.exerciseName === exercise.name);
+            return {
+              name: exercise.name,
+              setCount: exercise.setCount,
+              repRange: exercise.repRange,
+              index: exercise.index,
+              history: exerciseHistory,
+            };
+          });
+          setExercises(exerciseData);
+          setCurrentExerciseIndex(0);
+        }
+      } catch (error) {
+        console.error('Error fetching exercises:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchExercises();
+  }, [selectedWeek, selectedDay, userData]);
+
+  const handlePrevExercise = () => {
+    if (currentExerciseIndex > 0) {
+      setCurrentExerciseIndex(currentExerciseIndex - 1);
+    }
+  };
+
+  const handleNextExercise = () => {
+    if (currentExerciseIndex < exercises.length - 1) {
+      setCurrentExerciseIndex(currentExerciseIndex + 1);
+    }
+  };
+
+  const currentExercise = exercises[currentExerciseIndex];
+  const chartData = currentExercise?.history.length > 0
+    ? currentExercise.history.slice(0, 10).reverse().map((h: any) => ({
+        date: new Date(h.completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        weight: h.sets.reduce((sum: number, set: any) => sum + (set.weight || 0), 0) / h.sets.length,
+      }))
+    : [];
+  const maxWeight = chartData.length > 0 ? Math.max(...chartData.map(d => d.weight)) : 0;
+  const weeks = selectedPhase === 1 ? [1, 2, 3] : [4, 5, 6];
+  const workoutInfo = WORKOUT_DAYS.find(w => w.day === selectedDay);
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+        <Text style={styles.title}>Progress Tracker</Text>
+        <Text style={styles.subtitle}>Track your performance</Text>
+
+        <View style={styles.dropdownsContainer}>
+          <View style={styles.dropdown}>
+            <TouchableOpacity style={styles.dropdownButton} onPress={() => setIsPhaseOpen(!isPhaseOpen)}>
+              <Text style={styles.dropdownLabel}>Phase</Text>
+              <Text style={styles.dropdownValue}>{selectedPhase}</Text>
+            </TouchableOpacity>
+            {isPhaseOpen && (
+              <View style={styles.dropdownMenu}>
+                {[1, 2].map((phase) => (
+                  <TouchableOpacity
+                    key={phase}
+                    style={[styles.dropdownItem, selectedPhase === phase && styles.dropdownItemActive]}
+                    onPress={() => {
+                      setSelectedPhase(phase as 1 | 2);
+                      setSelectedWeek(phase === 1 ? 1 : 4);
+                      setIsPhaseOpen(false);
+                    }}
+                  >
+                    <Text style={[styles.dropdownItemText, selectedPhase === phase && styles.dropdownItemTextActive]}>
+                      Phase {phase}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+
+          <View style={styles.dropdown}>
+            <TouchableOpacity style={styles.dropdownButton} onPress={() => setIsWeekOpen(!isWeekOpen)}>
+              <Text style={styles.dropdownLabel}>Week</Text>
+              <Text style={styles.dropdownValue}>{selectedWeek}</Text>
+            </TouchableOpacity>
+            {isWeekOpen && (
+              <View style={styles.dropdownMenu}>
+                {weeks.map((week) => (
+                  <TouchableOpacity
+                    key={week}
+                    style={[styles.dropdownItem, selectedWeek === week && styles.dropdownItemActive]}
+                    onPress={() => {
+                      setSelectedWeek(week as WeekNumber);
+                      setIsWeekOpen(false);
+                    }}
+                  >
+                    <Text style={[styles.dropdownItemText, selectedWeek === week && styles.dropdownItemTextActive]}>
+                      Week {week}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+
+          <View style={styles.dropdown}>
+            <TouchableOpacity style={styles.dropdownButton} onPress={() => setIsDayOpen(!isDayOpen)}>
+              <Text style={styles.dropdownLabel}>Day</Text>
+              <Text style={styles.dropdownValue}>{selectedDay}</Text>
+            </TouchableOpacity>
+            {isDayOpen && (
+              <View style={styles.dropdownMenu}>
+                {WORKOUT_DAYS.map((workout) => (
+                  <TouchableOpacity
+                    key={workout.day}
+                    style={[styles.dropdownItem, selectedDay === workout.day && styles.dropdownItemActive]}
+                    onPress={() => {
+                      setSelectedDay(workout.day as DayNumber);
+                      setIsDayOpen(false);
+                    }}
+                  >
+                    <Text style={[styles.dropdownItemText, selectedDay === workout.day && styles.dropdownItemTextActive]}>
+                      Day {workout.day}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+        </View>
+
+        {workoutInfo && (
+          <View style={styles.workoutInfo}>
+            <Text style={styles.workoutName}>{workoutInfo.name}</Text>
+            <Text style={styles.workoutType}>{workoutInfo.type}</Text>
+          </View>
+        )}
+
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#2ddbdb" />
+          </View>
+        ) : currentExercise ? (
+          <>
+            <View style={styles.exerciseNav}>
+              <TouchableOpacity
+                style={[styles.navButton, currentExerciseIndex === 0 && styles.navButtonDisabled]}
+                onPress={handlePrevExercise}
+                disabled={currentExerciseIndex === 0}
+              >
+                <Text style={styles.navButtonText}>← Prev</Text>
+              </TouchableOpacity>
+              <View style={styles.exerciseCounter}>
+                <Text style={styles.exerciseName}>{currentExercise.name}</Text>
+                <Text style={styles.exerciseCount}>{currentExerciseIndex + 1} of {exercises.length}</Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.navButton, currentExerciseIndex === exercises.length - 1 && styles.navButtonDisabled]}
+                onPress={handleNextExercise}
+                disabled={currentExerciseIndex === exercises.length - 1}
+              >
+                <Text style={styles.navButtonText}>Next →</Text>
+              </TouchableOpacity>
+            </View>
+
+            {chartData.length > 0 ? (
+              <View style={styles.chartContainer}>
+                <Text style={styles.chartTitle}>Weight Progress</Text>
+                <View style={styles.chart}>
+                  {chartData.map((data, index) => {
+                    const height = maxWeight > 0 ? (data.weight / maxWeight) * 180 : 4;
+                    return (
+                      <View key={index} style={styles.chartBar}>
+                        <View style={[styles.chartBarFill, { height }]} />
+                        <Text style={styles.chartLabel}>{data.weight.toFixed(0)}</Text>
+                        <Text style={styles.chartDate}>{data.date}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            ) : (
+              <View style={styles.noDataContainer}>
+                <Text style={styles.noDataText}>No workout history yet</Text>
+              </View>
+            )}
+
+            <View style={styles.detailsContainer}>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Sets:</Text>
+                <Text style={styles.detailValue}>{currentExercise.setCount}</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Rep Range:</Text>
+                <Text style={styles.detailValue}>{currentExercise.repRange}</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Workouts:</Text>
+                <Text style={styles.detailValue}>{currentExercise.history.length}</Text>
+              </View>
+            </View>
+          </>
+        ) : (
+          <View style={styles.noDataContainer}>
+            <Text style={styles.noDataText}>No exercises found</Text>
+          </View>
+        )}
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  contentContainer: {
+    padding: 20,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#2ddbdb',
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#9ca3af',
+    marginBottom: 24,
+  },
+  dropdownsContainer: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  dropdown: {
+    flex: 1,
+    marginHorizontal: 4,
+  },
+  dropdownButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    padding: 12,
+    alignItems: 'center',
+  },
+  dropdownLabel: {
+    fontSize: 10,
+    color: '#9ca3af',
+    marginBottom: 4,
+  },
+  dropdownValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  dropdownMenu: {
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    borderRadius: 8,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  dropdownItem: {
+    padding: 12,
+  },
+  dropdownItemActive: {
+    backgroundColor: 'rgba(45, 219, 219, 0.2)',
+  },
+  dropdownItemText: {
+    color: '#9ca3af',
+    textAlign: 'center',
+    fontSize: 12,
+  },
+  dropdownItemTextActive: {
+    color: '#fff',
+  },
+  workoutInfo: {
+    backgroundColor: 'rgba(45, 219, 219, 0.1)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(45, 219, 219, 0.3)',
+  },
+  workoutName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  workoutType: {
+    fontSize: 12,
+    color: '#2ddbdb',
+  },
+  loadingContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+  },
+  exerciseNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+  },
+  navButton: {
+    backgroundColor: 'rgba(45, 219, 219, 0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  navButtonDisabled: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    opacity: 0.5,
+  },
+  navButtonText: {
+    color: '#2ddbdb',
+    fontWeight: '600',
+  },
+  exerciseCounter: {
+    flex: 1,
+    alignItems: 'center',
+    marginHorizontal: 8,
+  },
+  exerciseName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  exerciseCount: {
+    fontSize: 12,
+    color: '#9ca3af',
+  },
+  chartContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  chartTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 16,
+  },
+  chart: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    height: 200,
+  },
+  chartBar: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginHorizontal: 2,
+  },
+  chartBarFill: {
+    width: '100%',
+    backgroundColor: '#2ddbdb',
+    borderRadius: 4,
+    minHeight: 4,
+  },
+  chartLabel: {
+    fontSize: 10,
+    color: '#fff',
+    marginTop: 4,
+  },
+  chartDate: {
+    fontSize: 8,
+    color: '#9ca3af',
+    marginTop: 2,
+  },
+  noDataContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+  },
+  noDataText: {
+    fontSize: 16,
+    color: '#9ca3af',
+  },
+  detailsContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  detailLabel: {
+    fontSize: 14,
+    color: '#9ca3af',
+  },
+  detailValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+});
