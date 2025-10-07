@@ -425,7 +425,7 @@ export default function WorkoutScreen() {
                     <View key={setIndex} style={styles.setRow}>
                       <Text style={styles.setNumber}>Set {setIndex + 1}</Text>
                       <TextInput
-                        style={styles.input}
+                        style={[styles.input, styles.repsInput]}
                         placeholder="Reps"
                         placeholderTextColor="#6b7280"
                         value={set.reps}
@@ -433,7 +433,7 @@ export default function WorkoutScreen() {
                         keyboardType="numeric"
                       />
                       <TextInput
-                        style={styles.input}
+                        style={[styles.input, styles.weightInput]}
                         placeholder="Weight"
                         placeholderTextColor="#6b7280"
                         value={set.weight}
@@ -714,18 +714,26 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   input: {
-    flex: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 8,
     padding: 10,
     marginHorizontal: 3,
     color: '#fff',
     fontSize: 13,
+    minWidth: 60,
+  },
+  repsInput: {
+    flex: 1,
+    maxWidth: 80,
+  },
+  weightInput: {
+    flex: 1.2,
   },
   checkmark: {
     fontSize: 16,
     color: '#10b981',
     marginLeft: 6,
+    width: 20,
   },
   trackerPlaceholder: {
     flex: 1,
