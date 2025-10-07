@@ -14,7 +14,6 @@ import ClientDetailScreen from './screens/ClientDetailScreen';
 import AuthScreen from './screens/AuthScreen';
 import ProfileCompletionScreen from './screens/ProfileCompletionScreen';
 import DatabaseCheckScreen from './screens/DatabaseCheckScreen';
-import MobileDownloadPrompt from './screens/MobileDownloadPrompt';
 import ParticleBackground from './components/ParticleBackground';
 import Svg, { Path } from 'react-native-svg';
 import { SpeedInsights } from '@vercel/speed-insights/react';
@@ -306,19 +305,6 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
-  const [showMobilePrompt, setShowMobilePrompt] = useState(false);
-
-  // Detect if user is on mobile browser - force app download
-  useEffect(() => {
-    if (Platform.OS === 'web') {
-      const userAgent = navigator.userAgent.toLowerCase();
-      const isMobileBrowser = /iphone|ipad|ipod|android/.test(userAgent);
-
-      if (isMobileBrowser) {
-        setShowMobilePrompt(true);
-      }
-    }
-  }, []);
 
   useEffect(() => {
     // Check current session
@@ -383,16 +369,6 @@ export default function App() {
       },
     },
   };
-
-  // Force mobile users to download app - no option to continue on web
-  if (showMobilePrompt) {
-    return (
-      <SafeAreaProvider>
-        <MobileDownloadPrompt />
-        <StatusBar style="light" />
-      </SafeAreaProvider>
-    );
-  }
 
   return (
     <SafeAreaProvider>
