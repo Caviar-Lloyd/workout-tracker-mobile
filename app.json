@@ -21,7 +21,8 @@
         "NSMicrophoneUsageDescription": "This app uses the microphone for video recording.",
         "NSLocationWhenInUseUsageDescription": "This app uses your location to track outdoor workouts.",
         "NSMotionUsageDescription": "This app uses motion sensors to track workout activity."
-      }
+      },
+      "bundleIdentifier": "com.eccentriciron.workouttracker"
     },
     "android": {
       "adaptiveIcon": {
@@ -38,11 +39,18 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "ACTIVITY_RECOGNITION"
-      ]
+      ],
+      "package": "com.eccentriciron.workouttracker"
     },
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "cc1a105a-0bff-49c8-afd0-f5def29b0493"
+      }
+    },
+    "owner": "carver"
   }
 }
