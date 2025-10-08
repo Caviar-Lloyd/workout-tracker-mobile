@@ -316,8 +316,21 @@ export default function App() {
       }
     }, 10000); // 10 second timeout
 
+    // Handle OAuth callback from URL hash (for web)
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.hash) {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      if (hashParams.get('access_token')) {
+        console.log('OAuth callback detected, processing...');
+        // Clean up URL hash after Supabase processes it
+        setTimeout(() => {
+          window.history.replaceState(null, '', window.location.pathname);
+        }, 100);
+      }
+    }
+
     // Check current session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Session:', session ? 'Found' : 'None');
       setSession(session);
       checkProfileCompletion(session);
     }).catch((error) => {
@@ -326,7 +339,8 @@ export default function App() {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth event:', event);
       setSession(session);
       checkProfileCompletion(session);
     });
