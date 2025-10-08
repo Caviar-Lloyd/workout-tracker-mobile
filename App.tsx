@@ -345,15 +345,26 @@ export default function App() {
     }
 
     try {
-      // Check if user has a client/coach profile by email
-      const { data: client, error } = await supabase
+      // Check if user has a client/coach profile by email with 5s timeout
+      const profileCheckPromise = supabase
         .from('clients')
         .select('*')
         .eq('email', session.user.email)
         .single();
 
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Profile check timeout')), 5000)
+      );
+
+      const { data: client, error } = await Promise.race([
+        profileCheckPromise,
+        timeoutPromise
+      ]) as any;
+
       if (error || !client) {
-        setNeedsProfileCompletion(true);
+        // If no profile found, skip check and let them in
+        console.log('No profile found - bypassing check');
+        setNeedsProfileCompletion(false);
       } else if (!client.first_name || !client.last_name) {
         setNeedsProfileCompletion(true);
       } else {
@@ -361,8 +372,8 @@ export default function App() {
       }
     } catch (error) {
       console.error('Profile check error:', error);
-      // On error, assume profile needs completion to be safe
-      setNeedsProfileCompletion(true);
+      // On error or timeout, bypass profile check and let them in
+      setNeedsProfileCompletion(false);
     } finally {
       setLoading(false);
     }
