@@ -302,6 +302,7 @@ function AppNavigator() {
 }
 
 export default function App() {
+  // Production mode - no dev overlay
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
