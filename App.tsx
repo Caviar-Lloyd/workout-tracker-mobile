@@ -479,7 +479,7 @@ const styles = StyleSheet.create({
   menuButton: {
     position: 'absolute',
     ...(Platform.OS === 'web' ? {
-      bottom: 80,
+      bottom: 120,
       left: '50%',
       transform: [{ translateX: '-50%' }],
       width: 384, // 50% of 768px max-width

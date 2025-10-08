@@ -3,7 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Eccentric Iron Fitness</title>
 
     <style id="expo-reset">
@@ -42,5 +45,33 @@
       You need to enable JavaScript to run this app.
     </noscript>
     <div id="root"></div>
+
+    <script>
+      // Auto-hide address bar on mobile by scrolling
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          window.scrollTo(0, 1);
+        }, 100);
+      });
+
+      // Double-tap anywhere to toggle fullscreen/show browser controls
+      let lastTap = 0;
+      document.addEventListener('touchend', function(event) {
+        const currentTime = new Date().getTime();
+        const tapLength = currentTime - lastTap;
+
+        if (tapLength < 500 && tapLength > 0) {
+          // Double tap detected - toggle fullscreen
+          if (document.fullscreenElement) {
+            document.exitFullscreen();
+          } else {
+            document.documentElement.requestFullscreen().catch(err => {
+              console.log('Fullscreen request failed:', err);
+            });
+          }
+        }
+        lastTap = currentTime;
+      });
+    </script>
   </body>
 </html>
