@@ -308,10 +308,21 @@ export default function App() {
   const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
 
   useEffect(() => {
+    // Set a timeout to prevent infinite loading
+    const loadingTimeout = setTimeout(() => {
+      if (loading) {
+        console.warn('Loading timeout - forcing stop');
+        setLoading(false);
+      }
+    }, 10000); // 10 second timeout
+
     // Check current session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       checkProfileCompletion(session);
+    }).catch((error) => {
+      console.error('Session check error:', error);
+      setLoading(false);
     });
 
     // Listen for auth changes
@@ -320,7 +331,10 @@ export default function App() {
       checkProfileCompletion(session);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(loadingTimeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const checkProfileCompletion = async (session: Session | null) => {
@@ -330,22 +344,28 @@ export default function App() {
       return;
     }
 
-    // Check if user has a client/coach profile by email
-    const { data: client, error } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('email', session.user.email)
-      .single();
+    try {
+      // Check if user has a client/coach profile by email
+      const { data: client, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('email', session.user.email)
+        .single();
 
-    if (error || !client) {
+      if (error || !client) {
+        setNeedsProfileCompletion(true);
+      } else if (!client.first_name || !client.last_name) {
+        setNeedsProfileCompletion(true);
+      } else {
+        setNeedsProfileCompletion(false);
+      }
+    } catch (error) {
+      console.error('Profile check error:', error);
+      // On error, assume profile needs completion to be safe
       setNeedsProfileCompletion(true);
-    } else if (!client.first_name || !client.last_name) {
-      setNeedsProfileCompletion(true);
-    } else {
-      setNeedsProfileCompletion(false);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   if (loading) {
