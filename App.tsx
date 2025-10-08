@@ -180,7 +180,7 @@ function ExpandableMenu() {
       <TouchableOpacity
         style={[
           styles.menuButton,
-          { bottom: Math.max(insets.bottom, 20) + 10 } // Add 10px extra padding above navigation bar
+          Platform.OS !== 'web' && { bottom: Math.max(insets.bottom, 20) + 10 } // Add 10px extra padding above navigation bar on native
         ]}
         onPress={toggleMenu}
         hitSlop={{ top: 40, bottom: 40, left: 40, right: 40 }} // Larger touch area - 40px all around
