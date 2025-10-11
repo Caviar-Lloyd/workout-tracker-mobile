@@ -9,6 +9,7 @@ import { Session } from '@supabase/supabase-js';
 import DashboardScreen from './screens/DashboardScreen';
 import WorkoutScreen from './screens/WorkoutScreen';
 import ProgramScreen from './screens/ProgramScreen';
+import ProgressScreen from './screens/ProgressScreen';
 import ClientsScreen from './screens/ClientsScreen';
 import ClientDetailScreen from './screens/ClientDetailScreen';
 import AuthScreen from './screens/AuthScreen';
@@ -80,6 +81,41 @@ function ExpandableMenu() {
   const [showTooltip, setShowTooltip] = useState(true);
   const insets = useSafeAreaInsets();
   const isNavigatingRef = useRef(false);
+  const [isCoach, setIsCoach] = useState(false);
+
+  // Check if user is a coach
+  useEffect(() => {
+    const checkCoachStatus = async () => {
+      try {
+        console.log('🔍 Checking coach status...');
+        const { data: { user } } = await supabase.auth.getUser();
+        console.log('User email:', user?.email);
+
+        if (user?.email) {
+          const { data: profile, error } = await supabase
+            .from('clients')
+            .select('is_coach')
+            .eq('email', user.email)
+            .single();
+
+          console.log('Coach status query result:', { profile, error });
+
+          if (profile) {
+            console.log('Setting isCoach to:', profile.is_coach === true);
+            setIsCoach(profile.is_coach === true);
+          } else {
+            console.log('No profile found, defaulting to false');
+            setIsCoach(false);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking coach status:', error);
+        setIsCoach(false);
+      }
+    };
+
+    checkCoachStatus();
+  }, []);
 
   // Animated arrow bounce effect
   useEffect(() => {
@@ -165,7 +201,8 @@ function ExpandableMenu() {
           style={[
             styles.tooltipContainer,
             {
-              bottom: Math.max(insets.bottom, 20) + 30,
+              bottom: Platform.OS === 'web' ? 50 : Math.max(insets.bottom, 20) + 30,
+              position: Platform.OS === 'web' ? 'fixed' : 'absolute',
               opacity: fadeAnim,
               transform: [{ translateY: bounceAnim }],
             },
@@ -180,7 +217,7 @@ function ExpandableMenu() {
       <TouchableOpacity
         style={[
           styles.menuButton,
-          Platform.OS !== 'web' && { bottom: Math.max(insets.bottom, 20) + 10 } // Add 10px extra padding above navigation bar on native
+          Platform.OS !== 'web' && { bottom: Math.max(insets.bottom, 20) + 10 } // Add 10px extra padding above navigation bar on native only
         ]}
         onPress={toggleMenu}
         hitSlop={{ top: 40, bottom: 40, left: 40, right: 40 }} // Larger touch area - 40px all around
@@ -251,21 +288,26 @@ function ExpandableMenu() {
           <WorkoutIcon size={22} color="#2ddbdb" />
           <Text style={styles.menuItemText}>Workout Tracker</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.menuItem}
-          activeOpacity={0.7}
-          delayPressIn={0}
-          onPressIn={() => {
-            slideAnim.stopAnimation(() => {
-              slideAnim.setValue(500);
-              setMenuOpen(false);
-              navigateTo('Clients');
-            });
-          }}
-        >
-          <ClientsIcon size={22} color="#2ddbdb" />
-          <Text style={styles.menuItemText}>My Clients</Text>
-        </TouchableOpacity>
+
+        {/* Only show My Clients for coaches/trainers */}
+        {isCoach && (
+          <TouchableOpacity
+            style={styles.menuItem}
+            activeOpacity={0.7}
+            delayPressIn={0}
+            onPressIn={() => {
+              slideAnim.stopAnimation(() => {
+                slideAnim.setValue(500);
+                setMenuOpen(false);
+                navigateTo('Clients');
+              });
+            }}
+          >
+            <ClientsIcon size={22} color="#2ddbdb" />
+            <Text style={styles.menuItemText}>My Clients</Text>
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity
           style={styles.menuItem}
           activeOpacity={0.7}
@@ -293,6 +335,7 @@ function AppNavigator() {
         <Stack.Screen name="Dashboard" component={DashboardScreen} />
         <Stack.Screen name="Program" component={ProgramScreen} />
         <Stack.Screen name="Workout" component={WorkoutScreen} />
+        <Stack.Screen name="Progress" component={ProgressScreen} />
         <Stack.Screen name="Clients" component={ClientsScreen} />
         <Stack.Screen name="ClientDetail" component={ClientDetailScreen} />
       </Stack.Navigator>
@@ -302,53 +345,24 @@ function AppNavigator() {
 }
 
 export default function App() {
-  // Production mode - no dev overlay
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
 
   useEffect(() => {
-    // Set a timeout to prevent infinite loading
-    const loadingTimeout = setTimeout(() => {
-      if (loading) {
-        console.warn('Loading timeout - forcing stop');
-        setLoading(false);
-      }
-    }, 10000); // 10 second timeout
-
-    // Handle OAuth callback from URL hash (for web)
-    if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.hash) {
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      if (hashParams.get('access_token')) {
-        console.log('OAuth callback detected, processing...');
-        // Clean up URL hash after Supabase processes it
-        setTimeout(() => {
-          window.history.replaceState(null, '', window.location.pathname);
-        }, 100);
-      }
-    }
-
     // Check current session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Session:', session ? 'Found' : 'None');
       setSession(session);
       checkProfileCompletion(session);
-    }).catch((error) => {
-      console.error('Session check error:', error);
-      setLoading(false);
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth event:', event);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       checkProfileCompletion(session);
     });
 
-    return () => {
-      clearTimeout(loadingTimeout);
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
   const checkProfileCompletion = async (session: Session | null) => {
@@ -359,15 +373,17 @@ export default function App() {
     }
 
     try {
-      // Check if user has a client/coach profile by email with 5s timeout
+      console.log('🔍 Checking profile for:', session.user.email);
+
+      // Check if user has a client/coach profile by email with 8 second timeout
       const profileCheckPromise = supabase
         .from('clients')
         .select('*')
         .eq('email', session.user.email)
-        .single();
+        .maybeSingle();
 
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Profile check timeout')), 5000)
+        setTimeout(() => reject(new Error('Profile check timeout')), 8000)
       );
 
       const { data: client, error } = await Promise.race([
@@ -375,22 +391,52 @@ export default function App() {
         timeoutPromise
       ]) as any;
 
-      if (error || !client) {
-        // If no profile found, skip check and let them in
-        console.log('No profile found - bypassing check');
-        setNeedsProfileCompletion(false);
-      } else if (!client.first_name || !client.last_name) {
-        setNeedsProfileCompletion(true);
+      console.log('Profile check result:', { client, error });
+
+      // If user doesn't exist at all, auto-create a basic profile and let them into dashboard
+      if (!client || error?.code === 'PGRST116') {
+        console.log('🆕 User not found in clients table - auto-creating profile');
+
+        try {
+          // Set program start date to today
+          const today = new Date().toISOString().split('T')[0];
+
+          const { data: newClient, error: insertError } = await supabase
+            .from('clients')
+            .insert({
+              email: session.user.email,
+              subscription_tier: 'client',
+              rest_days: [], // Empty array = no rest days initially
+              starting_day_of_week: 0, // Backward compatibility
+              program_start_date: today,
+              first_name: '',  // Explicitly set empty string to avoid NOT NULL constraint
+              last_name: '',   // Will be filled in via profile modal
+              is_coach: false, // New users are clients by default
+            })
+            .select()
+            .single();
+
+          console.log('Auto-create result:', { newClient, insertError });
+
+          // Always let them into dashboard - they'll complete profile there via modal
+          setNeedsProfileCompletion(false);
+        } catch (createError) {
+          console.error('Exception auto-creating profile:', createError);
+          // Still let them into dashboard
+          setNeedsProfileCompletion(false);
+        }
       } else {
+        // User exists - always let them into dashboard (modal will handle completion)
+        console.log('✅ User profile found, proceeding to dashboard');
         setNeedsProfileCompletion(false);
       }
     } catch (error) {
-      console.error('Profile check error:', error);
-      // On error or timeout, bypass profile check and let them in
+      // On timeout, let them into dashboard
+      console.log('Profile check timed out, allowing access');
       setNeedsProfileCompletion(false);
-    } finally {
-      setLoading(false);
     }
+
+    setLoading(false);
   };
 
   if (loading) {
@@ -423,8 +469,6 @@ export default function App() {
           <NavigationContainer theme={DarkTheme} linking={linking}>
             {!session ? (
               <AuthScreen />
-            ) : needsProfileCompletion ? (
-              <ProfileCompletionScreen />
             ) : (
               <AppNavigator />
             )}
@@ -523,9 +567,9 @@ const styles = StyleSheet.create({
     textShadowRadius: 8,
   },
   menuButton: {
-    position: 'absolute',
+    position: Platform.OS === 'web' ? 'fixed' : 'absolute', // Fixed to viewport on web
     ...(Platform.OS === 'web' ? {
-      bottom: 120,
+      bottom: 10, // Positioned between content and Samsung navigation bar
       left: '50%',
       transform: [{ translateX: '-50%' }],
       width: 384, // 50% of 768px max-width
