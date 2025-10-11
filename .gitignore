@@ -41,3 +41,13 @@ yarn-error.*
 /android
 
 .vercel
+
+# Backup and temporary files
+*.backup
+*.old
+*.temp
+*.bak
+*_original_backup.*
+*_simplified.*
+temp_*
+nul
