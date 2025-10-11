@@ -115,104 +115,125 @@ export default function ProgressScreen() {
         <Text style={styles.title}>Progress Tracker</Text>
         <Text style={styles.subtitle}>Track your performance</Text>
 
-        {/* Workout and Exercise Dropdowns */}
-        <View style={styles.dropdownsContainer}>
-          {/* Workout Day Dropdown */}
-          <View style={styles.dropdownWrapper}>
-            <TouchableOpacity
-              style={styles.dropdownButton}
-              onPress={() => {
-                setShowWorkoutDropdown(!showWorkoutDropdown);
-                setShowExerciseDropdown(false);
-              }}
-            >
-              <View style={styles.dropdownContent}>
-                <Text style={styles.dropdownLabel}>Workout</Text>
-                <Text style={styles.dropdownValue} numberOfLines={1}>
-                  {workoutInfo?.name || 'Select Workout'}
-                </Text>
-                <Text style={styles.dropdownSubtext}>Day {selectedDay}</Text>
-              </View>
-              <Text style={styles.dropdownArrow}>{showWorkoutDropdown ? '▲' : '▼'}</Text>
-            </TouchableOpacity>
+        {/* Combined Container with Arrows and Dropdowns */}
+        <View style={styles.combinedContainer}>
+          {/* Left Arrow */}
+          <TouchableOpacity
+            style={[styles.arrowButton, selectedDay === 1 && styles.arrowButtonDisabled]}
+            onPress={handlePrevDay}
+            disabled={selectedDay === 1}
+          >
+            <Text style={styles.arrowText}>←</Text>
+          </TouchableOpacity>
 
-            {showWorkoutDropdown && (
-              <View style={styles.dropdownMenu}>
-                {WORKOUT_DAYS.map((workout) => (
-                  <TouchableOpacity
-                    key={workout.day}
-                    style={[
-                      styles.dropdownMenuItem,
-                      selectedDay === workout.day && styles.dropdownMenuItemActive
-                    ]}
-                    onPress={() => {
-                      setSelectedDay(workout.day as DayNumber);
-                      setShowWorkoutDropdown(false);
-                    }}
-                  >
-                    <Text
+          {/* Dropdowns in the middle */}
+          <View style={styles.dropdownsRow}>
+            {/* Workout Dropdown */}
+            <View style={styles.dropdownWrapper}>
+              <TouchableOpacity
+                style={styles.dropdownButton}
+                onPress={() => {
+                  setShowWorkoutDropdown(!showWorkoutDropdown);
+                  setShowExerciseDropdown(false);
+                }}
+              >
+                <View style={styles.dropdownContent}>
+                  <Text style={styles.dropdownLabel}>Workout</Text>
+                  <Text style={styles.dropdownValue} numberOfLines={1}>
+                    {workoutInfo?.name || 'Select'}
+                  </Text>
+                  <Text style={styles.dropdownSubtext}>Day {selectedDay}</Text>
+                </View>
+                <Text style={styles.dropdownArrow}>{showWorkoutDropdown ? '▲' : '▼'}</Text>
+              </TouchableOpacity>
+
+              {showWorkoutDropdown && (
+                <View style={styles.dropdownMenu}>
+                  {WORKOUT_DAYS.map((workout) => (
+                    <TouchableOpacity
+                      key={workout.day}
                       style={[
-                        styles.dropdownMenuItemText,
-                        selectedDay === workout.day && styles.dropdownMenuItemTextActive
+                        styles.dropdownMenuItem,
+                        selectedDay === workout.day && styles.dropdownMenuItemActive
                       ]}
+                      onPress={() => {
+                        setSelectedDay(workout.day as DayNumber);
+                        setShowWorkoutDropdown(false);
+                      }}
                     >
-                      {workout.name}
-                    </Text>
-                    <Text style={styles.dropdownMenuItemSubtext}>Day {workout.day}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
+                      <Text
+                        style={[
+                          styles.dropdownMenuItemText,
+                          selectedDay === workout.day && styles.dropdownMenuItemTextActive
+                        ]}
+                      >
+                        {workout.name}
+                      </Text>
+                      <Text style={styles.dropdownMenuItemSubtext}>Day {workout.day}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+
+            {/* Exercise Dropdown */}
+            <View style={styles.dropdownWrapper}>
+              <TouchableOpacity
+                style={styles.dropdownButton}
+                onPress={() => {
+                  setShowExerciseDropdown(!showExerciseDropdown);
+                  setShowWorkoutDropdown(false);
+                }}
+              >
+                <View style={styles.dropdownContent}>
+                  <Text style={styles.dropdownLabel}>Exercise</Text>
+                  <Text style={styles.dropdownValue} numberOfLines={1}>
+                    {exercises[currentExerciseIndex]?.name || 'Select'}
+                  </Text>
+                  <Text style={styles.dropdownSubtext}>
+                    {exercises.length > 0 ? `${currentExerciseIndex + 1} of ${exercises.length}` : ''}
+                  </Text>
+                </View>
+                <Text style={styles.dropdownArrow}>{showExerciseDropdown ? '▲' : '▼'}</Text>
+              </TouchableOpacity>
+
+              {showExerciseDropdown && exercises.length > 0 && (
+                <View style={styles.dropdownMenu}>
+                  {exercises.map((exercise, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        styles.dropdownMenuItem,
+                        currentExerciseIndex === index && styles.dropdownMenuItemActive
+                      ]}
+                      onPress={() => {
+                        setCurrentExerciseIndex(index);
+                        setShowExerciseDropdown(false);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.dropdownMenuItemText,
+                          currentExerciseIndex === index && styles.dropdownMenuItemTextActive
+                        ]}
+                      >
+                        {exercise.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
           </View>
 
-          {/* Exercise Dropdown */}
-          <View style={styles.dropdownWrapper}>
-            <TouchableOpacity
-              style={styles.dropdownButton}
-              onPress={() => {
-                setShowExerciseDropdown(!showExerciseDropdown);
-                setShowWorkoutDropdown(false);
-              }}
-            >
-              <View style={styles.dropdownContent}>
-                <Text style={styles.dropdownLabel}>Exercise</Text>
-                <Text style={styles.dropdownValue} numberOfLines={1}>
-                  {exercises[currentExerciseIndex]?.name || 'Select Exercise'}
-                </Text>
-                <Text style={styles.dropdownSubtext}>
-                  {currentExerciseIndex + 1} of {exercises.length}
-                </Text>
-              </View>
-              <Text style={styles.dropdownArrow}>{showExerciseDropdown ? '▲' : '▼'}</Text>
-            </TouchableOpacity>
-
-            {showExerciseDropdown && exercises.length > 0 && (
-              <View style={styles.dropdownMenu}>
-                {exercises.map((exercise, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={[
-                      styles.dropdownMenuItem,
-                      currentExerciseIndex === index && styles.dropdownMenuItemActive
-                    ]}
-                    onPress={() => {
-                      setCurrentExerciseIndex(index);
-                      setShowExerciseDropdown(false);
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.dropdownMenuItemText,
-                        currentExerciseIndex === index && styles.dropdownMenuItemTextActive
-                      ]}
-                    >
-                      {exercise.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </View>
+          {/* Right Arrow */}
+          <TouchableOpacity
+            style={[styles.arrowButton, selectedDay === 6 && styles.arrowButtonDisabled]}
+            onPress={handleNextDay}
+            disabled={selectedDay === 6}
+          >
+            <Text style={styles.arrowText}>→</Text>
+          </TouchableOpacity>
         </View>
 
         {isLoading ? (
@@ -339,11 +360,38 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
     alignItems: 'center',
   },
-  // Dropdowns Container
-  dropdownsContainer: {
+  // Combined Container with Arrows and Dropdowns
+  combinedContainer: {
+    backgroundColor: 'rgba(45, 219, 219, 0.1)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(45, 219, 219, 0.3)',
+    padding: 12,
+    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  arrowButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(45, 219, 219, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  arrowButtonDisabled: {
+    opacity: 0.3,
+  },
+  arrowText: {
+    fontSize: 22,
+    color: '#2ddbdb',
+    fontWeight: 'bold',
+  },
+  dropdownsRow: {
+    flex: 1,
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 20,
   },
   dropdownWrapper: {
     flex: 1,
@@ -351,10 +399,10 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   dropdownButton: {
-    backgroundColor: 'rgba(45, 219, 219, 0.1)',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(45, 219, 219, 0.3)',
+    borderColor: 'rgba(45, 219, 219, 0.2)',
     padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
