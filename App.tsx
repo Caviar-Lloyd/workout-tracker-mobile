@@ -72,6 +72,12 @@ const ArrowUpIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: str
   </Svg>
 );
 
+const ProgressIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: string }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z" fill={color} />
+  </Svg>
+);
+
 function ExpandableMenu() {
   const navigation = useNavigation();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -287,6 +293,23 @@ function ExpandableMenu() {
         >
           <WorkoutIcon size={22} color="#2ddbdb" />
           <Text style={styles.menuItemText}>Workout Tracker</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          activeOpacity={0.7}
+          delayPressIn={0}
+          onPressIn={() => {
+            // Close menu synchronously before anything else
+            slideAnim.stopAnimation(() => {
+              slideAnim.setValue(500);
+              setMenuOpen(false);
+              navigateTo('Progress');
+            });
+          }}
+        >
+          <ProgressIcon size={22} color="#2ddbdb" />
+          <Text style={styles.menuItemText}>Progress</Text>
         </TouchableOpacity>
 
         {/* Only show My Clients for coaches/trainers */}
