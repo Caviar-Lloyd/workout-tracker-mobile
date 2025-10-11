@@ -31,6 +31,7 @@ export default function ProgressScreen() {
   const [exercises, setExercises] = useState<ExerciseData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showExerciseDropdown, setShowExerciseDropdown] = useState(false);
+  const [showWorkoutDropdown, setShowWorkoutDropdown] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -114,32 +115,104 @@ export default function ProgressScreen() {
         <Text style={styles.title}>Progress Tracker</Text>
         <Text style={styles.subtitle}>Track your performance</Text>
 
-        {/* Workout Day Navigation */}
-        <View style={styles.workoutNavContainer}>
-          <TouchableOpacity
-            style={[styles.arrowButton, selectedDay === 1 && styles.arrowButtonDisabled]}
-            onPress={handlePrevDay}
-            disabled={selectedDay === 1}
-          >
-            <Text style={styles.arrowText}>←</Text>
-          </TouchableOpacity>
+        {/* Workout and Exercise Dropdowns */}
+        <View style={styles.dropdownsContainer}>
+          {/* Workout Day Dropdown */}
+          <View style={styles.dropdownWrapper}>
+            <TouchableOpacity
+              style={styles.dropdownButton}
+              onPress={() => {
+                setShowWorkoutDropdown(!showWorkoutDropdown);
+                setShowExerciseDropdown(false);
+              }}
+            >
+              <View style={styles.dropdownContent}>
+                <Text style={styles.dropdownLabel}>Workout</Text>
+                <Text style={styles.dropdownValue} numberOfLines={1}>
+                  {workoutInfo?.name || 'Select Workout'}
+                </Text>
+                <Text style={styles.dropdownSubtext}>Day {selectedDay}</Text>
+              </View>
+              <Text style={styles.dropdownArrow}>{showWorkoutDropdown ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
 
-          <View style={styles.workoutTitleContainer}>
-            {workoutInfo && (
-              <>
-                <Text style={styles.workoutName}>{workoutInfo.name}</Text>
-                <Text style={styles.workoutDay}>Day {selectedDay}</Text>
-              </>
+            {showWorkoutDropdown && (
+              <View style={styles.dropdownMenu}>
+                {WORKOUT_DAYS.map((workout) => (
+                  <TouchableOpacity
+                    key={workout.day}
+                    style={[
+                      styles.dropdownMenuItem,
+                      selectedDay === workout.day && styles.dropdownMenuItemActive
+                    ]}
+                    onPress={() => {
+                      setSelectedDay(workout.day as DayNumber);
+                      setShowWorkoutDropdown(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.dropdownMenuItemText,
+                        selectedDay === workout.day && styles.dropdownMenuItemTextActive
+                      ]}
+                    >
+                      {workout.name}
+                    </Text>
+                    <Text style={styles.dropdownMenuItemSubtext}>Day {workout.day}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             )}
           </View>
 
-          <TouchableOpacity
-            style={[styles.arrowButton, selectedDay === 6 && styles.arrowButtonDisabled]}
-            onPress={handleNextDay}
-            disabled={selectedDay === 6}
-          >
-            <Text style={styles.arrowText}>→</Text>
-          </TouchableOpacity>
+          {/* Exercise Dropdown */}
+          <View style={styles.dropdownWrapper}>
+            <TouchableOpacity
+              style={styles.dropdownButton}
+              onPress={() => {
+                setShowExerciseDropdown(!showExerciseDropdown);
+                setShowWorkoutDropdown(false);
+              }}
+            >
+              <View style={styles.dropdownContent}>
+                <Text style={styles.dropdownLabel}>Exercise</Text>
+                <Text style={styles.dropdownValue} numberOfLines={1}>
+                  {exercises[currentExerciseIndex]?.name || 'Select Exercise'}
+                </Text>
+                <Text style={styles.dropdownSubtext}>
+                  {currentExerciseIndex + 1} of {exercises.length}
+                </Text>
+              </View>
+              <Text style={styles.dropdownArrow}>{showExerciseDropdown ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+
+            {showExerciseDropdown && exercises.length > 0 && (
+              <View style={styles.dropdownMenu}>
+                {exercises.map((exercise, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.dropdownMenuItem,
+                      currentExerciseIndex === index && styles.dropdownMenuItemActive
+                    ]}
+                    onPress={() => {
+                      setCurrentExerciseIndex(index);
+                      setShowExerciseDropdown(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.dropdownMenuItemText,
+                        currentExerciseIndex === index && styles.dropdownMenuItemTextActive
+                      ]}
+                    >
+                      {exercise.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
         </View>
 
         {isLoading ? (
@@ -148,48 +221,6 @@ export default function ProgressScreen() {
           </View>
         ) : (
           <>
-            {/* Exercise Dropdown */}
-            {exercises.length > 0 && (
-              <View style={styles.exerciseDropdownContainer}>
-                <TouchableOpacity
-                  style={styles.exerciseDropdownButton}
-                  onPress={() => setShowExerciseDropdown(!showExerciseDropdown)}
-                >
-                  <Text style={styles.exerciseDropdownLabel}>Exercise</Text>
-                  <Text style={styles.exerciseDropdownValue}>
-                    {exercises[currentExerciseIndex]?.name || 'Select Exercise'}
-                  </Text>
-                  <Text style={styles.exerciseDropdownArrow}>{showExerciseDropdown ? '▲' : '▼'}</Text>
-                </TouchableOpacity>
-
-                {showExerciseDropdown && (
-                  <View style={styles.exerciseDropdownMenu}>
-                    {exercises.map((exercise, index) => (
-                      <TouchableOpacity
-                        key={index}
-                        style={[
-                          styles.exerciseDropdownItem,
-                          currentExerciseIndex === index && styles.exerciseDropdownItemActive
-                        ]}
-                        onPress={() => {
-                          setCurrentExerciseIndex(index);
-                          setShowExerciseDropdown(false);
-                        }}
-                      >
-                        <Text
-                          style={[
-                            styles.exerciseDropdownItemText,
-                            currentExerciseIndex === index && styles.exerciseDropdownItemTextActive
-                          ]}
-                        >
-                          {exercise.name}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
 
             {/* Chart Container - Always visible */}
             <View style={styles.chartContainer}>
@@ -308,105 +339,84 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
     alignItems: 'center',
   },
-  // Workout Day Navigation
-  workoutNavContainer: {
+  // Dropdowns Container
+  dropdownsContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(45, 219, 219, 0.1)',
-    borderRadius: 16,
-    padding: 16,
+    gap: 12,
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(45, 219, 219, 0.3)',
   },
-  arrowButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(45, 219, 219, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  arrowButtonDisabled: {
-    opacity: 0.3,
-  },
-  arrowText: {
-    fontSize: 24,
-    color: '#2ddbdb',
-    fontWeight: 'bold',
-  },
-  workoutTitleContainer: {
+  dropdownWrapper: {
     flex: 1,
-    alignItems: 'center',
-    marginHorizontal: 16,
-  },
-  workoutName: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#fff',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  workoutDay: {
-    fontSize: 13,
-    color: '#2ddbdb',
-    fontWeight: '600',
-  },
-  // Exercise Dropdown
-  exerciseDropdownContainer: {
-    marginBottom: 16,
     position: 'relative',
     zIndex: 1000,
   },
-  exerciseDropdownButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  dropdownButton: {
+    backgroundColor: 'rgba(45, 219, 219, 0.1)',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    padding: 14,
+    borderColor: 'rgba(45, 219, 219, 0.3)',
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    minHeight: 70,
   },
-  exerciseDropdownLabel: {
-    fontSize: 11,
-    color: '#9ca3af',
+  dropdownContent: {
+    flex: 1,
     marginRight: 8,
   },
-  exerciseDropdownValue: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
+  dropdownLabel: {
+    fontSize: 10,
+    color: '#9ca3af',
+    marginBottom: 4,
+  },
+  dropdownValue: {
+    fontSize: 13,
+    fontWeight: '700',
     color: '#fff',
+    marginBottom: 2,
   },
-  exerciseDropdownArrow: {
-    fontSize: 12,
+  dropdownSubtext: {
+    fontSize: 11,
     color: '#2ddbdb',
-    marginLeft: 8,
+    fontWeight: '600',
   },
-  exerciseDropdownMenu: {
+  dropdownArrow: {
+    fontSize: 14,
+    color: '#2ddbdb',
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    top: 75,
+    left: 0,
+    right: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.95)',
     borderRadius: 12,
-    marginTop: 8,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     maxHeight: 300,
+    zIndex: 2000,
   },
-  exerciseDropdownItem: {
-    padding: 14,
+  dropdownMenuItem: {
+    padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
-  exerciseDropdownItemActive: {
+  dropdownMenuItemActive: {
     backgroundColor: 'rgba(45, 219, 219, 0.2)',
   },
-  exerciseDropdownItemText: {
+  dropdownMenuItemText: {
     color: '#fff',
-    fontSize: 14,
-  },
-  exerciseDropdownItemTextActive: {
-    color: '#2ddbdb',
+    fontSize: 13,
     fontWeight: '600',
+  },
+  dropdownMenuItemTextActive: {
+    color: '#2ddbdb',
+  },
+  dropdownMenuItemSubtext: {
+    fontSize: 11,
+    color: '#9ca3af',
+    marginTop: 2,
   },
   // Chart Container
   chartContainer: {
