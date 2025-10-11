@@ -926,6 +926,9 @@ export default function DashboardScreen() {
 
         {/* Calendar Container - Full Width */}
         <View style={styles.calendarContainer}>
+          {/* Calendar Title */}
+          <Text style={styles.calendarTitle}>Training Schedule</Text>
+
           <View style={styles.calendarColumn}>
               <View style={styles.calendarHeader}>
                 <TouchableOpacity onPress={() => changeMonth('prev')} style={styles.monthButton}>
@@ -1675,6 +1678,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     marginBottom: 16,
+  },
+  calendarTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2ddbdb',
+    marginBottom: 12,
+    textAlign: 'center',
   },
   workoutDetailsContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
