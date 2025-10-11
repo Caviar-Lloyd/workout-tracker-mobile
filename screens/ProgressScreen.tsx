@@ -250,9 +250,14 @@ export default function ProgressScreen() {
                         stroke: 'rgba(255, 255, 255, 0.1)',
                         strokeWidth: 1,
                       },
+                      formatYLabel: (value) => {
+                        const num = parseFloat(value);
+                        return Math.round(num / 10) * 10 + '';
+                      },
                     }}
                     yAxisLabel=""
                     yAxisSuffix=" lbs"
+                    yAxisInterval={10}
                     bezier
                     style={{
                       borderRadius: 16,
@@ -264,7 +269,8 @@ export default function ProgressScreen() {
                     withHorizontalLines={true}
                     withVerticalLabels={true}
                     withHorizontalLabels={true}
-                    fromZero={false}
+                    fromZero={true}
+                    segments={5}
                   />
                 </View>
               ) : (
