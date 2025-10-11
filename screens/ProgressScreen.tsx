@@ -30,6 +30,7 @@ export default function ProgressScreen() {
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [exercises, setExercises] = useState<ExerciseData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [showExerciseDropdown, setShowExerciseDropdown] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -147,32 +148,76 @@ export default function ProgressScreen() {
           </View>
         ) : (
           <>
-            {chartData.length > 0 ? (
-              <View style={styles.chartContainer}>
-                {/* Week Navigation in Chart Header */}
-                <View style={styles.chartHeaderRow}>
-                  <TouchableOpacity
-                    style={[styles.weekArrowButton, selectedWeek === 1 && styles.weekArrowButtonDisabled]}
-                    onPress={handlePrevWeek}
-                    disabled={selectedWeek === 1}
-                  >
-                    <Text style={styles.weekArrowText}>←</Text>
-                  </TouchableOpacity>
+            {/* Exercise Dropdown */}
+            {exercises.length > 0 && (
+              <View style={styles.exerciseDropdownContainer}>
+                <TouchableOpacity
+                  style={styles.exerciseDropdownButton}
+                  onPress={() => setShowExerciseDropdown(!showExerciseDropdown)}
+                >
+                  <Text style={styles.exerciseDropdownLabel}>Exercise</Text>
+                  <Text style={styles.exerciseDropdownValue}>
+                    {exercises[currentExerciseIndex]?.name || 'Select Exercise'}
+                  </Text>
+                  <Text style={styles.exerciseDropdownArrow}>{showExerciseDropdown ? '▲' : '▼'}</Text>
+                </TouchableOpacity>
 
-                  <View style={styles.chartTitleContainer}>
-                    <Text style={styles.chartTitle}>Weight Progress</Text>
-                    <Text style={styles.chartWeek}>Week {selectedWeek}</Text>
+                {showExerciseDropdown && (
+                  <View style={styles.exerciseDropdownMenu}>
+                    {exercises.map((exercise, index) => (
+                      <TouchableOpacity
+                        key={index}
+                        style={[
+                          styles.exerciseDropdownItem,
+                          currentExerciseIndex === index && styles.exerciseDropdownItemActive
+                        ]}
+                        onPress={() => {
+                          setCurrentExerciseIndex(index);
+                          setShowExerciseDropdown(false);
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.exerciseDropdownItemText,
+                            currentExerciseIndex === index && styles.exerciseDropdownItemTextActive
+                          ]}
+                        >
+                          {exercise.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
                   </View>
+                )}
+              </View>
+            )}
 
-                  <TouchableOpacity
-                    style={[styles.weekArrowButton, selectedWeek === 6 && styles.weekArrowButtonDisabled]}
-                    onPress={handleNextWeek}
-                    disabled={selectedWeek === 6}
-                  >
-                    <Text style={styles.weekArrowText}>→</Text>
-                  </TouchableOpacity>
+            {/* Chart Container - Always visible */}
+            <View style={styles.chartContainer}>
+              {/* Week Navigation in Chart Header */}
+              <View style={styles.chartHeaderRow}>
+                <TouchableOpacity
+                  style={[styles.weekArrowButton, selectedWeek === 1 && styles.weekArrowButtonDisabled]}
+                  onPress={handlePrevWeek}
+                  disabled={selectedWeek === 1}
+                >
+                  <Text style={styles.weekArrowText}>←</Text>
+                </TouchableOpacity>
+
+                <View style={styles.chartTitleContainer}>
+                  <Text style={styles.chartTitle}>Weight Progress</Text>
+                  <Text style={styles.chartWeek}>Week {selectedWeek}</Text>
                 </View>
 
+                <TouchableOpacity
+                  style={[styles.weekArrowButton, selectedWeek === 6 && styles.weekArrowButtonDisabled]}
+                  onPress={handleNextWeek}
+                  disabled={selectedWeek === 6}
+                >
+                  <Text style={styles.weekArrowText}>→</Text>
+                </TouchableOpacity>
+              </View>
+
+              {chartData.length > 0 ? (
                 <View style={styles.chartWrapper}>
                   <LineChart
                     data={{
@@ -222,13 +267,13 @@ export default function ProgressScreen() {
                     fromZero={false}
                   />
                 </View>
-              </View>
-            ) : (
-              <View style={styles.noDataContainer}>
-                <Text style={styles.noDataText}>No workout history yet</Text>
-                <Text style={styles.noDataSubtext}>Complete a workout to see your progress</Text>
-              </View>
-            )}
+              ) : (
+                <View style={styles.noDataInChart}>
+                  <Text style={styles.noDataText}>No workout history yet</Text>
+                  <Text style={styles.noDataSubtext}>Complete a workout to see your progress</Text>
+                </View>
+              )}
+            </View>
           </>
         )}
     </ScrollView>
@@ -301,6 +346,62 @@ const styles = StyleSheet.create({
     color: '#2ddbdb',
     fontWeight: '600',
   },
+  // Exercise Dropdown
+  exerciseDropdownContainer: {
+    marginBottom: 16,
+    position: 'relative',
+    zIndex: 1000,
+  },
+  exerciseDropdownButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  exerciseDropdownLabel: {
+    fontSize: 11,
+    color: '#9ca3af',
+    marginRight: 8,
+  },
+  exerciseDropdownValue: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  exerciseDropdownArrow: {
+    fontSize: 12,
+    color: '#2ddbdb',
+    marginLeft: 8,
+  },
+  exerciseDropdownMenu: {
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    borderRadius: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    maxHeight: 300,
+  },
+  exerciseDropdownItem: {
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  exerciseDropdownItemActive: {
+    backgroundColor: 'rgba(45, 219, 219, 0.2)',
+  },
+  exerciseDropdownItemText: {
+    color: '#fff',
+    fontSize: 14,
+  },
+  exerciseDropdownItemTextActive: {
+    color: '#2ddbdb',
+    fontWeight: '600',
+  },
   // Chart Container
   chartContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -360,6 +461,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  noDataInChart: {
+    paddingVertical: 60,
+    alignItems: 'center',
   },
   noDataText: {
     fontSize: 16,
