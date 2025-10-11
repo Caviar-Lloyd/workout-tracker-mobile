@@ -306,155 +306,162 @@ export default function WorkoutScreen() {
       <View style={styles.contentWrapper}>
         <View style={[styles.content, {
           paddingTop: Math.max(insets.top, 20) + 10,
-          paddingBottom: Math.max(insets.bottom, 20) + 60,
+          paddingBottom: Math.max(insets.bottom, 20) + 20,
         }]}>
           {/* Header */}
           <View style={styles.header}>
-          <Text style={styles.title}>{workoutName}</Text>
-          <Text style={styles.subtitle}>Week {week}, Day {day}</Text>
-        </View>
-
-        {/* Timer, Progress, and Submit Button */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Time</Text>
-            <Text style={styles.statValue}>{formatTime(elapsedTime)}</Text>
+            <Text style={styles.title}>{workoutName}</Text>
+            <Text style={styles.subtitle}>Week {week}, Day {day}</Text>
           </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Progress</Text>
-            <Text style={styles.statValue}>{Math.round(getProgress())}%</Text>
-          </View>
-          <TouchableOpacity
-            style={[
-              styles.submitButtonTop,
-              (isSubmitting || !hasStartedLogging) && styles.submitButtonDisabled,
-              getProgress() === 100 && styles.submitButtonComplete
-            ]}
-            onPress={handleSubmit}
-            disabled={isSubmitting || !hasStartedLogging}
-          >
-            <Text style={styles.submitButtonTopText}>
-              {isSubmitting
-                ? 'Saving...'
-                : !hasStartedLogging
-                  ? 'Start Logging'
-                  : getProgress() === 100
-                    ? 'Complete Workout'
-                    : 'Submit Partial'}
-            </Text>
-          </TouchableOpacity>
-        </View>
 
-        {/* Two Column Layout */}
-        <View style={styles.mainContent}>
-          {/* Left Column - Exercise List */}
-          <View style={styles.exerciseColumn}>
-            <View style={styles.exerciseListHeader}>
-              <Text style={styles.exerciseListTitle}>Exercises</Text>
-              <Text style={styles.exerciseListSubtitle}>{workoutTemplate.exercises.length} exercises</Text>
+          {/* Timer and Progress */}
+          <View style={styles.statsContainer}>
+            <View style={styles.statBox}>
+              <Text style={styles.statLabel}>Time</Text>
+              <Text style={styles.statValue}>{formatTime(elapsedTime)}</Text>
             </View>
-
-            <ScrollView
-              style={styles.exerciseList}
-              showsVerticalScrollIndicator={false}
-            >
-              {workoutTemplate.exercises.map((exercise, index) => {
-                const sets = exerciseData[exercise.index] || [];
-                const completedSets = sets.filter(set => set.reps && set.weight).length;
-                const isActive = currentExerciseIndex === exercise.index;
-
-                return (
-                  <TouchableOpacity
-                    key={exercise.index}
-                    style={[
-                      styles.exerciseItem,
-                      isActive && styles.exerciseItemActive
-                    ]}
-                    onPress={() => setCurrentExerciseIndex(exercise.index)}
-                  >
-                    <View style={styles.exerciseNumberBadge}>
-                      <Text style={[
-                        styles.exerciseNumberText,
-                        isActive && styles.exerciseNumberTextActive
-                      ]}>
-                        {index + 1}
-                      </Text>
-                    </View>
-                    <View style={styles.exerciseInfo}>
-                      <Text style={[
-                        styles.exerciseName,
-                        isActive && styles.exerciseNameActive
-                      ]}>
-                        {exercise.name}
-                      </Text>
-                      <Text style={styles.exerciseDetails}>
-                        {completedSets}/{exercise.setCount} sets
-                      </Text>
-                    </View>
-                    {completedSets === exercise.setCount && (
-                      <Text style={styles.completedIndicator}>✓</Text>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+            <View style={styles.statBox}>
+              <Text style={styles.statLabel}>Progress</Text>
+              <Text style={styles.statValue}>{Math.round(getProgress())}%</Text>
+            </View>
           </View>
 
-          {/* Right Column - Workout Tracker */}
-          <View style={styles.trackerColumn}>
-            {currentExercise ? (
-              <>
-                <View style={styles.trackerHeader}>
-                  <Text style={styles.trackerTitle}>{currentExercise.name}</Text>
-                  <Text style={styles.trackerSubtitle}>
-                    {currentExercise.setCount} sets × {currentExercise.repRange} reps
-                  </Text>
-                </View>
-
-                {/* Video/GIF Preview Section */}
-                <View style={styles.videoPreviewContainer}>
+          {/* Main Container with Video and 3 Columns */}
+          <View style={styles.mainContainer}>
+            {/* 16:9 Video Container */}
+            <View style={styles.videoContainer}>
+              {currentExercise ? (
+                <View style={styles.videoWrapper}>
                   <View style={styles.videoPlaceholder}>
-                    <Text style={styles.videoPlaceholderText}>Movement Pattern</Text>
+                    <Text style={styles.videoPlaceholderText}>{currentExercise.name}</Text>
                     <Text style={styles.videoPlaceholderSubtext}>3-5 sec demo</Text>
                   </View>
                 </View>
+              ) : (
+                <View style={styles.videoPlaceholder}>
+                  <Text style={styles.videoPlaceholderText}>Select an exercise</Text>
+                </View>
+              )}
+            </View>
 
-                <ScrollView style={styles.setsContainer} showsVerticalScrollIndicator={false}>
-                  {(exerciseData[currentExercise.index] || []).map((set, setIndex) => (
-                    <View key={setIndex} style={styles.setRow}>
-                      <Text style={styles.setNumber}>Set {setIndex + 1}</Text>
+            {/* Three Column Layout */}
+            <View style={styles.threeColumnLayout}>
+              {/* Column 1: Scrollable Exercise List */}
+              <View style={styles.column1}>
+                <View style={styles.columnHeader}>
+                  <Text style={styles.columnTitle}>Exercises</Text>
+                </View>
+                <ScrollView
+                  style={styles.exerciseScrollList}
+                  showsVerticalScrollIndicator={false}
+                >
+                  {workoutTemplate.exercises.map((exercise, index) => {
+                    const sets = exerciseData[exercise.index] || [];
+                    const completedSets = sets.filter(set => set.reps && set.weight).length;
+                    const isActive = currentExerciseIndex === exercise.index;
+
+                    return (
+                      <TouchableOpacity
+                        key={exercise.index}
+                        style={[
+                          styles.exerciseButton,
+                          isActive && styles.exerciseButtonActive
+                        ]}
+                        onPress={() => setCurrentExerciseIndex(exercise.index)}
+                      >
+                        <View style={styles.exerciseButtonContent}>
+                          <Text style={[styles.exerciseNumber, isActive && styles.exerciseNumberActive]}>
+                            {index + 1}
+                          </Text>
+                          <View style={styles.exerciseTextContainer}>
+                            <Text
+                              style={[styles.exerciseButtonName, isActive && styles.exerciseButtonNameActive]}
+                              numberOfLines={2}
+                            >
+                              {exercise.name}
+                            </Text>
+                            <Text style={styles.exerciseProgress}>
+                              {completedSets}/{exercise.setCount}
+                            </Text>
+                          </View>
+                        </View>
+                        {completedSets === exercise.setCount && (
+                          <Text style={styles.completedCheck}>✓</Text>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+
+              {/* Column 2: Reps Input */}
+              <View style={styles.column2}>
+                <View style={styles.columnHeader}>
+                  <Text style={styles.columnTitle}>Reps</Text>
+                </View>
+                <View style={styles.inputColumn}>
+                  {currentExercise && (exerciseData[currentExercise.index] || []).map((set, setIndex) => (
+                    <View key={setIndex} style={styles.inputRow}>
+                      <Text style={styles.setLabel}>{setIndex + 1}</Text>
                       <TextInput
-                        style={[styles.input, styles.repsInput]}
-                        placeholder="Reps"
+                        style={styles.columnInput}
+                        placeholder="0"
                         placeholderTextColor="#6b7280"
                         value={set.reps}
                         onChangeText={(value) => handleInputChange(currentExercise.index, setIndex, 'reps', value)}
                         keyboardType="numeric"
                       />
+                    </View>
+                  ))}
+                </View>
+              </View>
+
+              {/* Column 3: Weight Input */}
+              <View style={styles.column3}>
+                <View style={styles.columnHeader}>
+                  <Text style={styles.columnTitle}>Weight</Text>
+                </View>
+                <View style={styles.inputColumn}>
+                  {currentExercise && (exerciseData[currentExercise.index] || []).map((set, setIndex) => (
+                    <View key={setIndex} style={styles.inputRow}>
                       <TextInput
-                        style={[styles.input, styles.weightInput]}
-                        placeholder="Weight"
+                        style={styles.columnInput}
+                        placeholder="0"
                         placeholderTextColor="#6b7280"
                         value={set.weight}
                         onChangeText={(value) => handleInputChange(currentExercise.index, setIndex, 'weight', value)}
                         keyboardType="decimal-pad"
                       />
                       {set.reps && set.weight && (
-                        <Text style={styles.checkmark}>✓</Text>
+                        <Text style={styles.inputCheckmark}>✓</Text>
                       )}
                     </View>
                   ))}
-                </ScrollView>
-              </>
-            ) : (
-              <View style={styles.trackerPlaceholder}>
-                <Text style={styles.trackerPlaceholderText}>
-                  Select an exercise to start tracking
-                </Text>
+                </View>
               </View>
-            )}
+            </View>
+
+            {/* Submit Button at Bottom */}
+            <TouchableOpacity
+              style={[
+                styles.submitButton,
+                (isSubmitting || !hasStartedLogging) && styles.submitButtonDisabled,
+                getProgress() === 100 && styles.submitButtonComplete
+              ]}
+              onPress={handleSubmit}
+              disabled={isSubmitting || !hasStartedLogging}
+            >
+              <Text style={styles.submitButtonText}>
+                {isSubmitting
+                  ? 'Saving...'
+                  : !hasStartedLogging
+                    ? 'Start Logging'
+                    : getProgress() === 100
+                      ? 'Complete Workout'
+                      : 'Submit Partial'}
+              </Text>
+            </TouchableOpacity>
           </View>
-        </View>
         </View>
       </View>
     </View>
@@ -530,10 +537,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 16,
     marginBottom: 12,
-    gap: 8,
+    gap: 12,
   },
   statBox: {
-    flex: 0.7,
+    flex: 1,
     backgroundColor: 'rgba(45, 219, 219, 0.1)',
     borderRadius: 12,
     padding: 12,
@@ -550,12 +557,170 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
   },
-  submitButtonTop: {
+  // Main container with video and columns
+  mainContainer: {
     flex: 1,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    overflow: 'hidden',
+  },
+  // 16:9 Video Container
+  videoContainer: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    backgroundColor: '#000',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  videoWrapper: {
+    flex: 1,
+  },
+  videoPlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  videoPlaceholderText: {
+    color: '#2ddbdb',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  videoPlaceholderSubtext: {
+    color: '#9ca3af',
+    fontSize: 11,
+    marginTop: 4,
+  },
+  // Three Column Layout
+  threeColumnLayout: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: 1,
+  },
+  column1: {
+    flex: 2,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+  },
+  column2: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+  },
+  column3: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+  },
+  columnHeader: {
+    padding: 10,
+    backgroundColor: 'rgba(45, 219, 219, 0.15)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  columnTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#2ddbdb',
+    textAlign: 'center',
+  },
+  // Exercise List (Column 1)
+  exerciseScrollList: {
+    flex: 1,
+  },
+  exerciseButton: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  exerciseButtonActive: {
+    backgroundColor: 'rgba(45, 219, 219, 0.2)',
+  },
+  exerciseButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  exerciseNumber: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#9ca3af',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginRight: 8,
+  },
+  exerciseNumberActive: {
+    color: '#2ddbdb',
+    backgroundColor: 'rgba(45, 219, 219, 0.2)',
+  },
+  exerciseTextContainer: {
+    flex: 1,
+  },
+  exerciseButtonName: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#fff',
+    marginBottom: 2,
+  },
+  exerciseButtonNameActive: {
+    color: '#2ddbdb',
+  },
+  exerciseProgress: {
+    fontSize: 10,
+    color: '#9ca3af',
+  },
+  completedCheck: {
+    fontSize: 14,
+    color: '#10b981',
+    marginLeft: 8,
+  },
+  // Input Columns (Column 2 & 3)
+  inputColumn: {
+    flex: 1,
+    padding: 8,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 6,
+  },
+  setLabel: {
+    fontSize: 11,
+    color: '#9ca3af',
+    fontWeight: '600',
+    width: 16,
+  },
+  columnInput: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    padding: 10,
+    color: '#fff',
+    fontSize: 14,
+    textAlign: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  inputCheckmark: {
+    fontSize: 14,
+    color: '#10b981',
+    width: 18,
+  },
+  // Submit Button
+  submitButton: {
+    margin: 12,
     backgroundColor: 'rgba(255, 165, 0, 0.8)',
     borderRadius: 12,
-    padding: 12,
-    justifyContent: 'center',
+    padding: 16,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255, 165, 0, 0.5)',
@@ -564,187 +729,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#2ddbdb',
     borderColor: 'rgba(45, 219, 219, 0.5)',
   },
-  submitButtonTopText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  mainContent: {
-    flex: 1,
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    gap: 12,
-  },
-  exerciseColumn: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    overflow: 'hidden',
-  },
-  exerciseListHeader: {
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-    backgroundColor: 'rgba(45, 219, 219, 0.1)',
-  },
-  exerciseListTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 2,
-  },
-  exerciseListSubtitle: {
-    fontSize: 11,
-    color: '#2ddbdb',
-  },
-  exerciseList: {
-    flex: 1,
-  },
-  exerciseItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  exerciseItemActive: {
-    backgroundColor: 'rgba(45, 219, 219, 0.15)',
-  },
-  exerciseNumberBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  exerciseNumberText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#9ca3af',
-  },
-  exerciseNumberTextActive: {
-    color: '#2ddbdb',
-  },
-  exerciseInfo: {
-    flex: 1,
-  },
-  exerciseName: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#fff',
-    marginBottom: 2,
-  },
-  exerciseNameActive: {
-    color: '#2ddbdb',
-  },
-  exerciseDetails: {
-    fontSize: 11,
-    color: '#9ca3af',
-  },
-  completedIndicator: {
-    fontSize: 16,
-    color: '#10b981',
-    marginLeft: 8,
-  },
-  trackerColumn: {
-    flex: 1.5,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    overflow: 'hidden',
-  },
-  trackerHeader: {
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-    backgroundColor: 'rgba(45, 219, 219, 0.1)',
-  },
-  trackerTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 2,
-  },
-  trackerSubtitle: {
-    fontSize: 10,
-    color: '#2ddbdb',
-  },
-  videoPreviewContainer: {
-    height: 120,
-    backgroundColor: '#000',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  videoPlaceholder: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  videoPlaceholderText: {
-    color: '#9ca3af',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  videoPlaceholderSubtext: {
-    color: '#6b7280',
-    fontSize: 10,
-    marginTop: 4,
-  },
-  setsContainer: {
-    flex: 1,
-    padding: 12,
-  },
-  setRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  setNumber: {
-    width: 45,
-    fontSize: 12,
-    color: '#9ca3af',
-    fontWeight: '600',
-  },
-  input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
-    padding: 10,
-    marginHorizontal: 3,
-    color: '#fff',
-    fontSize: 13,
-    minWidth: 60,
-  },
-  repsInput: {
-    flex: 1,
-    maxWidth: 80,
-  },
-  weightInput: {
-    flex: 1.2,
-  },
-  checkmark: {
-    fontSize: 16,
-    color: '#10b981',
-    marginLeft: 6,
-    width: 20,
-  },
-  trackerPlaceholder: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  trackerPlaceholderText: {
-    color: '#9ca3af',
-    fontSize: 14,
-  },
   submitButtonDisabled: {
     opacity: 0.5,
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
