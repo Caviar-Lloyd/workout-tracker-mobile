@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Dimensions, Modal, Platform } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Dimensions, Modal, Platform, Animated, TextInput } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -37,6 +37,33 @@ const WORKOUT_NAMES: Record<number, string> = {
   4: 'Chest, Triceps, Abs - Isolation',
   5: 'Shoulders, Legs, Calves - Isolation',
   6: 'Back, Traps, Biceps - Isolation',
+};
+
+// Week color coding
+const WEEK_COLORS: Record<number, string> = {
+  1: '#FF6B6B', // Red
+  2: '#4ECDC4', // Teal
+  3: '#FFD93D', // Yellow
+  4: '#95E1D3', // Mint
+  5: '#F38181', // Pink
+  6: '#AA96DA', // Purple
+};
+
+const getWeekColor = (week: number): string => {
+  return WEEK_COLORS[week] || '#2ddbdb';
+};
+
+// Get abbreviated workout name for calendar display
+const getAbbreviatedWorkoutName = (day: number): string => {
+  const workoutMap: Record<number, string> = {
+    1: 'Chest\nTriceps',
+    2: 'Shoulders\nLegs',
+    3: 'Back\nBiceps',
+    4: 'Chest\nTriceps',
+    5: 'Shoulders\nLegs',
+    6: 'Back\nBiceps',
+  };
+  return workoutMap[day] || '';
 };
 
 function WorkoutExercisesList({ workoutDay, week, isVideoPreview = false }: { workoutDay: number; week: number; isVideoPreview?: boolean }) {
@@ -93,11 +120,10 @@ export default function DashboardScreen() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [nextWorkoutExercises, setNextWorkoutExercises] = useState<any[]>([]);
-  const [schedulePattern, setSchedulePattern] = useState<'6-1' | '3-1' | '2-1' | '1-1' | 'custom'>('6-1');
+  // schedulePattern removed - we always use 6-day cycle, only rest days matter
   const [workoutSchedule, setWorkoutSchedule] = useState<{ [key: string]: { week: number; day: number } }>({});
   const [selectedWorkoutToMove, setSelectedWorkoutToMove] = useState<{ date: string; week: number; day: number } | null>(null);
   const [isCustomMode, setIsCustomMode] = useState(false);
-  const [showPatternDropdown, setShowPatternDropdown] = useState(false);
   const [startingDayOfWeek, setStartingDayOfWeek] = useState<number>(0); // 0=Sun, 1=Mon, etc.
   const [showDayDropdown, setShowDayDropdown] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -105,20 +131,18 @@ export default function DashboardScreen() {
   const [isProgramConfirmed, setIsProgramConfirmed] = useState(false);
   const [showInitialSetup, setShowInitialSetup] = useState(false);
   const [setupStep, setSetupStep] = useState<'split' | 'restday' | 'date' | 'confirm'>('split');
-  const [restDaysOfWeek, setRestDaysOfWeek] = useState<number[]>([0]); // Array of rest days: 0=Sunday, 1=Monday, etc.
-  const [selectedExercise, setSelectedExercise] = useState<any | null>(null);
-  const [showRestDayDropdown, setShowRestDayDropdown] = useState(false);
-  const [showWorkoutSplitDropdown, setShowWorkoutSplitDropdown] = useState(false);
+  const [restDaysOfWeek, setRestDaysOfWeek] = useState<number[]>([]); // Array of rest days: 0=Sunday, 1=Monday, etc. (starts empty)
   const [isSelectedWorkoutCompleted, setIsSelectedWorkoutCompleted] = useState(false);
+  const [showWorkoutModal, setShowWorkoutModal] = useState(false);
+  const [modalWorkoutData, setModalWorkoutData] = useState<{ week: number; day: number; date: Date; workoutName: string } | null>(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileFirstName, setProfileFirstName] = useState('');
+  const [profileLastName, setProfileLastName] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
 
   useEffect(() => {
     fetchUserData();
-    // Check if this is first time - no program confirmed yet
-    // In a real app, you'd check localStorage/AsyncStorage
-    // For now, we'll check if there's no schedule
-    if (!isProgramConfirmed) {
-      setShowInitialSetup(true);
-    }
+    // Note: Don't show setup here - let fetchUserData determine it based on database
   }, []);
 
   useEffect(() => {
@@ -169,7 +193,7 @@ export default function DashboardScreen() {
     }
 
     console.log('=== LOADING WORKOUT SCHEDULE ===');
-    console.log('Pattern:', schedulePattern, 'Rest days:', restDaysOfWeek);
+    console.log('Rest days:', restDaysOfWeek);
     console.log('Rest days type:', typeof restDaysOfWeek, 'Is array:', Array.isArray(restDaysOfWeek));
     console.log('Rest days[0]:', restDaysOfWeek[0]);
 
@@ -362,37 +386,25 @@ export default function DashboardScreen() {
     }
   };
 
-  const handlePatternChange = async (pattern: '6-1' | '3-1' | '2-1' | '1-1' | 'custom') => {
-    setSchedulePattern(pattern);
-    setShowPatternDropdown(false);
-
-    if (pattern === 'custom') {
-      setIsCustomMode(true);
-      setWorkoutSchedule({}); // Clear schedule for custom mode
-    } else {
-      setIsCustomMode(false);
-    }
-
-    // Save pattern change to user profile
-    if (isProgramConfirmed) {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await updateWorkoutPreferences(user.id, pattern, restDaysOfWeek[0]);
-      }
-    }
-  };
-
   const fetchUserData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const firstName = user.user_metadata?.first_name || user.email?.split('@')[0] || 'User';
         const email = user.email || '';
-        setUserData({ firstName, email });
 
         // Load user profile and preferences
         const profile = await getUserProfile(user.id);
         console.log('=== PROFILE DATA ===', JSON.stringify(profile, null, 2));
+
+        // Use first_name from profile if available, otherwise fallback to email
+        const firstName = profile?.first_name || user.email?.split('@')[0] || 'User';
+        setUserData({ firstName, email });
+
+        // Check if profile is missing name - show completion modal
+        if (profile && (!profile.first_name || profile.first_name === '' || !profile.last_name || profile.last_name === '')) {
+          console.log('⚠️ Profile missing name - showing completion modal');
+          setShowProfileModal(true);
+        }
 
         // Check if user is a client (not coach/trainer)
         const isClient = profile?.subscription_tier === 'client';
@@ -400,12 +412,7 @@ export default function DashboardScreen() {
         if (profile) {
           // For clients: Auto-set to custom split and get earliest workout date
           if (isClient) {
-            // Default to custom split for clients
-            if (!profile.schedule_pattern) {
-              setSchedulePattern('custom');
-            } else {
-              setSchedulePattern(profile.schedule_pattern);
-            }
+            // Default to custom split for clients - no need to set schedule pattern anymore
 
             // Auto-detect start date from earliest workout in database
             if (!profile.program_start_date) {
@@ -427,7 +434,6 @@ export default function DashboardScreen() {
                   .from('clients')
                   .update({
                     program_start_date: earliestWorkout.workout_date,
-                    schedule_pattern: 'custom',
                   })
                   .eq('user_id', user.id);
               }
@@ -441,18 +447,18 @@ export default function DashboardScreen() {
             setShowInitialSetup(false);
           } else {
             // For coaches/trainers: Use existing setup flow
-            if (profile.schedule_pattern) {
-              console.log('Setting schedule pattern:', profile.schedule_pattern);
-              setSchedulePattern(profile.schedule_pattern);
-            } else {
-              console.log('No schedule_pattern in profile');
-            }
-            if (profile.starting_day_of_week !== null && profile.starting_day_of_week !== undefined) {
-              console.log('Setting starting day of week:', profile.starting_day_of_week);
+            // Load rest days from database (array) with fallback to old single rest day
+            if (profile.rest_days && profile.rest_days.length > 0) {
+              console.log('Loading rest days from database:', profile.rest_days);
+              setRestDaysOfWeek(profile.rest_days);
+              setStartingDayOfWeek(profile.rest_days[0]); // First rest day for backward compat
+            } else if (profile.starting_day_of_week !== null && profile.starting_day_of_week !== undefined) {
+              console.log('Migrating old starting_day_of_week:', profile.starting_day_of_week);
               setStartingDayOfWeek(profile.starting_day_of_week);
               setRestDaysOfWeek([profile.starting_day_of_week]);
             } else {
-              console.log('No starting_day_of_week in profile');
+              console.log('No rest days in profile - defaulting to empty array');
+              setRestDaysOfWeek([]);
             }
 
             // Pre-fill program start date from workout history if it exists
@@ -467,7 +473,6 @@ export default function DashboardScreen() {
 
             // Check if user has completed ALL required setup
             const hasCompleteSetup =
-              profile.schedule_pattern &&
               profile.starting_day_of_week !== null &&
               profile.program_start_date;
 
@@ -480,10 +485,8 @@ export default function DashboardScreen() {
             } else {
               // User is missing some info - show setup to fill in the gaps
               // Determine which step to start at based on what's missing
-              if (!profile.schedule_pattern) {
-                setSetupStep('split');
-              } else if (profile.schedule_pattern !== 'custom' && profile.starting_day_of_week === null) {
-                setSetupStep('restday');
+              if (profile.starting_day_of_week === null) {
+                setSetupStep('split');  // This is actually rest day selection now
               } else if (!profile.program_start_date) {
                 setSetupStep('date');
               } else {
@@ -621,6 +624,19 @@ export default function DashboardScreen() {
     // Only allow toggling in custom mode
     if (isCustomMode) {
       toggleWorkoutOnDate(date);
+      return;
+    }
+
+    // Check if there's a workout on this date and open modal
+    const workout = getWorkoutForDate(date);
+    if (workout) {
+      setModalWorkoutData({
+        week: workout.week,
+        day: workout.day,
+        date: date,
+        workoutName: WORKOUT_NAMES[workout.day] || `Day ${workout.day}`,
+      });
+      setShowWorkoutModal(true);
     }
   };
 
@@ -740,6 +756,56 @@ export default function DashboardScreen() {
     setWorkoutSchedule(updatedSchedule);
   };
 
+  const handleSaveProfile = async () => {
+    if (!profileFirstName || !profileLastName) {
+      alert('Please enter both first and last name');
+      return;
+    }
+
+    setProfileSaving(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert('User not found');
+        setProfileSaving(false);
+        return;
+      }
+
+      console.log('Saving profile:', { firstName: profileFirstName, lastName: profileLastName, email: user.email });
+
+      const { data, error } = await supabase
+        .from('clients')
+        .update({
+          first_name: profileFirstName,
+          last_name: profileLastName,
+        })
+        .eq('email', user.email)
+        .select()
+        .single();
+
+      console.log('Profile update result:', { data, error });
+
+      if (error) {
+        console.error('Profile update error:', error);
+        alert(`Failed to update profile: ${error.message}`);
+        setProfileSaving(false);
+        return;
+      }
+
+      console.log('✅ Profile updated successfully!');
+      setShowProfileModal(false);
+      setProfileSaving(false);
+
+      // Refresh user data
+      setUserData({ firstName: profileFirstName, email: user.email || '' });
+    } catch (error: any) {
+      console.error('Profile save exception:', error);
+      alert(`Error: ${error.message}`);
+      setProfileSaving(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -818,37 +884,26 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {/* Top Stats Row */}
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Total Workouts</Text>
-            <Text style={styles.statValue}>{totalWorkouts}</Text>
+        {/* Stats Grid - Side by Side */}
+        <View style={styles.statsGrid}>
+          <View style={styles.miniStatCard}>
+            <Text style={styles.miniStatLabel}>Total</Text>
+            <Text style={styles.miniStatValue}>{totalWorkouts}</Text>
           </View>
 
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Last Workout</Text>
-            {lastWorkout ? (
-              <>
-                <Text style={styles.statValue}>W{lastWorkout.week} D{lastWorkout.day}</Text>
-                <Text style={styles.statSubtext}>
-                  {new Date(lastWorkout.date).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric'
-                  })}
-                </Text>
-              </>
-            ) : (
-              <Text style={styles.statSubtext}>None</Text>
-            )}
+          <View style={styles.miniStatCard}>
+            <Text style={styles.miniStatLabel}>Last</Text>
+            <Text style={styles.miniStatValue}>
+              {lastWorkout ? `W${lastWorkout.week}D${lastWorkout.day}` : '--'}
+            </Text>
           </View>
 
-          <TouchableOpacity
-            style={[styles.statCard, styles.viewProgressCard]}
-            onPress={handleViewProgress}
-          >
-            <Text style={styles.statLabel}>View Progress</Text>
-            <Text style={styles.statSubtext}>→</Text>
-          </TouchableOpacity>
+          <View style={styles.miniStatCard}>
+            <Text style={styles.miniStatLabel}>Start</Text>
+            <Text style={styles.miniStatValue}>
+              {programStartDate ? programStartDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--'}
+            </Text>
+          </View>
         </View>
 
         {selectedWorkoutToMove && (
@@ -860,54 +915,18 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* Single Container - Vertical Layout */}
-        <View style={styles.workoutContainer}>
-          {/* Workout Frequency Section */}
-          <View style={styles.frequencySection}>
-            <Text style={styles.frequencyTitle}>Program Info</Text>
-
-            <View style={styles.frequencyControls}>
-              <View style={styles.frequencyControl}>
-                <Text style={styles.frequencyLabel}>Workout Split</Text>
-                <View style={styles.frequencyValue}>
-                  <Text style={styles.frequencyValueText}>
-                    {schedulePattern === 'custom' ? 'Custom' : `${schedulePattern.split('-')[0]} on / ${schedulePattern.split('-')[1]} off`}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.frequencyControl}>
-                <Text style={styles.frequencyLabel}>Start Date</Text>
-                <View style={styles.frequencyValue}>
-                  <Text style={styles.frequencyValueText}>
-                    {programStartDate ? programStartDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Not set'}
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            <Text style={styles.frequencyHelpText}>
-              You can adjust your workout split in Settings
+        {/* Custom Mode Reminder */}
+        {isCustomMode && (
+          <View style={styles.customReminder}>
+            <Text style={styles.customReminderText}>
+              📅 Tap the dates you want to train on
             </Text>
-
           </View>
+        )}
 
-          {/* Custom Mode Reminder */}
-          {isCustomMode && (
-            <View style={styles.customReminder}>
-              <Text style={styles.customReminderText}>
-                📅 Tap the dates you want to train on
-              </Text>
-            </View>
-          )}
-
-          {/* Divider */}
-          <View style={styles.sectionDivider} />
-
-          {/* Calendar and Workout Details - Side by Side */}
-          <View style={styles.calendarWorkoutRow}>
-            {/* Calendar Section - Left */}
-            <View style={styles.calendarColumn}>
+        {/* Calendar Container - Full Width */}
+        <View style={styles.calendarContainer}>
+          <View style={styles.calendarColumn}>
               <View style={styles.calendarHeader}>
                 <TouchableOpacity onPress={() => changeMonth('prev')} style={styles.monthButton}>
                   <Text style={styles.monthButtonText}>←</Text>
@@ -952,7 +971,7 @@ export default function DashboardScreen() {
                     disabled={!date}
                   >
                     {date && (
-                      <>
+                      <View style={styles.calendarDayContent}>
                         <Text style={[
                           styles.calendarDayText,
                           isSameDay(date, selectedDate) && styles.calendarDayTextSelected,
@@ -961,11 +980,9 @@ export default function DashboardScreen() {
                           {date.getDate()}
                         </Text>
                         {workout && (
-                          <View style={styles.workoutDayBadge}>
-                            <Text style={styles.workoutDayBadgeText}>D{workout.day}</Text>
-                          </View>
+                          <View style={[styles.workoutDot, { backgroundColor: getWeekColor(workout.week) }]} />
                         )}
-                      </>
+                      </View>
                     )}
                   </TouchableOpacity>
                 );
@@ -985,145 +1002,179 @@ export default function DashboardScreen() {
                 )}
               </View>
 
-              {/* Change Date Button - Below Calendar */}
-              {selectedWorkoutData && !isCustomMode && (
-                <TouchableOpacity
-                  style={styles.changeDateButton}
-                  onPress={() => {
-                    const workoutDay = selectedWorkoutDay;
-                    if (workoutDay) {
-                      handleWorkoutLongPress(selectedDate, workoutDay);
-                    }
-                  }}
-                >
-                  <Text style={styles.changeDateButtonText}>Change Date</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {/* Workout Details - Right */}
-            <View style={styles.workoutDetailColumn}>
-              {selectedWorkoutData ? (
-                <>
-                  <View style={styles.workoutInfoCard}>
-                    <Text style={styles.workoutInfoDate}>
-                      {selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                    </Text>
-                    <Text style={styles.workoutInfoName}>{selectedWorkoutData.workoutName.split(' - ')[0]}</Text>
-                    <Text style={styles.workoutInfoMeta}>
-                      Week {selectedWorkoutData.week} • Day {selectedWorkoutData.day}
-                    </Text>
-                  </View>
-
-                  {/* Exercise List */}
-                  <View style={styles.exercisePreviewSection}>
-                    <Text style={styles.exercisePreviewTitle}>Exercises</Text>
-                    <ScrollView style={styles.exerciseListScroll} showsVerticalScrollIndicator={false}>
-                      <WorkoutExercisesList
-                        workoutDay={selectedWorkoutData.day}
-                        week={selectedWorkoutData.week}
-                        isVideoPreview={true}
-                      />
-                    </ScrollView>
-                  </View>
-
-                  <TouchableOpacity
-                    style={styles.startWorkoutButton}
-                    onPress={() => {
-                      const today = new Date();
-                      today.setHours(0, 0, 0, 0);
-                      const selectedDateOnly = new Date(selectedDate);
-                      selectedDateOnly.setHours(0, 0, 0, 0);
-                      const isFutureWorkout = selectedDateOnly > today;
-
-                      if (isSelectedWorkoutCompleted) {
-                        // Past completed workout - view progress
-                        // @ts-ignore
-                        navigation.navigate('Progress');
-                      } else if (isFutureWorkout) {
-                        // Future workout - go to program screen to preview videos
-                        // @ts-ignore
-                        navigation.navigate('Program');
-                      } else {
-                        // Today's workout or missed workout - start it
-                        // @ts-ignore
-                        navigation.navigate('Workout', { week: selectedWorkoutData.week, day: selectedWorkoutData.day });
-                      }
-                    }}
-                  >
-                    <Text style={styles.startWorkoutButtonText}>
-                      {isSelectedWorkoutCompleted
-                        ? 'View Progress'
-                        : (() => {
-                            const today = new Date();
-                            today.setHours(0, 0, 0, 0);
-                            const selectedDateOnly = new Date(selectedDate);
-                            selectedDateOnly.setHours(0, 0, 0, 0);
-                            return selectedDateOnly > today ? 'Preview Workout' : 'Start Workout';
-                          })()
-                      }
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <View style={styles.workoutInfoCard}>
-                  <Text style={styles.workoutInfoDate}>
-                    {selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </Text>
-                  <Text style={styles.emptyStateText}>Rest Day</Text>
-                </View>
-              )}
             </View>
           </View>
-        </View>
+
+        {/* Workout Details Modal */}
+        <Modal
+          visible={showWorkoutModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowWorkoutModal(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowWorkoutModal(false)}
+          >
+            <TouchableOpacity
+              style={styles.modalContent}
+              activeOpacity={1}
+              onPress={(e) => e.stopPropagation()}
+            >
+              {modalWorkoutData && (
+                <>
+                  <View style={styles.modalHeader}>
+                    <View>
+                      <Text style={styles.modalDate}>
+                        {modalWorkoutData.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </Text>
+                      <Text style={styles.modalWorkoutName}>{modalWorkoutData.workoutName.split(' - ')[0]}</Text>
+                      <View style={[styles.modalWeekBadge, { backgroundColor: getWeekColor(modalWorkoutData.week) }]}>
+                        <Text style={styles.modalWeekText}>Week {modalWorkoutData.week} • Day {modalWorkoutData.day}</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity onPress={() => setShowWorkoutModal(false)} style={styles.modalCloseButton}>
+                      <Text style={styles.modalCloseText}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Exercise List - No ScrollView, let all exercises show */}
+                  <View style={styles.modalExerciseSection}>
+                    <Text style={styles.modalExerciseTitle}>Exercises</Text>
+                    <View style={styles.modalExerciseList}>
+                      <WorkoutExercisesList
+                        workoutDay={modalWorkoutData.day}
+                        week={modalWorkoutData.week}
+                        isVideoPreview={true}
+                      />
+                    </View>
+                  </View>
+
+                  {/* Action Buttons - Show both Preview and Start for today's workout */}
+                  {(() => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const workoutDate = new Date(modalWorkoutData.date);
+                    workoutDate.setHours(0, 0, 0, 0);
+                    const isToday = workoutDate.getTime() === today.getTime();
+                    const isFuture = workoutDate > today;
+
+                    if (isToday) {
+                      // Today's workout - show both buttons
+                      return (
+                        <View style={styles.modalButtonsRow}>
+                          <TouchableOpacity
+                            style={[styles.modalButton, styles.modalPreviewButton]}
+                            onPress={() => {
+                              setShowWorkoutModal(false);
+                              // @ts-ignore
+                              navigation.navigate('Program');
+                            }}
+                          >
+                            <Text style={styles.modalPreviewButtonText}>Preview</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.modalButton, styles.modalStartButton]}
+                            onPress={() => {
+                              setShowWorkoutModal(false);
+                              // @ts-ignore
+                              navigation.navigate('Workout', { week: modalWorkoutData.week, day: modalWorkoutData.day });
+                            }}
+                          >
+                            <Text style={styles.modalStartButtonText}>Start Workout</Text>
+                          </TouchableOpacity>
+                        </View>
+                      );
+                    } else {
+                      // Past or future workout - single button
+                      return (
+                        <TouchableOpacity
+                          style={styles.modalStartButton}
+                          onPress={() => {
+                            setShowWorkoutModal(false);
+                            if (isFuture) {
+                              // @ts-ignore
+                              navigation.navigate('Program');
+                            } else {
+                              // Past workout - go to Progress screen to view history
+                              // @ts-ignore
+                              navigation.navigate('Progress', {
+                                week: modalWorkoutData.week,
+                                day: modalWorkoutData.day,
+                                date: modalWorkoutData.date.toISOString().split('T')[0],
+                              });
+                            }
+                          }}
+                        >
+                          <Text style={styles.modalStartButtonText}>
+                            {isFuture ? 'Preview Workout' : 'View History'}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    }
+                  })()}
+                </>
+              )}
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
         </ScrollView>
       </View>
 
-      {/* Initial Setup Overlay */}
+      {/* Initial Setup Overlay - Skip split selection, go straight to rest days */}
       {showInitialSetup && setupStep === 'split' && (
         <View style={styles.setupOverlay}>
           <View style={styles.setupCard}>
-            <Text style={styles.setupCardTitle}>Choose Your Workout Split</Text>
+            <Text style={styles.setupCardTitle}>Choose Your Rest Days</Text>
             <Text style={styles.setupDescription}>
-              How many days per week do you want to train?
+              Select which day(s) you can't work out. The app will schedule workouts on all other days using a 6-day rotation.
             </Text>
             <View style={styles.settingOptions}>
               {[
-                { value: '6-1', label: '6 on / 1 off', description: '6 training days, 1 rest' },
-                { value: '3-1', label: '3 on / 1 off', description: '3 training days, 1 rest' },
-                { value: '2-1', label: '2 on / 1 off', description: '2 training days, 1 rest' },
-                { value: '1-1', label: '1 on / 1 off', description: 'Alternating days' },
-                { value: 'custom', label: 'Custom', description: 'Choose your own schedule' },
-              ].map((option) => (
+                { value: 0, label: 'Sun' },
+                { value: 1, label: 'Mon' },
+                { value: 2, label: 'Tue' },
+                { value: 3, label: 'Wed' },
+                { value: 4, label: 'Thu' },
+                { value: 5, label: 'Fri' },
+                { value: 6, label: 'Sat' },
+              ].map((day) => (
                 <TouchableOpacity
-                  key={option.value}
+                  key={day.value}
                   style={[
                     styles.setupOptionButton,
-                    schedulePattern === option.value && styles.setupOptionButtonActive,
+                    restDaysOfWeek.includes(day.value) && styles.setupOptionButtonActive,
                   ]}
-                  onPress={() => setSchedulePattern(option.value as any)}
+                  onPress={() => {
+                    if (restDaysOfWeek.includes(day.value)) {
+                      // Remove day
+                      setRestDaysOfWeek(restDaysOfWeek.filter(d => d !== day.value));
+                    } else {
+                      // Add day
+                      setRestDaysOfWeek([...restDaysOfWeek, day.value]);
+                    }
+                  }}
                 >
                   <Text
                     style={[
                       styles.setupOptionText,
-                      schedulePattern === option.value && styles.setupOptionTextActive,
+                      restDaysOfWeek.includes(day.value) && styles.setupOptionTextActive,
                     ]}
                   >
-                    {option.label}
+                    {day.label}
                   </Text>
-                  <Text style={styles.setupOptionDescription}>{option.description}</Text>
                 </TouchableOpacity>
               ))}
             </View>
             <TouchableOpacity
               style={styles.saveSettingsButton}
               onPress={() => {
-                // Skip rest day selection only for custom mode
-                if (schedulePattern === 'custom') {
-                  setSetupStep('date');
-                } else {
-                  setSetupStep('restday');
+                // Use first rest day as starting_day_of_week for compatibility
+                if (restDaysOfWeek.length > 0) {
+                  setStartingDayOfWeek(restDaysOfWeek[0]);
                 }
+                setSetupStep('date');
               }}
             >
               <Text style={styles.saveSettingsButtonText}>Next</Text>
@@ -1132,8 +1183,8 @@ export default function DashboardScreen() {
         </View>
       )}
 
-      {/* Rest Day Selection Step - For all non-custom patterns */}
-      {showInitialSetup && setupStep === 'restday' && (
+      {/* REMOVED: Old rest day step - now combined with first step */}
+      {showInitialSetup && setupStep === 'restday_OLD_REMOVE' && (
         <View style={styles.setupOverlay}>
           <View style={styles.setupCard}>
             <Text style={styles.setupCardTitle}>Choose Your Rest Day</Text>
@@ -1206,12 +1257,8 @@ export default function DashboardScreen() {
           <TouchableOpacity
             style={styles.backToSplitButton}
             onPress={() => {
-              // Go back to rest day selection for all non-custom patterns
-              if (schedulePattern !== 'custom') {
-                setSetupStep('restday');
-              } else {
-                setSetupStep('split');
-              }
+              // Go back to split step (which is actually rest day selection)
+              setSetupStep('split');
             }}
           >
             <Text style={styles.backToSplitButtonText}>← Back</Text>
@@ -1228,21 +1275,15 @@ export default function DashboardScreen() {
               Please confirm your program setup:
             </Text>
             <View style={styles.confirmItem}>
-              <Text style={styles.confirmLabel}>Workout Split:</Text>
+              <Text style={styles.confirmLabel}>Rest Days:</Text>
               <Text style={styles.confirmValue}>
-                {schedulePattern === 'custom' ? 'Custom' : `${schedulePattern.split('-')[0]} on / ${schedulePattern.split('-')[1]} off`}
+                {restDaysOfWeek.length === 0
+                  ? 'None - Train every day!'
+                  : restDaysOfWeek.map(day =>
+                      ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]
+                    ).join(', ')}
               </Text>
             </View>
-            {schedulePattern !== 'custom' && (
-              <View style={styles.confirmItem}>
-                <Text style={styles.confirmLabel}>Rest Day:</Text>
-                <Text style={styles.confirmValue}>
-                  {restDaysOfWeek.map(day =>
-                    ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]
-                  ).join(', ')}
-                </Text>
-              </View>
-            )}
             <View style={styles.confirmItem}>
               <Text style={styles.confirmLabel}>Start Date:</Text>
               <Text style={styles.confirmValue}>
@@ -1269,18 +1310,37 @@ export default function DashboardScreen() {
               <TouchableOpacity
                 style={styles.confirmButton}
                 onPress={async () => {
+                  // Validate at least one rest day selected
+                  if (restDaysOfWeek.length === 0) {
+                    if (Platform.OS === 'web') {
+                      alert('Please select at least one rest day. Everyone needs rest!');
+                    } else {
+                      Alert.alert('Rest Day Required', 'Please select at least one rest day. Everyone needs rest!');
+                    }
+                    return;
+                  }
+
                   setIsProgramConfirmed(true);
                   setShowInitialSetup(false);
                   setSetupStep('split');
 
                   // Save user preferences to Supabase
                   const { data: { user } } = await supabase.auth.getUser();
-                  if (user) {
-                    await updateWorkoutPreferences(
-                      user.id,
-                      schedulePattern,
-                      restDaysOfWeek[0]
-                    );
+                  if (user?.email) {
+                    console.log('💾 Saving setup - Rest days:', restDaysOfWeek);
+
+                    // Save rest_days array and program_start_date
+                    await supabase
+                      .from('clients')
+                      .update({
+                        rest_days: restDaysOfWeek,
+                        starting_day_of_week: restDaysOfWeek[0] || 0, // Backward compatibility
+                        program_start_date: programStartDate?.toISOString().split('T')[0],
+                      })
+                      .eq('email', user.email);
+
+                    // Generate workout schedule with saved settings
+                    await generateWorkoutSchedule();
                   }
                 }}
               >
@@ -1329,99 +1389,172 @@ export default function DashboardScreen() {
                 </Text>
               </View>
 
-              {/* Workout Split - Dropdown */}
+              {/* Rest Days - Multi-select */}
               <View style={styles.settingItem}>
-                <Text style={styles.settingLabel}>Workout Split</Text>
-                <TouchableOpacity
-                  style={styles.dropdownButton}
-                  onPress={() => setShowWorkoutSplitDropdown(!showWorkoutSplitDropdown)}
-                >
-                  <Text style={styles.dropdownButtonText}>
-                    {schedulePattern === '6-1' ? '6 on / 1 off' :
-                     schedulePattern === '3-1' ? '3 on / 1 off' :
-                     schedulePattern === '2-1' ? '2 on / 1 off' :
-                     schedulePattern === '1-1' ? '1 on / 1 off' :
-                     'Custom'}
-                  </Text>
-                  <Text style={styles.dropdownArrow}>{showWorkoutSplitDropdown ? '▲' : '▼'}</Text>
-                </TouchableOpacity>
-                {showWorkoutSplitDropdown && (
-                  <View style={styles.dropdownMenu}>
-                    {[
-                      { value: '6-1', label: '6 on / 1 off' },
-                      { value: '3-1', label: '3 on / 1 off' },
-                      { value: '2-1', label: '2 on / 1 off' },
-                      { value: '1-1', label: '1 on / 1 off' },
-                      { value: 'custom', label: 'Custom' },
-                    ].map((option) => (
-                      <TouchableOpacity
-                        key={option.value}
-                        style={styles.dropdownItem}
-                        onPress={() => {
-                          handlePatternChange(option.value as any);
-                          setShowWorkoutSplitDropdown(false);
-                        }}
+                <Text style={styles.settingLabel}>Rest Days</Text>
+                <Text style={styles.settingHelperText}>
+                  Select which day(s) you can't work out. Workouts will be scheduled on all other days.
+                </Text>
+                <View style={styles.settingOptions}>
+                  {[
+                    { value: 0, label: 'Sun' },
+                    { value: 1, label: 'Mon' },
+                    { value: 2, label: 'Tue' },
+                    { value: 3, label: 'Wed' },
+                    { value: 4, label: 'Thu' },
+                    { value: 5, label: 'Fri' },
+                    { value: 6, label: 'Sat' },
+                  ].map((day) => (
+                    <TouchableOpacity
+                      key={day.value}
+                      style={[
+                        styles.setupOptionButton,
+                        restDaysOfWeek.includes(day.value) && styles.setupOptionButtonActive,
+                      ]}
+                      onPress={() => {
+                        if (restDaysOfWeek.includes(day.value)) {
+                          // Remove day
+                          setRestDaysOfWeek(restDaysOfWeek.filter(d => d !== day.value));
+                        } else {
+                          // Add day
+                          setRestDaysOfWeek([...restDaysOfWeek, day.value]);
+                        }
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.setupOptionText,
+                          restDaysOfWeek.includes(day.value) && styles.setupOptionTextActive,
+                        ]}
                       >
-                        <Text style={styles.dropdownItemText}>{option.label}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
-              </View>
-
-              {/* Rest Days - Dropdown */}
-              {schedulePattern !== 'custom' && (
-                <View style={styles.settingItem}>
-                  <Text style={styles.settingLabel}>Rest Day</Text>
-                  <TouchableOpacity
-                    style={styles.dropdownButton}
-                    onPress={() => setShowRestDayDropdown(!showRestDayDropdown)}
-                  >
-                    <Text style={styles.dropdownButtonText}>
-                      {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][restDaysOfWeek[0]]}
-                    </Text>
-                    <Text style={styles.dropdownArrow}>{showRestDayDropdown ? '▲' : '▼'}</Text>
-                  </TouchableOpacity>
-                  {showRestDayDropdown && (
-                    <View style={styles.dropdownMenu}>
-                      {[
-                        { value: 0, label: 'Sunday' },
-                        { value: 1, label: 'Monday' },
-                        { value: 2, label: 'Tuesday' },
-                        { value: 3, label: 'Wednesday' },
-                        { value: 4, label: 'Thursday' },
-                        { value: 5, label: 'Friday' },
-                        { value: 6, label: 'Saturday' },
-                      ].map((option) => (
-                        <TouchableOpacity
-                          key={option.value}
-                          style={styles.dropdownItem}
-                          onPress={() => {
-                            setRestDaysOfWeek([option.value]);
-                            setShowRestDayDropdown(false);
-                          }}
-                        >
-                          <Text style={styles.dropdownItemText}>{option.label}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
-                  <Text style={styles.settingHelperText}>
-                    Choose which day of the week is your rest day
-                  </Text>
+                        {day.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
-              )}
+              </View>
 
               {/* Save Button */}
               <TouchableOpacity
                 style={styles.saveSettingsButton}
-                onPress={() => {
-                  setShowSettingsModal(false);
+                onPress={async () => {
+                  try {
+                    // Validate at least one rest day selected
+                    if (restDaysOfWeek.length === 0) {
+                      if (Platform.OS === 'web') {
+                        alert('Please select at least one rest day. Everyone needs rest!');
+                      } else {
+                        Alert.alert('Rest Day Required', 'Please select at least one rest day. Everyone needs rest!');
+                      }
+                      return;
+                    }
+
+                    // Save rest days to database
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (user?.email) {
+                      console.log('💾 Saving rest days to database:', restDaysOfWeek);
+                      console.log('Type of rest days:', typeof restDaysOfWeek, 'Is array:', Array.isArray(restDaysOfWeek));
+
+                      const { data, error } = await supabase
+                        .from('clients')
+                        .update({
+                          rest_days: restDaysOfWeek,
+                          starting_day_of_week: restDaysOfWeek[0] || 0, // Backward compatibility
+                        })
+                        .eq('email', user.email)
+                        .select();
+
+                      console.log('Save result:', { data, error });
+
+                      if (error) {
+                        console.error('❌ Error saving rest days:', error);
+                        console.error('Error code:', error.code);
+                        console.error('Error message:', error.message);
+                        console.error('Error details:', error.details);
+                        console.error('Error hint:', error.hint);
+                        if (Platform.OS === 'web') {
+                          alert('Failed to save rest days: ' + error.message + '\nDetails: ' + error.details);
+                        }
+                      } else {
+                        console.log('✅ Rest days saved successfully');
+
+                        // Regenerate workout schedule with new rest days
+                        console.log('🔄 Regenerating schedule with new rest days...');
+                        await generateWorkoutSchedule();
+
+                        if (Platform.OS === 'web') {
+                          alert('Rest days updated! Schedule regenerated.');
+                        }
+                      }
+                    }
+
+                    setShowSettingsModal(false);
+                  } catch (error) {
+                    console.error('Exception saving rest days:', error);
+                    if (Platform.OS === 'web') {
+                      alert('Error saving settings');
+                    }
+                  }
                 }}
               >
                 <Text style={styles.saveSettingsButtonText}>Save Changes</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Profile Completion Modal */}
+      <Modal
+        visible={showProfileModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {}} // Prevent dismissal - must complete profile
+      >
+        <View style={styles.setupOverlay}>
+          <View style={styles.setupCard}>
+            <Text style={styles.setupCardTitle}>Complete Your Profile</Text>
+            <Text style={styles.setupDescription}>
+              Please provide your name to continue
+            </Text>
+
+            <View style={{marginTop: 20}}>
+              <Text style={styles.settingLabel}>First Name *</Text>
+              <TextInput
+                style={styles.profileInput}
+                placeholder="Enter your first name"
+                placeholderTextColor="#666"
+                value={profileFirstName}
+                onChangeText={setProfileFirstName}
+                autoCapitalize="words"
+                editable={!profileSaving}
+              />
+            </View>
+
+            <View style={{marginTop: 16}}>
+              <Text style={styles.settingLabel}>Last Name *</Text>
+              <TextInput
+                style={styles.profileInput}
+                placeholder="Enter your last name"
+                placeholderTextColor="#666"
+                value={profileLastName}
+                onChangeText={setProfileLastName}
+                autoCapitalize="words"
+                editable={!profileSaving}
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.saveSettingsButton, profileSaving && { opacity: 0.6 }]}
+              onPress={handleSaveProfile}
+              disabled={profileSaving}
+            >
+              {profileSaving ? (
+                <ActivityIndicator color="#000" />
+              ) : (
+                <Text style={styles.saveSettingsButtonText}>Save Profile</Text>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -1508,12 +1641,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#9ca3af',
   },
-  statsRow: {
+  statsGrid: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
     marginBottom: 16,
   },
-  statCard: {
+  miniStatCard: {
     flex: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
@@ -1522,28 +1655,33 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
   },
-  viewProgressCard: {
-    backgroundColor: 'rgba(45, 219, 219, 0.1)',
-    borderColor: 'rgba(45, 219, 219, 0.3)',
-  },
-  statLabel: {
-    fontSize: 11,
+  miniStatLabel: {
+    fontSize: 10,
     fontWeight: '600',
     color: '#9ca3af',
-    marginBottom: 8,
+    marginBottom: 6,
     textAlign: 'center',
   },
-  statValue: {
-    fontSize: 24,
+  miniStatValue: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
   },
-  statSubtext: {
-    fontSize: 12,
-    color: '#9ca3af',
-    marginTop: 4,
-    textAlign: 'center',
+  calendarContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    marginBottom: 16,
+  },
+  workoutDetailsContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   workoutContainer: {
     flex: 1,
@@ -1620,44 +1758,44 @@ const styles = StyleSheet.create({
     marginVertical: 12,
   },
   calendarWorkoutRow: {
-    flexDirection: 'row',
-    gap: 12,
+    flexDirection: 'column',
+    gap: 16,
     marginBottom: 0,
   },
   calendarColumn: {
-    flex: 0.55,
+    width: '100%',
   },
   workoutDetailColumn: {
-    flex: 0.45,
+    width: '100%',
   },
   calendarHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 16,
   },
   monthButton: {
-    padding: 4,
+    padding: 8,
   },
   monthButtonText: {
     color: '#2ddbdb',
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: 'bold',
   },
   calendarMonth: {
-    fontSize: 12,
+    fontSize: 18,
     fontWeight: '600',
     color: '#fff',
   },
   dayHeaders: {
     flexDirection: 'row',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   dayHeader: {
     flex: 1,
     textAlign: 'center',
     color: '#9ca3af',
-    fontSize: 9,
+    fontSize: 12,
     fontWeight: '600',
   },
   calendarGrid: {
@@ -1666,26 +1804,32 @@ const styles = StyleSheet.create({
   },
   calendarDay: {
     width: '14.28%',
-    aspectRatio: 1,
+    aspectRatio: 1, // Square boxes
     justifyContent: 'center',
     alignItems: 'center',
-    marginVertical: 1,
+    marginVertical: 2,
+  },
+  calendarDayContent: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
   },
   calendarDayEmpty: {
     opacity: 0,
   },
   calendarDaySelected: {
     backgroundColor: '#2ddbdb',
-    borderRadius: 8,
+    borderRadius: 12,
   },
   calendarDayToday: {
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: '#2ddbdb',
-    borderRadius: 8,
+    borderRadius: 12,
   },
   calendarDayText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '500',
   },
   calendarDayTextSelected: {
@@ -1860,16 +2004,29 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   workoutDayBadge: {
-    backgroundColor: '#2ddbdb',
-    borderRadius: 4,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    marginTop: 2,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    marginTop: 3,
   },
   workoutDayBadgeText: {
-    fontSize: 8,
+    fontSize: 9,
     fontWeight: 'bold',
     color: '#000',
+  },
+  workoutNameText: {
+    fontSize: 8,
+    fontWeight: '500',
+    color: '#fff',
+    textAlign: 'center',
+    marginTop: 2,
+    lineHeight: 10,
+  },
+  workoutDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginTop: 4,
   },
   loadingExercises: {
     fontSize: 13,
@@ -2008,6 +2165,16 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginBottom: 12,
   },
+  profileInput: {
+    backgroundColor: 'rgba(45, 219, 219, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(45, 219, 219, 0.3)',
+    borderRadius: 12,
+    padding: 18,
+    fontSize: 18,
+    color: '#fff',
+    minHeight: 60,
+  },
   settingHelperText: {
     fontSize: 12,
     color: '#9ca3af',
@@ -2047,6 +2214,8 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
   },
   settingOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
   },
   settingOptionButton: {
@@ -2090,20 +2259,22 @@ const styles = StyleSheet.create({
   },
   setupOptionButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
+    minWidth: 50,
+    alignItems: 'center',
   },
   setupOptionButtonActive: {
     backgroundColor: 'rgba(45, 219, 219, 0.2)',
     borderColor: '#2ddbdb',
   },
   setupOptionText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#9ca3af',
-    marginBottom: 4,
   },
   setupOptionTextActive: {
     color: '#2ddbdb',
@@ -2490,5 +2661,101 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#fff',
     fontWeight: '500',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#0a0e27',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxHeight: '85%',
+    borderWidth: 1,
+    borderColor: 'rgba(45, 219, 219, 0.3)',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+  },
+  modalDate: {
+    fontSize: 14,
+    color: '#9ca3af',
+    marginBottom: 8,
+  },
+  modalWorkoutName: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 12,
+  },
+  modalWeekBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  modalWeekText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  modalCloseButton: {
+    padding: 8,
+  },
+  modalCloseText: {
+    fontSize: 24,
+    color: '#9ca3af',
+    fontWeight: 'bold',
+  },
+  modalExerciseSection: {
+    flex: 1,
+    marginBottom: 20,
+  },
+  modalExerciseTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2ddbdb',
+    marginBottom: 12,
+  },
+  modalExerciseList: {
+    marginBottom: 16,
+  },
+  modalButtonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  modalPreviewButton: {
+    backgroundColor: 'rgba(45, 219, 219, 0.2)',
+    borderWidth: 1,
+    borderColor: '#2ddbdb',
+  },
+  modalPreviewButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2ddbdb',
+  },
+  modalStartButton: {
+    backgroundColor: '#2ddbdb',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  modalStartButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000',
   },
 });

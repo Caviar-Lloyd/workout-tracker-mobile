@@ -38,6 +38,13 @@
         "WRITE_EXTERNAL_STORAGE",
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
+        "ACTIVITY_RECOGNITION",
+        "CAMERA",
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
         "ACTIVITY_RECOGNITION"
       ],
       "package": "com.eccentriciron.workouttracker"
@@ -51,6 +58,12 @@
         "projectId": "cc1a105a-0bff-49c8-afd0-f5def29b0493"
       }
     },
-    "owner": "carver"
+    "owner": "carver",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/cc1a105a-0bff-49c8-afd0-f5def29b0493"
+    }
   }
 }
