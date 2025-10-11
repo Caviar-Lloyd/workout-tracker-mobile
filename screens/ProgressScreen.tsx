@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Dimensions } from 'react-native';
+import { LineChart } from 'react-native-chart-kit';
+import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../lib/supabase/client';
 import { getWorkoutTemplate, getAllExerciseHistory } from '../lib/supabase/workout-service';
 import type { WeekNumber, DayNumber } from '../types/workout';
@@ -219,22 +221,59 @@ export default function ProgressScreen() {
             {chartData.length > 0 ? (
               <View style={styles.chartContainer}>
                 <Text style={styles.chartTitle}>Weight Progress</Text>
-                <View style={styles.chart}>
-                  {chartData.map((data, index) => {
-                    const height = maxWeight > 0 ? (data.weight / maxWeight) * 180 : 4;
-                    return (
-                      <View key={index} style={styles.chartBar}>
-                        <View style={[styles.chartBarFill, { height }]} />
-                        <Text style={styles.chartLabel}>{data.weight.toFixed(0)}</Text>
-                        <Text style={styles.chartDate}>{data.date}</Text>
-                      </View>
-                    );
-                  })}
+                <Text style={styles.chartSubtitle}>Average weight lifted over time</Text>
+                <View style={styles.chartWrapper}>
+                  <LineChart
+                    data={{
+                      labels: chartData.map(d => d.date),
+                      datasets: [{
+                        data: chartData.map(d => d.weight),
+                        strokeWidth: 3,
+                      }]
+                    }}
+                    width={Dimensions.get('window').width - 64}
+                    height={280}
+                    chartConfig={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                      backgroundGradientFrom: 'rgba(45, 219, 219, 0.15)',
+                      backgroundGradientTo: 'rgba(45, 219, 219, 0.05)',
+                      decimalPlaces: 0,
+                      color: (opacity = 1) => `rgba(45, 219, 219, ${opacity})`,
+                      labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity * 0.7})`,
+                      style: {
+                        borderRadius: 16,
+                      },
+                      propsForDots: {
+                        r: '6',
+                        strokeWidth: '2',
+                        stroke: '#0a0e27',
+                        fill: '#2ddbdb',
+                      },
+                      propsForBackgroundLines: {
+                        strokeDasharray: '',
+                        stroke: 'rgba(255, 255, 255, 0.1)',
+                        strokeWidth: 1,
+                      },
+                    }}
+                    bezier
+                    style={{
+                      borderRadius: 16,
+                      paddingRight: 0,
+                    }}
+                    withInnerLines={true}
+                    withOuterLines={false}
+                    withVerticalLines={false}
+                    withHorizontalLines={true}
+                    withVerticalLabels={true}
+                    withHorizontalLabels={true}
+                    fromZero={false}
+                  />
                 </View>
               </View>
             ) : (
               <View style={styles.noDataContainer}>
                 <Text style={styles.noDataText}>No workout history yet</Text>
+                <Text style={styles.noDataSubtext}>Complete a workout to see your progress</Text>
               </View>
             )}
 
@@ -387,52 +426,45 @@ const styles = StyleSheet.create({
   },
   chartContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 20,
+    padding: 20,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   chartTitle: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     color: '#fff',
+    marginBottom: 4,
+  },
+  chartSubtitle: {
+    fontSize: 13,
+    color: '#9ca3af',
     marginBottom: 16,
   },
-  chart: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    height: 200,
-  },
-  chartBar: {
-    flex: 1,
+  chartWrapper: {
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    marginHorizontal: 2,
-  },
-  chartBarFill: {
-    width: '100%',
-    backgroundColor: '#2ddbdb',
-    borderRadius: 4,
-    minHeight: 4,
-  },
-  chartLabel: {
-    fontSize: 10,
-    color: '#fff',
-    marginTop: 4,
-  },
-  chartDate: {
-    fontSize: 8,
-    color: '#9ca3af',
-    marginTop: 2,
+    overflow: 'hidden',
+    borderRadius: 16,
   },
   noDataContainer: {
-    paddingVertical: 40,
+    paddingVertical: 60,
     alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   noDataText: {
     fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 8,
+  },
+  noDataSubtext: {
+    fontSize: 14,
     color: '#9ca3af',
   },
   detailsContainer: {
