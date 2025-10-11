@@ -81,7 +81,7 @@ const ProgressIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: st
 function ExpandableMenu() {
   const navigation = useNavigation();
   const [menuOpen, setMenuOpen] = useState(false);
-  const slideAnim = useRef(new Animated.Value(500)).current; // Start completely off-screen
+  const slideAnim = useRef(new Animated.Value(600)).current; // Start completely off-screen (increased for more menu items)
   const bounceAnim = useRef(new Animated.Value(0)).current; // For arrow bounce
   const fadeAnim = useRef(new Animated.Value(1)).current; // For tooltip fade
   const [showTooltip, setShowTooltip] = useState(true);
@@ -193,7 +193,7 @@ function ExpandableMenu() {
 
   const handleLogout = async () => {
     slideAnim.stopAnimation(() => {
-      slideAnim.setValue(500);
+      slideAnim.setValue(600);
       setMenuOpen(false);
     });
     await supabase.auth.signOut();
@@ -251,7 +251,7 @@ function ExpandableMenu() {
           onPressIn={() => {
             // Close menu synchronously before anything else
             slideAnim.stopAnimation(() => {
-              slideAnim.setValue(500);
+              slideAnim.setValue(600);
               setMenuOpen(false);
               navigateTo('Dashboard');
             });
@@ -268,7 +268,7 @@ function ExpandableMenu() {
           onPressIn={() => {
             // Close menu synchronously before anything else
             slideAnim.stopAnimation(() => {
-              slideAnim.setValue(500);
+              slideAnim.setValue(600);
               setMenuOpen(false);
               navigateTo('Program');
             });
@@ -285,7 +285,7 @@ function ExpandableMenu() {
           onPressIn={() => {
             // Close menu synchronously before anything else
             slideAnim.stopAnimation(() => {
-              slideAnim.setValue(500);
+              slideAnim.setValue(600);
               setMenuOpen(false);
               navigateTo('Workout');
             });
@@ -302,7 +302,7 @@ function ExpandableMenu() {
           onPressIn={() => {
             // Close menu synchronously before anything else
             slideAnim.stopAnimation(() => {
-              slideAnim.setValue(500);
+              slideAnim.setValue(600);
               setMenuOpen(false);
               navigateTo('Progress');
             });
@@ -320,7 +320,7 @@ function ExpandableMenu() {
             delayPressIn={0}
             onPressIn={() => {
               slideAnim.stopAnimation(() => {
-                slideAnim.setValue(500);
+                slideAnim.setValue(600);
                 setMenuOpen(false);
                 navigateTo('Clients');
               });
