@@ -148,12 +148,17 @@ export default function WorkoutScreen() {
     if (!workoutTemplate) return;
 
     const currentIndex = workoutTemplate.exercises.findIndex(ex => ex.index === currentExerciseIndex);
+
+    // Cycle to next exercise, or back to first if at the end
     if (currentIndex < workoutTemplate.exercises.length - 1) {
       const nextExercise = workoutTemplate.exercises[currentIndex + 1];
       setCurrentExerciseIndex(nextExercise.index);
-
-      // Scroll to show the next exercise (approximately 50px per exercise)
       exerciseScrollRef.current?.scrollTo({ y: (currentIndex + 1) * 50, animated: true });
+    } else {
+      // Go back to first exercise
+      const firstExercise = workoutTemplate.exercises[0];
+      setCurrentExerciseIndex(firstExercise.index);
+      exerciseScrollRef.current?.scrollTo({ y: 0, animated: true });
     }
   };
 
@@ -637,6 +642,7 @@ const styles = StyleSheet.create({
   },
   // Three Column Layout with Progress Bar
   threeColumnLayout: {
+    flex: 1,
     flexDirection: 'column',
   },
   topRow: {
