@@ -608,13 +608,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  // Breadcrumb Navigation
+  // Breadcrumb Navigation - Top Right
   breadcrumb: {
-    marginTop: 12,
-    marginBottom: 16,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    paddingTop: 8,
+    paddingRight: 20,
+    zIndex: 10,
   },
   breadcrumbText: {
-    fontSize: 13,
+    fontSize: 12,
   },
   breadcrumbHome: {
     color: '#2ddbdb',

@@ -968,6 +968,15 @@ export default function DashboardScreen({ route }: any) {
           }}
           showsVerticalScrollIndicator={false}
         >
+          {/* Breadcrumb Navigation - Top Right */}
+          <View style={styles.breadcrumb}>
+            <Text style={styles.breadcrumbText}>
+              <Text style={styles.breadcrumbHome} onPress={() => navigation.navigate('Dashboard')}>Home</Text>
+              <Text style={styles.breadcrumbSeparator}> / </Text>
+              <Text style={styles.breadcrumbCurrent}>Dashboard</Text>
+            </Text>
+          </View>
+
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerContent}>
@@ -978,15 +987,6 @@ export default function DashboardScreen({ route }: any) {
                 <Text style={styles.subtitle}>Track your progress and crush your goals!</Text>
               </View>
             </View>
-          </View>
-
-          {/* Breadcrumb Navigation */}
-          <View style={styles.breadcrumb}>
-            <Text style={styles.breadcrumbText}>
-              <Text style={styles.breadcrumbHome} onPress={() => navigation.navigate('Dashboard')}>Home</Text>
-              <Text style={styles.breadcrumbSeparator}> / </Text>
-              <Text style={styles.breadcrumbCurrent}>Dashboard</Text>
-            </Text>
           </View>
 
         {/* Stats Grid - 4 Cards Side by Side */}
@@ -3112,13 +3112,17 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     textAlign: 'center',
   },
-  // Breadcrumb Navigation
+  // Breadcrumb Navigation - Top Right
   breadcrumb: {
-    marginTop: 12,
-    marginBottom: 16,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    paddingTop: 8,
+    paddingRight: 20,
+    zIndex: 10,
   },
   breadcrumbText: {
-    fontSize: 13,
+    fontSize: 12,
   },
   breadcrumbHome: {
     color: '#2ddbdb',
