@@ -100,7 +100,7 @@ export default function ProgressScreen() {
   const currentExercise = exercises[currentExerciseIndex];
   const chartData = currentExercise?.history.length > 0
     ? currentExercise.history.slice(0, 10).reverse().map((h: any) => ({
-        date: new Date(h.completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        date: new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         weight: h.sets.reduce((sum: number, set: any) => sum + (set.weight || 0), 0) / h.sets.length,
       }))
     : [];
