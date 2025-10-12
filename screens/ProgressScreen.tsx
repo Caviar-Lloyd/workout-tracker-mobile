@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Dimensions } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase/client';
 import { getWorkoutTemplate, getAllExerciseHistory } from '../lib/supabase/workout-service';
 import type { WeekNumber, DayNumber } from '../types/workout';
+import ParticleBackground from '../components/ParticleBackground';
 
 const WORKOUT_DAYS = [
   { day: 1, name: "Chest, Triceps, Abs", type: "Multi-Joint" },
@@ -24,6 +26,7 @@ interface ExerciseData {
 }
 
 export default function ProgressScreen() {
+  const insets = useSafeAreaInsets();
   const [userData, setUserData] = useState<{ email: string } | null>(null);
   const [selectedWeek, setSelectedWeek] = useState<WeekNumber>(1);
   const [selectedDay, setSelectedDay] = useState<DayNumber>(1);
@@ -103,7 +106,29 @@ export default function ProgressScreen() {
   const workoutInfo = WORKOUT_DAYS.find(w => w.day === selectedDay);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <View style={styles.outerContainer}>
+      {/* Background Gradient */}
+      <LinearGradient
+        colors={['#0a0e27', '#1a1f3a', '#2a1f3a']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradient}
+      />
+
+      {/* Dark Overlay (25% opacity) */}
+      <View style={styles.darkOverlay} />
+
+      {/* Particle Background */}
+      <ParticleBackground />
+
+      {/* Content Wrapper */}
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[styles.contentContainer, {
+          paddingTop: Math.max(insets.top, 20) + 10,
+          paddingBottom: Math.max(insets.bottom, 20) + 20,
+        }]}
+      >
         <Text style={styles.title}>Progress Tracker</Text>
         <Text style={styles.subtitle}>Track your performance</Text>
 
@@ -356,11 +381,30 @@ export default function ProgressScreen() {
             </View>
           </>
         )}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  outerContainer: {
+    flex: 1,
+  },
+  gradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+  },
+  darkOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+  },
   container: {
     flex: 1,
   },
