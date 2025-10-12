@@ -107,6 +107,18 @@ export default function ProgressScreen() {
         <Text style={styles.title}>Progress Tracker</Text>
         <Text style={styles.subtitle}>Track your performance</Text>
 
+        {/* Backdrop to close dropdowns when clicking outside */}
+        {(showWorkoutDropdown || showExerciseDropdown) && (
+          <TouchableOpacity
+            style={styles.dropdownBackdropOverlay}
+            activeOpacity={1}
+            onPress={() => {
+              setShowWorkoutDropdown(false);
+              setShowExerciseDropdown(false);
+            }}
+          />
+        )}
+
         {/* Combined Container with Arrows and Dropdowns */}
         <View style={styles.combinedContainer}>
           {/* Left Arrow */}
@@ -359,6 +371,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#9ca3af',
     marginBottom: 24,
+  },
+  dropdownBackdropOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 9998,
   },
   loadingContainer: {
     paddingVertical: 40,
