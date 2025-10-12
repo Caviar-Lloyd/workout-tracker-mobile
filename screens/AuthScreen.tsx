@@ -108,11 +108,8 @@ export default function AuthScreen() {
 
         if (error) throw error;
       } else {
-        // For mobile (Expo Go), use the proper Expo redirect URI
-        redirectTo = makeRedirectUri({
-          scheme: 'workouttracker', // Must match app.json scheme
-          path: 'auth',
-        });
+        // For mobile APK, use the package-based redirect URI
+        redirectTo = 'com.eccentriciron.workouttracker://auth';
 
         console.log('Mobile redirect URL:', redirectTo);
 
