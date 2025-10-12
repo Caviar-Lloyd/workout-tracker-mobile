@@ -248,13 +248,13 @@ export default function ProgressScreen() {
               {/* Week Navigation in Chart Header */}
               <View style={styles.chartHeaderRow}>
                 <View style={styles.weekNavContainer}>
-                  <Text style={styles.weekHintTextLeft}>Week {selectedWeek === 1 ? 6 : selectedWeek - 1}</Text>
                   <TouchableOpacity
                     style={styles.weekArrowButton}
                     onPress={handlePrevWeek}
                   >
                     <Text style={styles.weekArrowText}>←</Text>
                   </TouchableOpacity>
+                  <Text style={styles.weekHintTextRight}>Week {selectedWeek === 1 ? 6 : selectedWeek - 1}</Text>
                 </View>
 
                 <View style={styles.chartTitleContainer}>
@@ -263,13 +263,13 @@ export default function ProgressScreen() {
                 </View>
 
                 <View style={styles.weekNavContainer}>
+                  <Text style={styles.weekHintTextLeft}>Week {selectedWeek === 6 ? 1 : selectedWeek + 1}</Text>
                   <TouchableOpacity
                     style={styles.weekArrowButton}
                     onPress={handleNextWeek}
                   >
                     <Text style={styles.weekArrowText}>→</Text>
                   </TouchableOpacity>
-                  <Text style={styles.weekHintTextRight}>Week {selectedWeek === 6 ? 1 : selectedWeek + 1}</Text>
                 </View>
               </View>
 
