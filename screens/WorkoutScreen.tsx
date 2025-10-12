@@ -346,8 +346,9 @@ export default function WorkoutScreen() {
 
             {/* Three Column Layout with Progress Bar */}
             <View style={styles.threeColumnLayout}>
-              {/* Left Section: Exercise List + Timer */}
-              <View style={styles.leftSection}>
+              {/* Top Row: Exercises | Reps | Weight */}
+              <View style={styles.topRow}>
+                {/* Left: Exercise List (4 items max visible) */}
                 <View style={styles.column1}>
                   <View style={styles.columnHeader}>
                     <Text style={styles.columnTitle}>Exercises</Text>
@@ -395,29 +396,15 @@ export default function WorkoutScreen() {
                       })}
                     </ScrollView>
                     {/* Scroll indicator */}
-                    <View style={styles.scrollIndicator}>
-                      <Text style={styles.scrollArrow}>↓</Text>
-                    </View>
+                    {workoutTemplate.exercises.length > 4 && (
+                      <View style={styles.scrollIndicator}>
+                        <Text style={styles.scrollArrow}>↓</Text>
+                      </View>
+                    )}
                   </View>
                 </View>
 
-                {/* Timer below exercise list */}
-                <View style={styles.timerContainer}>
-                  <Text style={styles.timerLabel}>Time</Text>
-                  <Text style={styles.timerValue}>{formatTime(elapsedTime)}</Text>
-                </View>
-              </View>
-
-              {/* Progress Bar (vertical) */}
-              <View style={styles.progressBarContainer}>
-                <View style={styles.progressBarTrack}>
-                  <View style={[styles.progressBarFill, { height: `${getProgress()}%` }]} />
-                </View>
-                <Text style={styles.progressBarText}>{Math.round(getProgress())}%</Text>
-              </View>
-
-              {/* Right Section: Reps/Weight + Submit Button */}
-              <View style={styles.rightSection}>
+                {/* Right: Reps and Weight Columns */}
                 <View style={styles.inputsWrapper}>
                   {/* Column 2: Reps Input */}
                   <View style={styles.column2}>
@@ -465,27 +452,47 @@ export default function WorkoutScreen() {
                     </View>
                   </View>
                 </View>
+              </View>
 
-                {/* Submit Button below reps/weight */}
-                <TouchableOpacity
-                  style={[
-                    styles.submitButton,
-                    (isSubmitting || !hasStartedLogging) && styles.submitButtonDisabled,
-                    getProgress() === 100 && styles.submitButtonComplete
-                  ]}
-                  onPress={handleSubmit}
-                  disabled={isSubmitting || !hasStartedLogging}
-                >
-                  <Text style={styles.submitButtonText}>
-                    {isSubmitting
-                      ? 'Saving...'
-                      : !hasStartedLogging
-                        ? 'Start Logging'
-                        : getProgress() === 100
-                          ? 'Complete Workout'
-                          : 'Submit Partial'}
-                  </Text>
-                </TouchableOpacity>
+              {/* Bottom Row: Timer | Progress Bar + Submit Button */}
+              <View style={styles.bottomRow}>
+                {/* Timer (left side, below exercises) */}
+                <View style={styles.timerContainer}>
+                  <Text style={styles.timerLabel}>Time</Text>
+                  <Text style={styles.timerValue}>{formatTime(elapsedTime)}</Text>
+                </View>
+
+                {/* Right side: Progress Bar + Submit Button */}
+                <View style={styles.rightBottomSection}>
+                  {/* Progress Bar (horizontal) */}
+                  <View style={styles.progressBarHorizontal}>
+                    <View style={styles.progressBarTrackHorizontal}>
+                      <View style={[styles.progressBarFillHorizontal, { width: `${getProgress()}%` }]} />
+                    </View>
+                    <Text style={styles.progressBarTextHorizontal}>{Math.round(getProgress())}%</Text>
+                  </View>
+
+                  {/* Submit Button */}
+                  <TouchableOpacity
+                    style={[
+                      styles.submitButton,
+                      (isSubmitting || !hasStartedLogging) && styles.submitButtonDisabled,
+                      getProgress() === 100 && styles.submitButtonComplete
+                    ]}
+                    onPress={handleSubmit}
+                    disabled={isSubmitting || !hasStartedLogging}
+                  >
+                    <Text style={styles.submitButtonText}>
+                      {isSubmitting
+                        ? 'Saving...'
+                        : !hasStartedLogging
+                          ? 'Start Logging'
+                          : getProgress() === 100
+                            ? 'Complete Workout'
+                            : 'Submit Partial'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           </View>
@@ -624,67 +631,18 @@ const styles = StyleSheet.create({
   },
   // Three Column Layout with Progress Bar
   threeColumnLayout: {
-    flexDirection: 'row',
-    height: 400,
-  },
-  leftSection: {
-    flex: 2,
     flexDirection: 'column',
+  },
+  topRow: {
+    flexDirection: 'row',
+    height: 240,
   },
   column1: {
-    flex: 1,
+    flex: 2,
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
   },
-  timerContainer: {
-    backgroundColor: 'rgba(45, 219, 219, 0.1)',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    padding: 12,
-    alignItems: 'center',
-  },
-  timerLabel: {
-    fontSize: 10,
-    color: '#9ca3af',
-    marginBottom: 4,
-  },
-  timerValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2ddbdb',
-  },
-  progressBarContainer: {
-    width: 40,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-  },
-  progressBarTrack: {
-    width: 20,
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 10,
-    overflow: 'hidden',
-    justifyContent: 'flex-end',
-  },
-  progressBarFill: {
-    width: '100%',
-    backgroundColor: '#2ddbdb',
-    borderRadius: 10,
-  },
-  progressBarText: {
-    fontSize: 10,
-    color: '#2ddbdb',
-    fontWeight: 'bold',
-    marginTop: 8,
-    transform: [{ rotate: '-90deg' }],
-  },
-  rightSection: {
-    flex: 2,
-    flexDirection: 'column',
-  },
   inputsWrapper: {
-    flex: 1,
+    flex: 2,
     flexDirection: 'row',
   },
   column2: {
@@ -694,6 +652,61 @@ const styles = StyleSheet.create({
   column3: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    height: 80,
+  },
+  timerContainer: {
+    flex: 2,
+    backgroundColor: 'rgba(45, 219, 219, 0.1)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timerLabel: {
+    fontSize: 10,
+    color: '#9ca3af',
+    marginBottom: 4,
+  },
+  timerValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#2ddbdb',
+  },
+  rightBottomSection: {
+    flex: 2,
+    flexDirection: 'column',
+  },
+  progressBarHorizontal: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    gap: 8,
+  },
+  progressBarTrackHorizontal: {
+    flex: 1,
+    height: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  progressBarFillHorizontal: {
+    height: '100%',
+    backgroundColor: '#2ddbdb',
+    borderRadius: 6,
+  },
+  progressBarTextHorizontal: {
+    fontSize: 12,
+    color: '#2ddbdb',
+    fontWeight: 'bold',
+    minWidth: 40,
+    textAlign: 'right',
   },
   columnHeader: {
     padding: 10,
@@ -820,11 +833,13 @@ const styles = StyleSheet.create({
   },
   // Submit Button
   submitButton: {
+    flex: 1,
     margin: 8,
     backgroundColor: 'rgba(255, 165, 0, 0.8)',
     borderRadius: 12,
     padding: 14,
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255, 165, 0, 0.5)',
   },
