@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -35,6 +35,11 @@ export default function ProgramScreen() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [selectedExerciseIndex, setSelectedExerciseIndex] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Scroll refs for each column
+  const weekScrollRef = useRef<any>(null);
+  const dayScrollRef = useRef<any>(null);
+  const exerciseScrollRef = useRef<any>(null);
 
   // Fetch exercises when day or week changes
   useEffect(() => {
@@ -124,7 +129,11 @@ export default function ProgramScreen() {
           <View style={styles.columnHeader}>
             <Text style={styles.columnTitle}>Week</Text>
           </View>
-          <ScrollView style={styles.columnScroll} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            ref={weekScrollRef}
+            style={styles.columnScroll}
+            showsVerticalScrollIndicator={false}
+          >
             {weeks.map((week) => (
               <TouchableOpacity
                 key={week.number}
@@ -149,6 +158,13 @@ export default function ProgramScreen() {
               </TouchableOpacity>
             ))}
           </ScrollView>
+          <TouchableOpacity
+            style={styles.scrollIndicator}
+            onPress={() => weekScrollRef.current?.scrollTo({ y: 100, animated: true })}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.scrollIndicatorText}>↓</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Column 2: Days */}
@@ -156,7 +172,11 @@ export default function ProgramScreen() {
           <View style={styles.columnHeader}>
             <Text style={styles.columnTitle}>Day</Text>
           </View>
-          <ScrollView style={styles.columnScroll} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            ref={dayScrollRef}
+            style={styles.columnScroll}
+            showsVerticalScrollIndicator={false}
+          >
             {WORKOUT_DAYS.map((workout) => (
               <TouchableOpacity
                 key={workout.day}
@@ -181,6 +201,13 @@ export default function ProgramScreen() {
               </TouchableOpacity>
             ))}
           </ScrollView>
+          <TouchableOpacity
+            style={styles.scrollIndicator}
+            onPress={() => dayScrollRef.current?.scrollTo({ y: 100, animated: true })}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.scrollIndicatorText}>↓</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Column 3: Exercises */}
@@ -188,7 +215,11 @@ export default function ProgramScreen() {
           <View style={styles.columnHeader}>
             <Text style={styles.columnTitle}>Exercises</Text>
           </View>
-          <ScrollView style={styles.columnScroll} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            ref={exerciseScrollRef}
+            style={styles.columnScroll}
+            showsVerticalScrollIndicator={false}
+          >
             {isLoading ? (
               <Text style={styles.loadingText}>Loading...</Text>
             ) : (
@@ -222,6 +253,13 @@ export default function ProgramScreen() {
               ))
             )}
           </ScrollView>
+          <TouchableOpacity
+            style={styles.scrollIndicator}
+            onPress={() => exerciseScrollRef.current?.scrollTo({ y: 100, animated: true })}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.scrollIndicatorText}>↓</Text>
+          </TouchableOpacity>
         </View>
       </View>
       </View>
@@ -288,7 +326,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     overflow: 'hidden',
-    height: 400,
+    height: 240,
   },
   column: {
     flex: 1,
@@ -402,5 +440,17 @@ const styles = StyleSheet.create({
   breadcrumbCurrent: {
     color: '#9ca3af',
     fontWeight: '400',
+  },
+  scrollIndicator: {
+    backgroundColor: 'rgba(45, 219, 219, 0.15)',
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  scrollIndicatorText: {
+    fontSize: 18,
+    color: '#2ddbdb',
+    fontWeight: '700',
   },
 });
