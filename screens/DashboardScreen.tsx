@@ -1743,9 +1743,7 @@ export default function DashboardScreen() {
                   <Text style={styles.modalInfoText}>
                     You'll see your previous workout data here after you complete this workout.
                     {'\n\n'}
-                    The next time you'll do this workout will be in 3 weeks (Week {nextWorkout ? ((nextWorkout.week % 6) + 1) : '--'}).
-                    {'\n\n'}
-                    This allows you to track your progress and see how your strength improves over time!
+                    This workout repeats every 3 weeks in the program cycle, allowing you to track your progress and see how your strength improves over time!
                   </Text>
                 </>
               )}
