@@ -352,47 +352,53 @@ export default function WorkoutScreen() {
                   <View style={styles.columnHeader}>
                     <Text style={styles.columnTitle}>Exercises</Text>
                   </View>
-                  <ScrollView
-                    style={styles.exerciseScrollList}
-                    showsVerticalScrollIndicator={false}
-                  >
-                    {workoutTemplate.exercises.map((exercise, index) => {
-                      const sets = exerciseData[exercise.index] || [];
-                      const completedSets = sets.filter(set => set.reps && set.weight).length;
-                      const isActive = currentExerciseIndex === exercise.index;
+                  <View style={styles.scrollableContainer}>
+                    <ScrollView
+                      style={styles.exerciseScrollList}
+                      showsVerticalScrollIndicator={false}
+                    >
+                      {workoutTemplate.exercises.map((exercise, index) => {
+                        const sets = exerciseData[exercise.index] || [];
+                        const completedSets = sets.filter(set => set.reps && set.weight).length;
+                        const isActive = currentExerciseIndex === exercise.index;
 
-                      return (
-                        <TouchableOpacity
-                          key={exercise.index}
-                          style={[
-                            styles.exerciseButton,
-                            isActive && styles.exerciseButtonActive
-                          ]}
-                          onPress={() => setCurrentExerciseIndex(exercise.index)}
-                        >
-                          <View style={styles.exerciseButtonContent}>
-                            <Text style={[styles.exerciseNumber, isActive && styles.exerciseNumberActive]}>
-                              {index + 1}
-                            </Text>
-                            <View style={styles.exerciseTextContainer}>
-                              <Text
-                                style={[styles.exerciseButtonName, isActive && styles.exerciseButtonNameActive]}
-                                numberOfLines={2}
-                              >
-                                {exercise.name}
+                        return (
+                          <TouchableOpacity
+                            key={exercise.index}
+                            style={[
+                              styles.exerciseButton,
+                              isActive && styles.exerciseButtonActive
+                            ]}
+                            onPress={() => setCurrentExerciseIndex(exercise.index)}
+                          >
+                            <View style={styles.exerciseButtonContent}>
+                              <Text style={[styles.exerciseNumber, isActive && styles.exerciseNumberActive]}>
+                                {index + 1}
                               </Text>
-                              <Text style={styles.exerciseProgress}>
-                                {completedSets}/{exercise.setCount}
-                              </Text>
+                              <View style={styles.exerciseTextContainer}>
+                                <Text
+                                  style={[styles.exerciseButtonName, isActive && styles.exerciseButtonNameActive]}
+                                  numberOfLines={2}
+                                >
+                                  {exercise.name}
+                                </Text>
+                                <Text style={styles.exerciseProgress}>
+                                  {completedSets}/{exercise.setCount}
+                                </Text>
+                              </View>
                             </View>
-                          </View>
-                          {completedSets === exercise.setCount && (
-                            <Text style={styles.completedCheck}>✓</Text>
-                          )}
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
+                            {completedSets === exercise.setCount && (
+                              <Text style={styles.completedCheck}>✓</Text>
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
+                    {/* Scroll indicator */}
+                    <View style={styles.scrollIndicator}>
+                      <Text style={styles.scrollArrow}>↓</Text>
+                    </View>
+                  </View>
                 </View>
 
                 {/* Timer below exercise list */}
@@ -702,8 +708,29 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   // Exercise List (Column 1)
+  scrollableContainer: {
+    flex: 1,
+    position: 'relative',
+  },
   exerciseScrollList: {
     flex: 1,
+  },
+  scrollIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 30,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(45, 219, 219, 0.3)',
+  },
+  scrollArrow: {
+    fontSize: 18,
+    color: '#2ddbdb',
+    fontWeight: 'bold',
   },
   exerciseButton: {
     padding: 10,
