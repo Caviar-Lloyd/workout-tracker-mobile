@@ -106,7 +106,7 @@ function WorkoutExercisesList({ workoutDay, week, isVideoPreview = false }: { wo
   );
 }
 
-export default function DashboardScreen() {
+export default function DashboardScreen({ route }: any) {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const [userData, setUserData] = useState<UserData>({
@@ -149,6 +149,15 @@ export default function DashboardScreen() {
     fetchUserData();
     // Note: Don't show setup here - let fetchUserData determine it based on database
   }, []);
+
+  // Watch for navigation param to open settings
+  useEffect(() => {
+    if (route?.params?.openSettings) {
+      setShowSettingsModal(true);
+      // Clear the param after opening
+      navigation.setParams({ openSettings: false });
+    }
+  }, [route?.params?.openSettings]);
 
   useEffect(() => {
     // Generate workout schedule only if program is confirmed
@@ -961,36 +970,24 @@ export default function DashboardScreen() {
         >
           {/* Header */}
           <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <View>
-              <Text style={styles.title}>
-                Welcome, <Text style={styles.nameGradient}>{userData.firstName}</Text>
-              </Text>
-              <Text style={styles.subtitle}>Track your progress and crush your goals!</Text>
+            <View style={styles.headerContent}>
+              <View>
+                <Text style={styles.title}>
+                  Welcome, <Text style={styles.nameGradient}>{userData.firstName}</Text>
+                </Text>
+                <Text style={styles.subtitle}>Track your progress and crush your goals!</Text>
+              </View>
             </View>
-            <TouchableOpacity
-              style={styles.settingsButton}
-              onPress={() => setShowSettingsModal(true)}
-            >
-              <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-                <Path
-                  d="M12 15a3 3 0 100-6 3 3 0 000 6z"
-                  stroke="#2ddbdb"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <Path
-                  d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
-                  stroke="#2ddbdb"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </Svg>
-            </TouchableOpacity>
           </View>
-        </View>
+
+          {/* Breadcrumb Navigation */}
+          <View style={styles.breadcrumb}>
+            <Text style={styles.breadcrumbText}>
+              <Text style={styles.breadcrumbHome}>Home</Text>
+              <Text style={styles.breadcrumbSeparator}> / </Text>
+              <Text style={styles.breadcrumbCurrent}>Dashboard</Text>
+            </Text>
+          </View>
 
         {/* Stats Grid - 4 Cards Side by Side */}
         <View style={styles.statsGrid}>
@@ -3114,5 +3111,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
     textAlign: 'center',
+  },
+  // Breadcrumb Navigation
+  breadcrumb: {
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  breadcrumbText: {
+    fontSize: 13,
+  },
+  breadcrumbHome: {
+    color: '#2ddbdb',
+    fontWeight: '600',
+  },
+  breadcrumbSeparator: {
+    color: '#6b7280',
+  },
+  breadcrumbCurrent: {
+    color: '#9ca3af',
+    fontWeight: '400',
   },
 });
