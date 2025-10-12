@@ -995,15 +995,15 @@ export default function DashboardScreen() {
         {/* Stats Grid - 4 Cards Side by Side */}
         <View style={styles.statsGrid}>
           <View style={styles.miniStatCard}>
-            <Text style={styles.miniStatLabel}>Total</Text>
-            <Text style={styles.miniStatValue}>{totalWorkouts}</Text>
-          </View>
-
-          <View style={styles.miniStatCard}>
             <Text style={styles.miniStatLabel}>Start</Text>
             <Text style={styles.miniStatValue}>
               {programStartDate ? programStartDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--'}
             </Text>
+          </View>
+
+          <View style={styles.miniStatCard}>
+            <Text style={styles.miniStatLabel}>Total</Text>
+            <Text style={styles.miniStatValue}>{totalWorkouts}</Text>
           </View>
 
           {/* Last Workout Details - Always clickable */}
