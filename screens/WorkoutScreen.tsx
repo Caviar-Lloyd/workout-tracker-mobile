@@ -61,6 +61,9 @@ export default function WorkoutScreen() {
   // Animated value for scroll indicator pulse
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
+  // Ref for exercise scroll view
+  const exerciseScrollRef = useRef<ScrollView>(null);
+
   // Fetch workout template and week schedule
   useEffect(() => {
     const fetchWorkout = async () => {
@@ -139,6 +142,10 @@ export default function WorkoutScreen() {
       ),
     }));
     // Removed auto-advance - user manually selects exercises
+  };
+
+  const handleScrollIndicatorPress = () => {
+    exerciseScrollRef.current?.scrollTo({ y: 100, animated: true });
   };
 
   const updateCurrentSet = () => {
@@ -364,6 +371,7 @@ export default function WorkoutScreen() {
                   </View>
                   <View style={styles.scrollableContainer}>
                     <ScrollView
+                      ref={exerciseScrollRef}
                       style={styles.exerciseScrollList}
                       contentContainerStyle={styles.exerciseScrollContent}
                       showsVerticalScrollIndicator={false}
@@ -407,11 +415,16 @@ export default function WorkoutScreen() {
                     </ScrollView>
                     {/* Scroll indicator */}
                     {workoutTemplate.exercises.length > 4 && (
-                      <View style={styles.scrollIndicator}>
+                      <TouchableOpacity
+                        style={styles.scrollIndicator}
+                        onPress={handleScrollIndicatorPress}
+                        activeOpacity={0.7}
+                        hitSlop={{ top: 40, bottom: 40, left: 40, right: 40 }}
+                      >
                         <Animated.Text style={[styles.scrollArrow, { opacity: pulseAnim }]}>
                           ↓
                         </Animated.Text>
-                      </View>
+                      </TouchableOpacity>
                     )}
                   </View>
                 </View>
