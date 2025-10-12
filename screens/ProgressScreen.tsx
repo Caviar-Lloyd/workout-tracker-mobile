@@ -135,7 +135,9 @@ export default function ProgressScreen() {
                   </Text>
                   <Text style={styles.dropdownSubtext}>Day {selectedDay}</Text>
                 </View>
-                <Text style={styles.dropdownArrow}>{showWorkoutDropdown ? '▲' : '▼'}</Text>
+                <Text style={[styles.dropdownArrow, showWorkoutDropdown && styles.dropdownArrowActive]}>
+                  {showWorkoutDropdown ? '▲' : '▼'}
+                </Text>
               </TouchableOpacity>
 
               {showWorkoutDropdown && (
@@ -185,7 +187,9 @@ export default function ProgressScreen() {
                     {exercises.length > 0 ? `${currentExerciseIndex + 1} of ${exercises.length}` : ''}
                   </Text>
                 </View>
-                <Text style={styles.dropdownArrow}>{showExerciseDropdown ? '▲' : '▼'}</Text>
+                <Text style={[styles.dropdownArrow, showExerciseDropdown && styles.dropdownArrowActive]}>
+                  {showExerciseDropdown ? '▲' : '▼'}
+                </Text>
               </TouchableOpacity>
 
               {showExerciseDropdown && exercises.length > 0 && (
@@ -426,6 +430,9 @@ const styles = StyleSheet.create({
   dropdownArrow: {
     fontSize: 14,
     color: '#2ddbdb',
+  },
+  dropdownArrowActive: {
+    color: '#fff',
   },
   dropdownMenu: {
     position: 'absolute',
