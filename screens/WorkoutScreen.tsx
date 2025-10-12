@@ -650,6 +650,7 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(255, 255, 255, 0.1)',
     gap: 12,
     height: 44,
+    marginTop: 5,
   },
   progressBarTrackHorizontal: {
     flex: 1,
@@ -673,12 +674,16 @@ const styles = StyleSheet.create({
   bottomRow: {
     flexDirection: 'row',
     height: 80,
+    overflow: 'hidden',
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
   },
   timerContainer: {
     flex: 1,
     backgroundColor: 'rgba(45, 219, 219, 0.1)',
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomLeftRadius: 12,
     padding: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -830,6 +835,7 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(16, 185, 129, 0.5)',
     borderLeftWidth: 1,
     borderLeftColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomRightRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#10b981',
