@@ -951,9 +951,9 @@ export default function DashboardScreen() {
             onPress={() => setShowHistoryModal(true)}
             activeOpacity={0.7}
           >
-            <Text style={styles.miniStatLabel}>Previous</Text>
+            <Text style={styles.miniStatLabel}>Today's Workout</Text>
             <Text style={styles.miniStatValue}>
-              {todayWorkoutDetails ? new Date(todayWorkoutDetails.workout_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--'}
+              {nextWorkout ? WORKOUT_NAMES[nextWorkout.day] : '--'}
             </Text>
             {todayWorkoutDetails && (
               <Text style={styles.miniStatSubtext}>Tap for details</Text>
@@ -1770,10 +1770,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   miniStatValue: {
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
+    lineHeight: 16,
   },
   miniStatSubtext: {
     fontSize: 9,
