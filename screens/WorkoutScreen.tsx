@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Alert, ActivityIndicator, Platform, Animated } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Alert, ActivityIndicator, Platform, Animated, Modal } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -57,6 +57,9 @@ export default function WorkoutScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hasStartedLogging, setHasStartedLogging] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [lastWorkoutData, setLastWorkoutData] = useState<any>(null);
+  const [todayWorkoutData, setTodayWorkoutData] = useState<any>(null);
 
   // Animated value for scroll indicator pulse
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -89,6 +92,38 @@ export default function WorkoutScreen() {
 
     fetchWorkout();
   }, [week, day]);
+
+  // Fetch workout history (last 2 sessions for this day)
+  useEffect(() => {
+    const fetchWorkoutHistory = async () => {
+      if (!workoutTemplate) return;
+
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data, error } = await supabase
+          .from(workoutTemplate.tableName)
+          .select('*')
+          .eq('client_email', user.email)
+          .order('workout_date', { ascending: false })
+          .limit(2);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          setLastWorkoutData(data[0]); // Most recent
+          if (data.length > 1) {
+            setTodayWorkoutData(data[1]); // Second most recent (for reference)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching workout history:', error);
+      }
+    };
+
+    fetchWorkoutHistory();
+  }, [workoutTemplate]);
 
   // Timer effect
   useEffect(() => {
@@ -356,6 +391,45 @@ export default function WorkoutScreen() {
             <Text style={styles.subtitle}>Week {week}, Day {day}</Text>
           </View>
 
+          {/* Workout History Containers */}
+          <View style={styles.historyContainer}>
+            {/* Last Workout */}
+            <View style={styles.historyBox}>
+              <Text style={styles.historyLabel}>Last Workout</Text>
+              {lastWorkoutData ? (
+                <>
+                  <Text style={styles.historyValue}>
+                    {new Date(lastWorkoutData.workout_date).toLocaleDateString()}
+                  </Text>
+                  <Text style={styles.historySubtext}>
+                    {lastWorkoutData.session_completed}% Complete
+                  </Text>
+                </>
+              ) : (
+                <Text style={styles.historyValue}>No data</Text>
+              )}
+            </View>
+
+            {/* Today's Workout - Clickable */}
+            <TouchableOpacity
+              style={styles.historyBox}
+              onPress={() => setShowHistoryModal(true)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.historyLabel}>Today's Workout</Text>
+              {todayWorkoutData ? (
+                <>
+                  <Text style={styles.historyValue}>
+                    {new Date(todayWorkoutData.workout_date).toLocaleDateString()}
+                  </Text>
+                  <Text style={styles.historySubtext}>Tap to view details</Text>
+                </>
+              ) : (
+                <Text style={styles.historyValue}>No data</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
           {/* Main Container with Video and 3 Columns */}
           <View style={styles.mainContainer}>
             {/* 16:9 Video Container */}
@@ -533,6 +607,55 @@ export default function WorkoutScreen() {
           </View>
         </View>
       </View>
+
+      {/* History Modal */}
+      <Modal
+        visible={showHistoryModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowHistoryModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowHistoryModal(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalContent}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Last Workout Details</Text>
+              <TouchableOpacity
+                onPress={() => setShowHistoryModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              {todayWorkoutData && todayWorkoutData.exercises ? (
+                todayWorkoutData.exercises.map((exercise: any, index: number) => (
+                  <View key={index} style={styles.modalExercise}>
+                    <Text style={styles.modalExerciseName}>{exercise.name}</Text>
+                    {exercise.sets.map((set: any, setIndex: number) => (
+                      <View key={setIndex} style={styles.modalSet}>
+                        <Text style={styles.modalSetText}>
+                          Set {setIndex + 1}: {set.reps} reps × {set.weight} lbs
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.modalNoData}>No exercise data available</Text>
+              )}
+            </ScrollView>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -884,5 +1007,102 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  // Workout History
+  historyContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    gap: 12,
+  },
+  historyBox: {
+    flex: 1,
+    backgroundColor: 'rgba(45, 219, 219, 0.1)',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(45, 219, 219, 0.3)',
+  },
+  historyLabel: {
+    fontSize: 11,
+    color: '#9ca3af',
+    marginBottom: 4,
+  },
+  historyValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  historySubtext: {
+    fontSize: 10,
+    color: '#2ddbdb',
+    marginTop: 2,
+  },
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    maxHeight: '80%',
+    backgroundColor: '#1a1f3a',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(45, 219, 219, 0.3)',
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2ddbdb',
+  },
+  modalCloseButton: {
+    padding: 4,
+  },
+  modalCloseText: {
+    fontSize: 24,
+    color: '#9ca3af',
+  },
+  modalBody: {
+    padding: 16,
+  },
+  modalExercise: {
+    marginBottom: 16,
+    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  modalExerciseName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2ddbdb',
+    marginBottom: 8,
+  },
+  modalSet: {
+    marginLeft: 8,
+    marginBottom: 4,
+  },
+  modalSetText: {
+    fontSize: 14,
+    color: '#fff',
+  },
+  modalNoData: {
+    fontSize: 14,
+    color: '#9ca3af',
+    textAlign: 'center',
+    padding: 20,
   },
 });
