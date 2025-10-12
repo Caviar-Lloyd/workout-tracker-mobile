@@ -128,8 +128,10 @@ export default function DashboardScreen() {
   const [showDayDropdown, setShowDayDropdown] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showRecommendationsModal, setShowRecommendationsModal] = useState(false);
   const [lastWorkoutDetails, setLastWorkoutDetails] = useState<any>(null);
   const [todayWorkoutDetails, setTodayWorkoutDetails] = useState<any>(null);
+  const [recommendedWeights, setRecommendedWeights] = useState<any[]>([]);
   const [programStartDate, setProgramStartDate] = useState<Date | null>(null);
   const [isProgramConfirmed, setIsProgramConfirmed] = useState(false);
   const [showInitialSetup, setShowInitialSetup] = useState(false);
@@ -216,6 +218,78 @@ export default function DashboardScreen() {
 
     fetchWorkoutHistory();
   }, [userData.email, nextWorkout]);
+
+  // Calculate 1RM and generate recommendations for today's workout
+  useEffect(() => {
+    const calculateRecommendations = async () => {
+      if (!lastWorkoutDetails || !nextWorkout) return;
+
+      try {
+        const template = await getWorkoutTemplate(nextWorkout.week, nextWorkout.day);
+        const recommendations: any[] = [];
+
+        template.exercises.forEach((exercise: any) => {
+          const lastExerciseData = lastWorkoutDetails.exercises?.find((e: any) => e.name === exercise.name);
+
+          if (lastExerciseData && lastExerciseData.sets && lastExerciseData.sets.length > 0) {
+            // Find the heaviest set from last workout
+            const heaviestSet = lastExerciseData.sets.reduce((max: any, set: any) =>
+              parseFloat(set.weight) > parseFloat(max.weight) ? set : max
+            );
+
+            // Calculate 1RM using Brzycki formula: weight / (1.0278 - 0.0278 * reps)
+            const oneRepMax = parseFloat(heaviestSet.weight) / (1.0278 - 0.0278 * parseFloat(heaviestSet.reps));
+
+            // Calculate recommended weights for each set based on target rep range
+            const recommendedSets = exercise.sets.map((set: any) => {
+              // For hypertrophy (6-12 reps), use 70-80% of 1RM
+              // For strength (1-5 reps), use 85-95% of 1RM
+              let percentage = 0.75; // Default for 6-12 rep range
+
+              if (set.reps <= 5) {
+                percentage = 0.90; // Strength range
+              } else if (set.reps <= 12) {
+                percentage = 0.75; // Hypertrophy range
+              } else {
+                percentage = 0.65; // Endurance range
+              }
+
+              const recommendedWeight = Math.round((oneRepMax * percentage) / 5) * 5; // Round to nearest 5 lbs
+
+              return {
+                reps: set.reps,
+                weight: recommendedWeight,
+                lastWeight: heaviestSet.weight,
+                oneRepMax: Math.round(oneRepMax)
+              };
+            });
+
+            recommendations.push({
+              name: exercise.name,
+              sets: recommendedSets
+            });
+          } else {
+            // No previous data - suggest starting weights
+            recommendations.push({
+              name: exercise.name,
+              sets: exercise.sets.map((set: any) => ({
+                reps: set.reps,
+                weight: '--',
+                lastWeight: null,
+                oneRepMax: null
+              }))
+            });
+          }
+        });
+
+        setRecommendedWeights(recommendations);
+      } catch (error) {
+        console.error('Error calculating recommendations:', error);
+      }
+    };
+
+    calculateRecommendations();
+  }, [lastWorkoutDetails, nextWorkout]);
 
   // NOTE: We no longer save workout_schedule to the database.
   // The schedule is dynamically generated from workout_starts table on each load.
@@ -932,32 +1006,35 @@ export default function DashboardScreen() {
             </Text>
           </View>
 
-          {/* Last Workout Details */}
-          <View style={styles.miniStatCard}>
+          {/* Last Workout Details - Clickable to show history */}
+          <TouchableOpacity
+            style={styles.miniStatCard}
+            onPress={() => setShowHistoryModal(true)}
+            activeOpacity={0.7}
+            disabled={!lastWorkoutDetails}
+          >
             <Text style={styles.miniStatLabel}>Last Workout</Text>
             <Text style={styles.miniStatValue}>
               {lastWorkoutDetails ? new Date(lastWorkoutDetails.workout_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--'}
             </Text>
             {lastWorkoutDetails && (
               <Text style={styles.miniStatSubtext}>
-                {lastWorkoutDetails.session_completed}%
+                {lastWorkoutDetails.session_completed}% - Tap to review
               </Text>
             )}
-          </View>
+          </TouchableOpacity>
 
-          {/* Today's Workout - Clickable */}
+          {/* Today's Workout - Clickable to show recommendations */}
           <TouchableOpacity
             style={styles.miniStatCard}
-            onPress={() => setShowHistoryModal(true)}
+            onPress={() => setShowRecommendationsModal(true)}
             activeOpacity={0.7}
           >
             <Text style={styles.miniStatLabel}>Today's Workout</Text>
             <Text style={styles.miniStatValue}>
               {nextWorkout ? WORKOUT_NAMES[nextWorkout.day] : '--'}
             </Text>
-            {todayWorkoutDetails && (
-              <Text style={styles.miniStatSubtext}>Tap for details</Text>
-            )}
+            <Text style={styles.miniStatSubtext}>Tap for recommendations</Text>
           </TouchableOpacity>
         </View>
 
@@ -1617,7 +1694,7 @@ export default function DashboardScreen() {
         </View>
       </Modal>
 
-      {/* History Modal */}
+      {/* Last Workout History Modal */}
       <Modal
         visible={showHistoryModal}
         transparent={true}
@@ -1635,7 +1712,7 @@ export default function DashboardScreen() {
             onPress={(e) => e.stopPropagation()}
           >
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Last Workout Details</Text>
+              <Text style={styles.modalTitle}>Last Workout - Review</Text>
               <TouchableOpacity
                 onPress={() => setShowHistoryModal(false)}
                 style={styles.modalCloseButton}
@@ -1645,21 +1722,84 @@ export default function DashboardScreen() {
             </View>
 
             <ScrollView style={styles.modalBody}>
-              {todayWorkoutDetails && todayWorkoutDetails.exercises ? (
-                todayWorkoutDetails.exercises.map((exercise: any, index: number) => (
-                  <View key={index} style={styles.modalExercise}>
-                    <Text style={styles.modalExerciseName}>{exercise.name}</Text>
-                    {exercise.sets.map((set: any, setIndex: number) => (
-                      <View key={setIndex} style={styles.modalSet}>
-                        <Text style={styles.modalSetText}>
-                          Set {setIndex + 1}: {set.reps} reps × {set.weight} lbs
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                ))
+              {lastWorkoutDetails && lastWorkoutDetails.exercises ? (
+                <>
+                  <Text style={styles.modalSubtitle}>
+                    {new Date(lastWorkoutDetails.workout_date).toLocaleDateString()} - {lastWorkoutDetails.session_completed}% Complete
+                  </Text>
+                  {lastWorkoutDetails.exercises.map((exercise: any, index: number) => (
+                    <View key={index} style={styles.modalExercise}>
+                      <Text style={styles.modalExerciseName}>{exercise.name}</Text>
+                      {exercise.sets.map((set: any, setIndex: number) => (
+                        <View key={setIndex} style={styles.modalSet}>
+                          <Text style={styles.modalSetText}>
+                            Set {setIndex + 1}: {set.reps} reps × {set.weight} lbs
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  ))}
+                </>
               ) : (
-                <Text style={styles.modalNoData}>No exercise data available</Text>
+                <Text style={styles.modalNoData}>No workout data available</Text>
+              )}
+            </ScrollView>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Today's Workout Recommendations Modal */}
+      <Modal
+        visible={showRecommendationsModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowRecommendationsModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowRecommendationsModal(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalContent}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Today's Recommendations</Text>
+              <TouchableOpacity
+                onPress={() => setShowRecommendationsModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              {recommendedWeights.length > 0 ? (
+                <>
+                  <Text style={styles.modalSubtitle}>
+                    Based on 1RM calculations from your last workout
+                  </Text>
+                  {recommendedWeights.map((exercise: any, index: number) => (
+                    <View key={index} style={styles.modalExercise}>
+                      <Text style={styles.modalExerciseName}>{exercise.name}</Text>
+                      {exercise.sets[0].oneRepMax && (
+                        <Text style={styles.modalOneRM}>Est. 1RM: {exercise.sets[0].oneRepMax} lbs</Text>
+                      )}
+                      {exercise.sets.map((set: any, setIndex: number) => (
+                        <View key={setIndex} style={styles.modalSet}>
+                          <Text style={styles.modalSetText}>
+                            Set {setIndex + 1}: {set.reps} reps × {set.weight !== '--' ? `${set.weight} lbs` : 'No data'}
+                            {set.lastWeight && <Text style={styles.modalLastWeight}> (Last: {set.lastWeight} lbs)</Text>}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  ))}
+                </>
+              ) : (
+                <Text style={styles.modalNoData}>Complete your first workout to see recommendations</Text>
               )}
             </ScrollView>
           </TouchableOpacity>
@@ -2945,5 +3085,22 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     textAlign: 'center',
     padding: 20,
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    color: '#9ca3af',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  modalOneRM: {
+    fontSize: 12,
+    color: '#2ddbdb',
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  modalLastWeight: {
+    fontSize: 12,
+    color: '#9ca3af',
+    fontStyle: 'italic',
   },
 });
