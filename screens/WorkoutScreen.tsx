@@ -145,7 +145,16 @@ export default function WorkoutScreen() {
   };
 
   const handleScrollIndicatorPress = () => {
-    exerciseScrollRef.current?.scrollTo({ y: 100, animated: true });
+    if (!workoutTemplate) return;
+
+    const currentIndex = workoutTemplate.exercises.findIndex(ex => ex.index === currentExerciseIndex);
+    if (currentIndex < workoutTemplate.exercises.length - 1) {
+      const nextExercise = workoutTemplate.exercises[currentIndex + 1];
+      setCurrentExerciseIndex(nextExercise.index);
+
+      // Scroll to show the next exercise (approximately 50px per exercise)
+      exerciseScrollRef.current?.scrollTo({ y: (currentIndex + 1) * 50, animated: true });
+    }
   };
 
   const updateCurrentSet = () => {
