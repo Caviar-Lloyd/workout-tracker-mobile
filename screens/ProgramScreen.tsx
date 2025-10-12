@@ -30,22 +30,21 @@ interface Exercise {
 export default function ProgramScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const [selectedPhase, setSelectedPhase] = useState<1 | 2>(1);
-  const [selectedDay, setSelectedDay] = useState<number>(1);
+  const [selectedWeek, setSelectedWeek] = useState<number>(1); // Week 1, 2, or 3
+  const [selectedDay, setSelectedDay] = useState<number>(1); // Day 1-6
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [selectedExerciseIndex, setSelectedExerciseIndex] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch exercises when day or phase changes
+  // Fetch exercises when day or week changes
   useEffect(() => {
     fetchExercises();
-  }, [selectedDay, selectedPhase]);
+  }, [selectedDay, selectedWeek]);
 
   const fetchExercises = async () => {
     setIsLoading(true);
     try {
-      const week = (selectedPhase === 1 ? 1 : 4) as WeekNumber;
-      const template = await getWorkoutTemplate(week, selectedDay as DayNumber);
+      const template = await getWorkoutTemplate(selectedWeek as WeekNumber, selectedDay as DayNumber);
       setExercises(template.exercises);
       setSelectedExerciseIndex(0);
     } catch (error) {
@@ -57,6 +56,13 @@ export default function ProgramScreen() {
 
   const selectedWorkoutDay = WORKOUT_DAYS.find(d => d.day === selectedDay);
   const selectedExercise = exercises[selectedExerciseIndex];
+
+  // Week data with labels
+  const weeks = [
+    { number: 1, label: 'Multi-Joint' },
+    { number: 2, label: 'Multi-Joint' },
+    { number: 3, label: 'Multi-Joint' },
+  ];
 
   return (
     <View style={styles.container}>
@@ -80,188 +86,156 @@ export default function ProgramScreen() {
           paddingTop: Math.max(insets.top, 20) + 10, // Minimal top padding for safe area
           paddingBottom: Math.max(insets.bottom, 20) + 60, // Space for bottom menu
         }]}>
+        {/* Breadcrumb Navigation */}
+        <View style={styles.breadcrumb}>
+          <Text style={styles.breadcrumbText}>
+            <Text style={styles.breadcrumbHome} onPress={() => navigation.navigate('Dashboard')}>Home</Text>
+            <Text style={styles.breadcrumbSeparator}> / </Text>
+            <Text style={styles.breadcrumbCurrent}>Program Overview</Text>
+          </Text>
+        </View>
+
         {/* Header */}
         <View style={styles.header}>
-        <Text style={styles.title}>Program Overview</Text>
-        <Text style={styles.subtitle}>Complete 12-Week Eccentric Training System</Text>
-      </View>
-
-      {/* Breadcrumb Navigation */}
-      <View style={styles.breadcrumb}>
-        <Text style={styles.breadcrumbText}>
-          <Text style={styles.breadcrumbHome} onPress={() => navigation.navigate('Dashboard')}>Home</Text>
-          <Text style={styles.breadcrumbSeparator}> / </Text>
-          <Text style={styles.breadcrumbCurrent}>Program Overview</Text>
-        </Text>
-      </View>
-
-      {/* Combined Phase and Day Selector */}
-      <View style={styles.phaseAndDayContainer}>
-        {/* Phase 1 Row */}
-        <View style={styles.phaseRow}>
-          <TouchableOpacity
-            style={[styles.phaseButton, selectedPhase === 1 && styles.phaseButtonActive]}
-            onPress={() => setSelectedPhase(1)}
-          >
-            <Text style={[styles.phaseButtonText, selectedPhase === 1 && styles.phaseButtonTextActive]}>
-              Phase 1
-            </Text>
-            <Text style={[styles.phaseWeeks, selectedPhase === 1 && styles.phaseWeeksActive]}>
-              Weeks 1-3
-            </Text>
-          </TouchableOpacity>
-
-          <View style={styles.dayChipsRow}>
-            {WORKOUT_DAYS.slice(0, 3).map((workout) => (
-              <TouchableOpacity
-                key={workout.day}
-                style={[
-                  styles.dayChip,
-                  selectedDay === workout.day && styles.dayChipActive
-                ]}
-                onPress={() => setSelectedDay(workout.day)}
-              >
-                <Text style={[
-                  styles.dayChipNumber,
-                  selectedDay === workout.day && styles.dayChipNumberActive
-                ]}>
-                  Day {workout.day}
-                </Text>
-                <Text style={[
-                  styles.dayChipName,
-                  selectedDay === workout.day && styles.dayChipNameActive
-                ]}>
-                  {workout.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <Text style={styles.title}>Program Overview</Text>
+          <Text style={styles.subtitle}>Complete Recomposition Training System</Text>
         </View>
 
-        {/* Phase 2 Row */}
-        <View style={styles.phaseRow}>
-          <TouchableOpacity
-            style={[styles.phaseButton, selectedPhase === 2 && styles.phaseButtonActive]}
-            onPress={() => setSelectedPhase(2)}
-          >
-            <Text style={[styles.phaseButtonText, selectedPhase === 2 && styles.phaseButtonTextActive]}>
-              Phase 2
-            </Text>
-            <Text style={[styles.phaseWeeks, selectedPhase === 2 && styles.phaseWeeksActive]}>
-              Weeks 4-6
-            </Text>
-          </TouchableOpacity>
-
-          <View style={styles.dayChipsRow}>
-            {WORKOUT_DAYS.slice(3, 6).map((workout) => (
-              <TouchableOpacity
-                key={workout.day}
-                style={[
-                  styles.dayChip,
-                  selectedDay === workout.day && styles.dayChipActive
-                ]}
-                onPress={() => setSelectedDay(workout.day)}
-              >
-                <Text style={[
-                  styles.dayChipNumber,
-                  selectedDay === workout.day && styles.dayChipNumberActive
-                ]}>
-                  Day {workout.day}
-                </Text>
-                <Text style={[
-                  styles.dayChipName,
-                  selectedDay === workout.day && styles.dayChipNameActive
-                ]}>
-                  {workout.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      </View>
-
-      {/* Main Content Area - Two Columns */}
-      <View style={styles.mainContent}>
-        {/* Left Column - Exercise List */}
-        <View style={styles.exerciseColumn}>
-          <View style={styles.exerciseHeader}>
-            <Text style={styles.exerciseHeaderTitle}>
-              {selectedWorkoutDay?.name}
-            </Text>
-            <Text style={styles.exerciseHeaderSubtitle}>
-              {selectedWorkoutDay?.type}
-            </Text>
-          </View>
-
-          <ScrollView
-            style={styles.exerciseList}
-            showsVerticalScrollIndicator={false}
-          >
-            {isLoading ? (
-              <Text style={styles.loadingText}>Loading...</Text>
-            ) : (
-              exercises.map((exercise, index) => (
-                <TouchableOpacity
-                  key={exercise.index}
-                  style={[
-                    styles.exerciseItem,
-                    selectedExerciseIndex === index && styles.exerciseItemActive
-                  ]}
-                  onPress={() => setSelectedExerciseIndex(index)}
-                >
-                  <View style={styles.exerciseNumberBadge}>
-                    <Text style={[
-                      styles.exerciseNumberText,
-                      selectedExerciseIndex === index && styles.exerciseNumberTextActive
-                    ]}>
-                      {index + 1}
-                    </Text>
-                  </View>
-                  <View style={styles.exerciseInfo}>
-                    <Text style={[
-                      styles.exerciseName,
-                      selectedExerciseIndex === index && styles.exerciseNameActive
-                    ]}>
-                      {exercise.name}
-                    </Text>
-                    <Text style={styles.exerciseDetails}>
-                      {exercise.setCount} sets × {exercise.repRange} reps
-                    </Text>
-                  </View>
-                  {selectedExerciseIndex === index && (
-                    <Text style={styles.playingIndicator}>▶</Text>
-                  )}
-                </TouchableOpacity>
-              ))
-            )}
-          </ScrollView>
-        </View>
-
-        {/* Right Column - Video Player */}
-        <View style={styles.videoColumn}>
-          <View style={styles.videoHeader}>
-            <Text style={styles.videoHeaderTitle}>
-              {selectedExercise ? selectedExercise.name : 'Select an exercise'}
-            </Text>
-            {selectedExercise && (
-              <Text style={styles.videoHeaderDetails}>
-                {selectedExercise.setCount} sets × {selectedExercise.repRange} reps
-              </Text>
-            )}
-          </View>
-
+        {/* 16:9 Video Container */}
+        <View style={styles.videoContainer}>
           {selectedExercise ? (
-            <View style={styles.videoContainer}>
-              <CustomVideoPlayer videoUrl={selectedExercise.videoUrl} />
+            <View style={styles.videoWrapper}>
+              <CustomVideoPlayer
+                exerciseName={selectedExercise.name}
+                style={styles.video}
+              />
             </View>
           ) : (
             <View style={styles.videoPlaceholder}>
-              <Text style={styles.videoPlaceholderText}>
-                Select an exercise to view video
-              </Text>
+              <Text style={styles.videoPlaceholderText}>Select an exercise to view</Text>
             </View>
           )}
         </View>
+
+      {/* Weeks Horizontal Scroll */}
+      <View style={styles.weeksSection}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.weeksScrollContent}
+        >
+          {weeks.map((week) => (
+            <TouchableOpacity
+              key={week.number}
+              style={[
+                styles.weekCard,
+                selectedWeek === week.number && styles.weekCardActive
+              ]}
+              onPress={() => setSelectedWeek(week.number)}
+            >
+              <Text style={[
+                styles.weekTitle,
+                selectedWeek === week.number && styles.weekTitleActive
+              ]}>
+                Week {week.number}
+              </Text>
+              <Text style={[
+                styles.weekLabel,
+                selectedWeek === week.number && styles.weekLabelActive
+              ]}>
+                {week.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Days Horizontal Scroll */}
+      <View style={styles.daysSection}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.daysScrollContent}
+        >
+          {WORKOUT_DAYS.map((workout) => (
+            <TouchableOpacity
+              key={workout.day}
+              style={[
+                styles.dayCard,
+                selectedDay === workout.day && styles.dayCardActive
+              ]}
+              onPress={() => setSelectedDay(workout.day)}
+            >
+              <Text style={[
+                styles.dayNumber,
+                selectedDay === workout.day && styles.dayNumberActive
+              ]}>
+                Day {workout.day}
+              </Text>
+              <Text style={[
+                styles.dayName,
+                selectedDay === workout.day && styles.dayNameActive
+              ]}>
+                {workout.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Exercises Vertical Scroll */}
+      <View style={styles.exercisesSection}>
+        <View style={styles.exercisesSectionHeader}>
+          <Text style={styles.exercisesSectionTitle}>
+            {selectedWorkoutDay?.name}
+          </Text>
+          <Text style={styles.exercisesSectionSubtitle}>
+            Week {selectedWeek} - {selectedWorkoutDay?.type}
+          </Text>
+        </View>
+
+        <ScrollView
+          style={styles.exercisesList}
+          showsVerticalScrollIndicator={false}
+        >
+          {isLoading ? (
+            <Text style={styles.loadingText}>Loading...</Text>
+          ) : (
+            exercises.map((exercise, index) => (
+              <TouchableOpacity
+                key={exercise.index}
+                style={[
+                  styles.exerciseCard,
+                  selectedExerciseIndex === index && styles.exerciseCardActive
+                ]}
+                onPress={() => setSelectedExerciseIndex(index)}
+              >
+                <View style={styles.exerciseNumberBadge}>
+                  <Text style={[
+                    styles.exerciseNumberText,
+                    selectedExerciseIndex === index && styles.exerciseNumberTextActive
+                  ]}>
+                    {index + 1}
+                  </Text>
+                </View>
+                <View style={styles.exerciseInfo}>
+                  <Text style={[
+                    styles.exerciseName,
+                    selectedExerciseIndex === index && styles.exerciseNameActive
+                  ]}>
+                    {exercise.name}
+                  </Text>
+                  <Text style={styles.exerciseDetails}>
+                    {exercise.setCount} sets × {exercise.repRange} reps
+                  </Text>
+                </View>
+                {selectedExerciseIndex === index && (
+                  <Text style={styles.playingIndicator}>▶</Text>
+                )}
+              </TouchableOpacity>
+            ))
+          )}
+        </ScrollView>
       </View>
       </View>
       </View>
@@ -317,121 +291,114 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#9ca3af',
   },
-  phaseAndDayContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 16,
-    margin: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    padding: 8,
-  },
-  phaseRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  // Weeks Horizontal Scroll
+  weeksSection: {
+    paddingHorizontal: 16,
+    marginTop: 12,
     marginBottom: 8,
   },
-  dayChipsRow: {
-    flexDirection: 'row',
-    flex: 1,
-    gap: 6,
+  weeksScrollContent: {
+    paddingRight: 16,
+    gap: 12,
   },
-  phaseButton: {
+  weekCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
+    padding: 16,
+    paddingHorizontal: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    minWidth: 140,
+    alignItems: 'center',
+  },
+  weekCardActive: {
+    backgroundColor: '#2ddbdb',
+    borderColor: '#2ddbdb',
+  },
+  weekTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  weekTitleActive: {
+    color: '#000',
+  },
+  weekLabel: {
+    fontSize: 12,
+    color: '#9ca3af',
+    fontWeight: '500',
+  },
+  weekLabelActive: {
+    color: '#000',
+    fontWeight: '600',
+  },
+  // Days Horizontal Scroll
+  daysSection: {
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  daysScrollContent: {
+    paddingRight: 16,
+    gap: 10,
+  },
+  dayCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 10,
     padding: 12,
     paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
-    minWidth: 90,
+    minWidth: 160,
   },
-  phaseButtonActive: {
-    backgroundColor: '#2ddbdb',
-    borderColor: '#2ddbdb',
-  },
-  phaseButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#9ca3af',
-    marginBottom: 2,
-  },
-  phaseButtonTextActive: {
-    color: '#000',
-  },
-  phaseWeeks: {
-    fontSize: 9,
-    color: '#6b7280',
-  },
-  phaseWeeksActive: {
-    color: '#000',
-    fontWeight: '600',
-  },
-  dayChip: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dayChipActive: {
+  dayCardActive: {
     backgroundColor: 'rgba(45, 219, 219, 0.2)',
     borderColor: '#2ddbdb',
   },
-  dayChipNumber: {
-    fontSize: 10,
+  dayNumber: {
+    fontSize: 13,
     fontWeight: '700',
     color: '#9ca3af',
-    marginBottom: 2,
+    marginBottom: 4,
   },
-  dayChipNumberActive: {
+  dayNumberActive: {
     color: '#2ddbdb',
   },
-  dayChipName: {
-    fontSize: 7,
+  dayName: {
+    fontSize: 11,
     fontWeight: '500',
     color: '#9ca3af',
-    textAlign: 'center',
   },
-  dayChipNameActive: {
+  dayNameActive: {
     color: '#2ddbdb',
   },
-  mainContent: {
+  // Exercises Vertical Scroll
+  exercisesSection: {
     flex: 1,
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    gap: 12,
-  },
-  exerciseColumn: {
-    flex: 1,
+    marginHorizontal: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     overflow: 'hidden',
   },
-  exerciseHeader: {
-    padding: 12,
+  exercisesSectionHeader: {
+    padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.1)',
     backgroundColor: 'rgba(45, 219, 219, 0.1)',
   },
-  exerciseHeaderTitle: {
-    fontSize: 14,
+  exercisesSectionTitle: {
+    fontSize: 16,
     fontWeight: '600',
     color: '#fff',
-    marginBottom: 2,
+    marginBottom: 4,
   },
-  exerciseHeaderSubtitle: {
-    fontSize: 11,
+  exercisesSectionSubtitle: {
+    fontSize: 12,
     color: '#2ddbdb',
   },
-  exerciseList: {
+  exercisesList: {
     flex: 1,
   },
   loadingText: {
@@ -439,27 +406,27 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     padding: 20,
   },
-  exerciseItem: {
+  exerciseCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
+    padding: 14,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
-  exerciseItemActive: {
+  exerciseCardActive: {
     backgroundColor: 'rgba(45, 219, 219, 0.15)',
   },
   exerciseNumberBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
+    marginRight: 12,
   },
   exerciseNumberText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: 'bold',
     color: '#9ca3af',
   },
@@ -470,47 +437,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   exerciseName: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500',
     color: '#fff',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   exerciseNameActive: {
     color: '#2ddbdb',
   },
   exerciseDetails: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#9ca3af',
   },
   playingIndicator: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#2ddbdb',
     marginLeft: 8,
-  },
-  videoColumn: {
-    flex: 1.5,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    overflow: 'hidden',
-    justifyContent: 'flex-start',
-  },
-  videoHeader: {
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-    backgroundColor: 'rgba(45, 219, 219, 0.1)',
-  },
-  videoHeaderTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 2,
-  },
-  videoHeaderDetails: {
-    fontSize: 11,
-    color: '#2ddbdb',
   },
   videoContainer: {
     aspectRatio: 9 / 16,
