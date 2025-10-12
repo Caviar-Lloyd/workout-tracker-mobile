@@ -145,6 +145,7 @@ export default function ProgressScreen() {
                   {WORKOUT_DAYS.map((workout) => (
                     <TouchableOpacity
                       key={workout.day}
+                      activeOpacity={0.8}
                       style={[
                         styles.dropdownMenuItem,
                         selectedDay === workout.day && styles.dropdownMenuItemActive
@@ -197,6 +198,7 @@ export default function ProgressScreen() {
                   {exercises.map((exercise, index) => (
                     <TouchableOpacity
                       key={index}
+                      activeOpacity={0.8}
                       style={[
                         styles.dropdownMenuItem,
                         currentExerciseIndex === index && styles.dropdownMenuItemActive
@@ -456,9 +458,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.05)',
     backgroundColor: '#000',
+    opacity: 1,
   },
   dropdownMenuItemActive: {
-    backgroundColor: 'rgba(45, 219, 219, 0.2)',
+    backgroundColor: '#000',
+    borderLeftWidth: 3,
+    borderLeftColor: '#2ddbdb',
   },
   dropdownMenuItemText: {
     color: '#fff',
