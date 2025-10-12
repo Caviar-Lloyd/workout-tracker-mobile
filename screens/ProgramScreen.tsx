@@ -41,6 +41,14 @@ export default function ProgramScreen() {
   const dayScrollRef = useRef<any>(null);
   const exerciseScrollRef = useRef<any>(null);
 
+  // Track scroll position for showing up/down arrows
+  const [weekScrollAtTop, setWeekScrollAtTop] = useState(true);
+  const [weekScrollAtBottom, setWeekScrollAtBottom] = useState(false);
+  const [dayScrollAtTop, setDayScrollAtTop] = useState(true);
+  const [dayScrollAtBottom, setDayScrollAtBottom] = useState(false);
+  const [exerciseScrollAtTop, setExerciseScrollAtTop] = useState(true);
+  const [exerciseScrollAtBottom, setExerciseScrollAtBottom] = useState(false);
+
   // Fetch exercises when day or week changes
   useEffect(() => {
     fetchExercises();
@@ -68,6 +76,53 @@ export default function ProgramScreen() {
     { number: 2, label: 'Multi-Joint' },
     { number: 3, label: 'Multi-Joint' },
   ];
+
+  // Cycle through week selection
+  const cycleWeek = (direction: 'up' | 'down') => {
+    if (direction === 'down') {
+      setSelectedWeek(selectedWeek === 3 ? 1 : selectedWeek + 1);
+    } else {
+      setSelectedWeek(selectedWeek === 1 ? 3 : selectedWeek - 1);
+    }
+  };
+
+  // Cycle through day selection
+  const cycleDay = (direction: 'up' | 'down') => {
+    if (direction === 'down') {
+      setSelectedDay(selectedDay === 6 ? 1 : selectedDay + 1);
+    } else {
+      setSelectedDay(selectedDay === 1 ? 6 : selectedDay - 1);
+    }
+  };
+
+  // Cycle through exercise selection
+  const cycleExercise = (direction: 'up' | 'down') => {
+    if (exercises.length === 0) return;
+    if (direction === 'down') {
+      setSelectedExerciseIndex(selectedExerciseIndex === exercises.length - 1 ? 0 : selectedExerciseIndex + 1);
+    } else {
+      setSelectedExerciseIndex(selectedExerciseIndex === 0 ? exercises.length - 1 : selectedExerciseIndex - 1);
+    }
+  };
+
+  // Handle scroll events to show/hide up/down arrows
+  const handleWeekScroll = (event: any) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    setWeekScrollAtTop(contentOffset.y <= 0);
+    setWeekScrollAtBottom(contentOffset.y + layoutMeasurement.height >= contentSize.height - 5);
+  };
+
+  const handleDayScroll = (event: any) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    setDayScrollAtTop(contentOffset.y <= 0);
+    setDayScrollAtBottom(contentOffset.y + layoutMeasurement.height >= contentSize.height - 5);
+  };
+
+  const handleExerciseScroll = (event: any) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    setExerciseScrollAtTop(contentOffset.y <= 0);
+    setExerciseScrollAtBottom(contentOffset.y + layoutMeasurement.height >= contentSize.height - 5);
+  };
 
   return (
     <View style={styles.container}>
@@ -129,10 +184,21 @@ export default function ProgramScreen() {
           <View style={styles.columnHeader}>
             <Text style={styles.columnTitle}>Week</Text>
           </View>
+          {!weekScrollAtTop && (
+            <TouchableOpacity
+              style={styles.scrollIndicatorUp}
+              onPress={() => cycleWeek('up')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.scrollIndicatorText}>↑</Text>
+            </TouchableOpacity>
+          )}
           <ScrollView
             ref={weekScrollRef}
             style={styles.columnScroll}
             showsVerticalScrollIndicator={false}
+            onScroll={handleWeekScroll}
+            scrollEventThrottle={16}
           >
             {weeks.map((week) => (
               <TouchableOpacity
@@ -158,13 +224,15 @@ export default function ProgramScreen() {
               </TouchableOpacity>
             ))}
           </ScrollView>
-          <TouchableOpacity
-            style={styles.scrollIndicator}
-            onPress={() => weekScrollRef.current?.scrollTo({ y: 100, animated: true })}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.scrollIndicatorText}>↓</Text>
-          </TouchableOpacity>
+          {!weekScrollAtBottom && (
+            <TouchableOpacity
+              style={styles.scrollIndicatorDown}
+              onPress={() => cycleWeek('down')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.scrollIndicatorText}>↓</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Column 2: Days */}
@@ -172,10 +240,21 @@ export default function ProgramScreen() {
           <View style={styles.columnHeader}>
             <Text style={styles.columnTitle}>Day</Text>
           </View>
+          {!dayScrollAtTop && (
+            <TouchableOpacity
+              style={styles.scrollIndicatorUp}
+              onPress={() => cycleDay('up')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.scrollIndicatorText}>↑</Text>
+            </TouchableOpacity>
+          )}
           <ScrollView
             ref={dayScrollRef}
             style={styles.columnScroll}
             showsVerticalScrollIndicator={false}
+            onScroll={handleDayScroll}
+            scrollEventThrottle={16}
           >
             {WORKOUT_DAYS.map((workout) => (
               <TouchableOpacity
@@ -201,13 +280,15 @@ export default function ProgramScreen() {
               </TouchableOpacity>
             ))}
           </ScrollView>
-          <TouchableOpacity
-            style={styles.scrollIndicator}
-            onPress={() => dayScrollRef.current?.scrollTo({ y: 100, animated: true })}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.scrollIndicatorText}>↓</Text>
-          </TouchableOpacity>
+          {!dayScrollAtBottom && (
+            <TouchableOpacity
+              style={styles.scrollIndicatorDown}
+              onPress={() => cycleDay('down')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.scrollIndicatorText}>↓</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Column 3: Exercises */}
@@ -215,10 +296,21 @@ export default function ProgramScreen() {
           <View style={styles.columnHeader}>
             <Text style={styles.columnTitle}>Exercises</Text>
           </View>
+          {!exerciseScrollAtTop && (
+            <TouchableOpacity
+              style={styles.scrollIndicatorUp}
+              onPress={() => cycleExercise('up')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.scrollIndicatorText}>↑</Text>
+            </TouchableOpacity>
+          )}
           <ScrollView
             ref={exerciseScrollRef}
             style={styles.columnScroll}
             showsVerticalScrollIndicator={false}
+            onScroll={handleExerciseScroll}
+            scrollEventThrottle={16}
           >
             {isLoading ? (
               <Text style={styles.loadingText}>Loading...</Text>
@@ -253,13 +345,15 @@ export default function ProgramScreen() {
               ))
             )}
           </ScrollView>
-          <TouchableOpacity
-            style={styles.scrollIndicator}
-            onPress={() => exerciseScrollRef.current?.scrollTo({ y: 100, animated: true })}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.scrollIndicatorText}>↓</Text>
-          </TouchableOpacity>
+          {!exerciseScrollAtBottom && (
+            <TouchableOpacity
+              style={styles.scrollIndicatorDown}
+              onPress={() => cycleExercise('down')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.scrollIndicatorText}>↓</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
       </View>
@@ -326,7 +420,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     overflow: 'hidden',
-    height: 240,
+    height: 360,
   },
   column: {
     flex: 1,
@@ -441,9 +535,16 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     fontWeight: '400',
   },
-  scrollIndicator: {
+  scrollIndicatorUp: {
     backgroundColor: 'rgba(45, 219, 219, 0.15)',
-    paddingVertical: 8,
+    paddingVertical: 6,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  scrollIndicatorDown: {
+    backgroundColor: 'rgba(45, 219, 219, 0.15)',
+    paddingVertical: 6,
     alignItems: 'center',
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.1)',
