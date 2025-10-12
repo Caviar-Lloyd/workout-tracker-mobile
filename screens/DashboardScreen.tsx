@@ -127,6 +127,9 @@ export default function DashboardScreen() {
   const [startingDayOfWeek, setStartingDayOfWeek] = useState<number>(0); // 0=Sun, 1=Mon, etc.
   const [showDayDropdown, setShowDayDropdown] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [lastWorkoutDetails, setLastWorkoutDetails] = useState<any>(null);
+  const [todayWorkoutDetails, setTodayWorkoutDetails] = useState<any>(null);
   const [programStartDate, setProgramStartDate] = useState<Date | null>(null);
   const [isProgramConfirmed, setIsProgramConfirmed] = useState(false);
   const [showInitialSetup, setShowInitialSetup] = useState(false);
@@ -182,6 +185,37 @@ export default function DashboardScreen() {
 
     checkIfWorkoutCompleted();
   }, [selectedDate, workoutSchedule, userData.email]);
+
+  // Fetch workout history (last 2 workouts for any day)
+  useEffect(() => {
+    const fetchWorkoutHistory = async () => {
+      if (!userData.email || !nextWorkout) return;
+
+      try {
+        const template = await getWorkoutTemplate(nextWorkout.week, nextWorkout.day);
+
+        const { data, error } = await supabase
+          .from(template.tableName)
+          .select('*')
+          .eq('client_email', userData.email)
+          .order('workout_date', { ascending: false })
+          .limit(2);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          setLastWorkoutDetails(data[0]); // Most recent
+          if (data.length > 1) {
+            setTodayWorkoutDetails(data[1]); // Second most recent
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching workout history:', error);
+      }
+    };
+
+    fetchWorkoutHistory();
+  }, [userData.email, nextWorkout]);
 
   // NOTE: We no longer save workout_schedule to the database.
   // The schedule is dynamically generated from workout_starts table on each load.
@@ -906,6 +940,45 @@ export default function DashboardScreen() {
           </View>
         </View>
 
+        {/* Workout History Containers */}
+        <View style={styles.historyContainer}>
+          {/* Last Workout */}
+          <View style={styles.historyBox}>
+            <Text style={styles.historyLabel}>Last Workout</Text>
+            {lastWorkoutDetails ? (
+              <>
+                <Text style={styles.historyValue}>
+                  {new Date(lastWorkoutDetails.workout_date).toLocaleDateString()}
+                </Text>
+                <Text style={styles.historySubtext}>
+                  {lastWorkoutDetails.session_completed}% Complete
+                </Text>
+              </>
+            ) : (
+              <Text style={styles.historyValue}>No data</Text>
+            )}
+          </View>
+
+          {/* Today's Workout - Clickable */}
+          <TouchableOpacity
+            style={styles.historyBox}
+            onPress={() => setShowHistoryModal(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.historyLabel}>Today's Workout</Text>
+            {todayWorkoutDetails ? (
+              <>
+                <Text style={styles.historyValue}>
+                  {new Date(todayWorkoutDetails.workout_date).toLocaleDateString()}
+                </Text>
+                <Text style={styles.historySubtext}>Tap to view details</Text>
+              </>
+            ) : (
+              <Text style={styles.historyValue}>No data</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+
         {selectedWorkoutToMove && (
           <View style={styles.moveNotice}>
             <Text style={styles.moveNoticeText}>Tap a date to move workout Day {selectedWorkoutToMove.day}</Text>
@@ -1560,6 +1633,55 @@ export default function DashboardScreen() {
             </TouchableOpacity>
           </View>
         </View>
+      </Modal>
+
+      {/* History Modal */}
+      <Modal
+        visible={showHistoryModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowHistoryModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowHistoryModal(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalContent}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Last Workout Details</Text>
+              <TouchableOpacity
+                onPress={() => setShowHistoryModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              {todayWorkoutDetails && todayWorkoutDetails.exercises ? (
+                todayWorkoutDetails.exercises.map((exercise: any, index: number) => (
+                  <View key={index} style={styles.modalExercise}>
+                    <Text style={styles.modalExerciseName}>{exercise.name}</Text>
+                    {exercise.sets.map((set: any, setIndex: number) => (
+                      <View key={setIndex} style={styles.modalSet}>
+                        <Text style={styles.modalSetText}>
+                          Set {setIndex + 1}: {set.reps} reps × {set.weight} lbs
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.modalNoData}>No exercise data available</Text>
+              )}
+            </ScrollView>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </View>
   );
@@ -2767,5 +2889,102 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#000',
+  },
+  // Workout History
+  historyContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    gap: 12,
+  },
+  historyBox: {
+    flex: 1,
+    backgroundColor: 'rgba(45, 219, 219, 0.1)',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(45, 219, 219, 0.3)',
+  },
+  historyLabel: {
+    fontSize: 11,
+    color: '#9ca3af',
+    marginBottom: 4,
+  },
+  historyValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  historySubtext: {
+    fontSize: 10,
+    color: '#2ddbdb',
+    marginTop: 2,
+  },
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    maxHeight: '80%',
+    backgroundColor: '#1a1f3a',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(45, 219, 219, 0.3)',
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2ddbdb',
+  },
+  modalCloseButton: {
+    padding: 4,
+  },
+  modalCloseText: {
+    fontSize: 24,
+    color: '#9ca3af',
+  },
+  modalBody: {
+    padding: 16,
+  },
+  modalExercise: {
+    marginBottom: 16,
+    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  modalExerciseName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2ddbdb',
+    marginBottom: 8,
+  },
+  modalSet: {
+    marginLeft: 8,
+    marginBottom: 4,
+  },
+  modalSetText: {
+    fontSize: 14,
+    color: '#fff',
+  },
+  modalNoData: {
+    fontSize: 14,
+    color: '#9ca3af',
+    textAlign: 'center',
+    padding: 20,
   },
 });
