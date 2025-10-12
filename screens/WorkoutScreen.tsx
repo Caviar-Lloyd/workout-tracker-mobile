@@ -789,27 +789,29 @@ const styles = StyleSheet.create({
   // Input Columns (Column 2 & 3)
   inputColumn: {
     flex: 1,
-    padding: 12,
+    padding: 8,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
-    gap: 6,
+    gap: 4,
   },
   setLabel: {
     fontSize: 11,
     color: '#9ca3af',
     fontWeight: '600',
-    width: 16,
+    width: 18,
+    flexShrink: 0,
   },
   columnInput: {
     flex: 1,
+    minWidth: 0,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
-    padding: 10,
+    borderRadius: 6,
+    padding: 8,
     color: '#fff',
-    fontSize: 14,
+    fontSize: 13,
     textAlign: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
@@ -818,6 +820,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#10b981',
     width: 18,
+    flexShrink: 0,
   },
   // Submit Button
   submitButton: {
