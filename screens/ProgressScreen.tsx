@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
   },
   // Combined Container with Arrows and Dropdowns
   combinedContainer: {
-    backgroundColor: 'rgba(45, 219, 219, 0.1)',
+    backgroundColor: 'rgba(45, 219, 219, 0.05)',
     borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(45, 219, 219, 0.3)',
@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(45, 219, 219, 0.2)',
+    backgroundColor: 'rgba(45, 219, 219, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
     zIndex: 9999,
   },
   dropdownButton: {
-    backgroundColor: 'rgba(45, 219, 219, 0.1)',
+    backgroundColor: 'rgba(45, 219, 219, 0.05)',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(45, 219, 219, 0.3)',
@@ -570,7 +570,7 @@ const styles = StyleSheet.create({
   },
   // Chart Container
   chartContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
     borderRadius: 20,
     padding: 20,
     marginBottom: 16,
@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(45, 219, 219, 0.2)',
+    backgroundColor: 'rgba(45, 219, 219, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -634,7 +634,7 @@ const styles = StyleSheet.create({
   noDataContainer: {
     paddingVertical: 60,
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
     borderRadius: 20,
     marginBottom: 16,
     borderWidth: 1,
