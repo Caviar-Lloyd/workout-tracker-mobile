@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator
 import { LineChart } from 'react-native-chart-kit';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabase/client';
 import { getWorkoutTemplate, getAllExerciseHistory } from '../lib/supabase/workout-service';
 import type { WeekNumber, DayNumber } from '../types/workout';
@@ -26,6 +27,7 @@ interface ExerciseData {
 }
 
 export default function ProgressScreen() {
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const [userData, setUserData] = useState<{ email: string } | null>(null);
   const [selectedWeek, setSelectedWeek] = useState<WeekNumber>(1);
@@ -131,6 +133,15 @@ export default function ProgressScreen() {
       >
         <Text style={styles.title}>Progress Tracker</Text>
         <Text style={styles.subtitle}>Track your performance</Text>
+
+        {/* Breadcrumb Navigation */}
+        <View style={styles.breadcrumb}>
+          <Text style={styles.breadcrumbText}>
+            <Text style={styles.breadcrumbHome} onPress={() => navigation.navigate('Dashboard')}>Home</Text>
+            <Text style={styles.breadcrumbSeparator}> / </Text>
+            <Text style={styles.breadcrumbCurrent}>Progress</Text>
+          </Text>
+        </View>
 
         {/* Backdrop to close dropdowns when clicking outside */}
         {(showWorkoutDropdown || showExerciseDropdown) && (
@@ -653,5 +664,24 @@ const styles = StyleSheet.create({
   noDataSubtext: {
     fontSize: 14,
     color: '#9ca3af',
+  },
+  // Breadcrumb Navigation
+  breadcrumb: {
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  breadcrumbText: {
+    fontSize: 13,
+  },
+  breadcrumbHome: {
+    color: '#2ddbdb',
+    fontWeight: '600',
+  },
+  breadcrumbSeparator: {
+    color: '#6b7280',
+  },
+  breadcrumbCurrent: {
+    color: '#9ca3af',
+    fontWeight: '400',
   },
 });

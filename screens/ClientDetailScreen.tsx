@@ -371,6 +371,17 @@ export default function ClientDetailScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Breadcrumb Navigation */}
+        <View style={styles.breadcrumb}>
+          <Text style={styles.breadcrumbText}>
+            <Text style={styles.breadcrumbHome} onPress={() => navigation.navigate('Dashboard')}>Home</Text>
+            <Text style={styles.breadcrumbSeparator}> / </Text>
+            <Text style={styles.breadcrumbLink} onPress={() => navigation.navigate('Clients')}>My Clients</Text>
+            <Text style={styles.breadcrumbSeparator}> / </Text>
+            <Text style={styles.breadcrumbCurrent}>{client.first_name} {client.last_name}</Text>
+          </Text>
+        </View>
+
         {/* Content */}
         <ScrollView
           style={styles.scrollContainer}
@@ -972,5 +983,28 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#000',
+  },
+  // Breadcrumb Navigation
+  breadcrumb: {
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  breadcrumbText: {
+    fontSize: 13,
+  },
+  breadcrumbHome: {
+    color: '#2ddbdb',
+    fontWeight: '600',
+  },
+  breadcrumbLink: {
+    color: '#2ddbdb',
+    fontWeight: '600',
+  },
+  breadcrumbSeparator: {
+    color: '#6b7280',
+  },
+  breadcrumbCurrent: {
+    color: '#9ca3af',
+    fontWeight: '400',
   },
 });

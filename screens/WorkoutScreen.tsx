@@ -356,6 +356,15 @@ export default function WorkoutScreen() {
             <Text style={styles.subtitle}>Week {week}, Day {day}</Text>
           </View>
 
+          {/* Breadcrumb Navigation */}
+          <View style={styles.breadcrumb}>
+            <Text style={styles.breadcrumbText}>
+              <Text style={styles.breadcrumbHome} onPress={() => navigation.navigate('Dashboard')}>Home</Text>
+              <Text style={styles.breadcrumbSeparator}> / </Text>
+              <Text style={styles.breadcrumbCurrent}>Workout Tracker</Text>
+            </Text>
+          </View>
+
           {/* Main Container with Video and 3 Columns */}
           <View style={styles.mainContainer}>
             {/* 16:9 Video Container */}
@@ -884,5 +893,24 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  // Breadcrumb Navigation
+  breadcrumb: {
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  breadcrumbText: {
+    fontSize: 13,
+  },
+  breadcrumbHome: {
+    color: '#2ddbdb',
+    fontWeight: '600',
+  },
+  breadcrumbSeparator: {
+    color: '#6b7280',
+  },
+  breadcrumbCurrent: {
+    color: '#9ca3af',
+    fontWeight: '400',
   },
 });

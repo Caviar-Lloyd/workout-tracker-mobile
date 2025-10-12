@@ -983,7 +983,7 @@ export default function DashboardScreen({ route }: any) {
           {/* Breadcrumb Navigation */}
           <View style={styles.breadcrumb}>
             <Text style={styles.breadcrumbText}>
-              <Text style={styles.breadcrumbHome}>Home</Text>
+              <Text style={styles.breadcrumbHome} onPress={() => navigation.navigate('Dashboard')}>Home</Text>
               <Text style={styles.breadcrumbSeparator}> / </Text>
               <Text style={styles.breadcrumbCurrent}>Dashboard</Text>
             </Text>

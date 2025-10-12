@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { getWorkoutTemplate } from '../lib/supabase/workout-service';
 import type { WeekNumber, DayNumber } from '../types/workout';
 import CustomVideoPlayer from '../components/CustomVideoPlayer';
@@ -27,6 +28,7 @@ interface Exercise {
 }
 
 export default function ProgramScreen() {
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const [selectedPhase, setSelectedPhase] = useState<1 | 2>(1);
   const [selectedDay, setSelectedDay] = useState<number>(1);
@@ -82,6 +84,15 @@ export default function ProgramScreen() {
         <View style={styles.header}>
         <Text style={styles.title}>Program Overview</Text>
         <Text style={styles.subtitle}>Complete 12-Week Eccentric Training System</Text>
+      </View>
+
+      {/* Breadcrumb Navigation */}
+      <View style={styles.breadcrumb}>
+        <Text style={styles.breadcrumbText}>
+          <Text style={styles.breadcrumbHome} onPress={() => navigation.navigate('Dashboard')}>Home</Text>
+          <Text style={styles.breadcrumbSeparator}> / </Text>
+          <Text style={styles.breadcrumbCurrent}>Program Overview</Text>
+        </Text>
       </View>
 
       {/* Combined Phase and Day Selector */}
@@ -516,5 +527,24 @@ const styles = StyleSheet.create({
   videoPlaceholderText: {
     color: '#9ca3af',
     fontSize: 14,
+  },
+  // Breadcrumb Navigation
+  breadcrumb: {
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  breadcrumbText: {
+    fontSize: 13,
+  },
+  breadcrumbHome: {
+    color: '#2ddbdb',
+    fontWeight: '600',
+  },
+  breadcrumbSeparator: {
+    color: '#6b7280',
+  },
+  breadcrumbCurrent: {
+    color: '#9ca3af',
+    fontWeight: '400',
   },
 });
