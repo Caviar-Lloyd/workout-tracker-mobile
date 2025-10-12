@@ -467,26 +467,41 @@ export default function WorkoutScreen() {
                 </View>
               </View>
 
-              {/* Submit Button (full width) */}
-              <TouchableOpacity
-                style={[
-                  styles.submitButton,
-                  (isSubmitting || !hasStartedLogging) && styles.submitButtonDisabled,
-                  getProgress() === 100 && styles.submitButtonComplete
-                ]}
-                onPress={handleSubmit}
-                disabled={isSubmitting || !hasStartedLogging}
-              >
-                <Text style={styles.submitButtonText}>
-                  {isSubmitting
-                    ? 'Saving...'
-                    : !hasStartedLogging
-                      ? 'Start Logging'
+              {/* Progress Bar (horizontal, full width) */}
+              <View style={styles.progressBarHorizontal}>
+                <View style={styles.progressBarTrackHorizontal}>
+                  <View style={[styles.progressBarFillHorizontal, { width: `${getProgress()}%` }]} />
+                </View>
+                <Text style={styles.progressBarTextHorizontal}>{Math.round(getProgress())}%</Text>
+              </View>
+
+              {/* Bottom Row: Timer | Submit Button */}
+              <View style={styles.bottomRow}>
+                {/* Timer (left side, below exercises) */}
+                <View style={styles.timerContainer}>
+                  <Text style={styles.timerLabel}>Time</Text>
+                  <Text style={styles.timerValue}>{formatTime(elapsedTime)}</Text>
+                </View>
+
+                {/* Submit Button (right side) */}
+                <TouchableOpacity
+                  style={[
+                    styles.submitButton,
+                    (isSubmitting || !hasStartedLogging) && styles.submitButtonDisabled,
+                    getProgress() === 100 && styles.submitButtonComplete
+                  ]}
+                  onPress={handleSubmit}
+                  disabled={isSubmitting || !hasStartedLogging}
+                >
+                  <Text style={styles.submitButtonText}>
+                    {isSubmitting
+                      ? 'Saving...'
                       : getProgress() === 100
                         ? 'Complete Workout'
-                        : 'Submit Partial'}
-                </Text>
-              </TouchableOpacity>
+                        : 'Submit'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </View>
@@ -626,6 +641,58 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
   },
+  progressBarHorizontal: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    gap: 12,
+    height: 44,
+  },
+  progressBarTrackHorizontal: {
+    flex: 1,
+    height: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  progressBarFillHorizontal: {
+    height: '100%',
+    backgroundColor: '#2ddbdb',
+    borderRadius: 6,
+  },
+  progressBarTextHorizontal: {
+    fontSize: 12,
+    color: '#2ddbdb',
+    fontWeight: 'bold',
+    minWidth: 40,
+    textAlign: 'right',
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    height: 80,
+  },
+  timerContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(45, 219, 219, 0.1)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timerLabel: {
+    fontSize: 10,
+    color: '#9ca3af',
+    marginBottom: 4,
+  },
+  timerValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#2ddbdb',
+  },
   columnHeader: {
     padding: 10,
     backgroundColor: 'rgba(45, 219, 219, 0.15)',
@@ -647,15 +714,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   exerciseScrollContent: {
-    paddingBottom: 25,
+    paddingBottom: 30,
   },
   scrollIndicator: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    height: 24,
+    backgroundColor: '#000',
     alignItems: 'center',
     justifyContent: 'center',
     borderTopWidth: 1,
@@ -754,21 +821,24 @@ const styles = StyleSheet.create({
   },
   // Submit Button
   submitButton: {
-    height: 60,
+    flex: 1,
     backgroundColor: '#10b981',
-    borderRadius: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(16, 185, 129, 0.5)',
+    borderLeftWidth: 1,
+    borderLeftColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 16,
     shadowColor: '#10b981',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.6,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 6,
   },
   submitButtonComplete: {
     backgroundColor: '#2ddbdb',
     shadowColor: '#2ddbdb',
+    borderTopColor: 'rgba(45, 219, 219, 0.5)',
   },
   submitButtonDisabled: {
     opacity: 0.4,
@@ -776,8 +846,7 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    letterSpacing: 0.5,
   },
 });
