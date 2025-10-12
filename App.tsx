@@ -100,7 +100,7 @@ const SettingsIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: st
 function ExpandableMenu() {
   const navigation = useNavigation();
   const [menuOpen, setMenuOpen] = useState(false);
-  const slideAnim = useRef(new Animated.Value(600)).current; // Start completely off-screen (increased for more menu items)
+  const slideAnim = useRef(new Animated.Value(700)).current; // Start completely off-screen (7 items × 48px + padding + borders = ~336-400px, use 700 to be safe)
   const bounceAnim = useRef(new Animated.Value(0)).current; // For arrow bounce
   const fadeAnim = useRef(new Animated.Value(1)).current; // For tooltip fade
   const [showTooltip, setShowTooltip] = useState(true);
@@ -182,7 +182,7 @@ function ExpandableMenu() {
       setShowTooltip(false);
     }
 
-    const toValue = menuOpen ? 500 : 0; // 400 = hidden off-screen, 0 = visible
+    const toValue = menuOpen ? 700 : 0; // 700 = hidden off-screen, 0 = visible
     Animated.spring(slideAnim, {
       toValue,
       useNativeDriver: true,
@@ -212,7 +212,7 @@ function ExpandableMenu() {
 
   const handleLogout = async () => {
     slideAnim.stopAnimation(() => {
-      slideAnim.setValue(600);
+      slideAnim.setValue(700);
       setMenuOpen(false);
     });
     await supabase.auth.signOut();
@@ -270,7 +270,7 @@ function ExpandableMenu() {
           onPressIn={() => {
             // Close menu synchronously before anything else
             slideAnim.stopAnimation(() => {
-              slideAnim.setValue(600);
+              slideAnim.setValue(700);
               setMenuOpen(false);
               navigateTo('Dashboard');
             });
@@ -287,7 +287,7 @@ function ExpandableMenu() {
           onPressIn={() => {
             // Close menu synchronously before anything else
             slideAnim.stopAnimation(() => {
-              slideAnim.setValue(600);
+              slideAnim.setValue(700);
               setMenuOpen(false);
               navigateTo('Program');
             });
@@ -304,7 +304,7 @@ function ExpandableMenu() {
           onPressIn={() => {
             // Close menu synchronously before anything else
             slideAnim.stopAnimation(() => {
-              slideAnim.setValue(600);
+              slideAnim.setValue(700);
               setMenuOpen(false);
               navigateTo('Workout');
             });
@@ -321,7 +321,7 @@ function ExpandableMenu() {
           onPressIn={() => {
             // Close menu synchronously before anything else
             slideAnim.stopAnimation(() => {
-              slideAnim.setValue(600);
+              slideAnim.setValue(700);
               setMenuOpen(false);
               navigateTo('Progress');
             });
@@ -339,7 +339,7 @@ function ExpandableMenu() {
             delayPressIn={0}
             onPressIn={() => {
               slideAnim.stopAnimation(() => {
-                slideAnim.setValue(600);
+                slideAnim.setValue(700);
                 setMenuOpen(false);
                 navigateTo('Clients');
               });
@@ -356,7 +356,7 @@ function ExpandableMenu() {
           delayPressIn={0}
           onPressIn={() => {
             slideAnim.stopAnimation(() => {
-              slideAnim.setValue(600);
+              slideAnim.setValue(700);
               setMenuOpen(false);
               // Navigate to Dashboard with a param to open settings
               navigation.navigate('Dashboard', { openSettings: true });
