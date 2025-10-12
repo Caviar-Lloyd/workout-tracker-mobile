@@ -140,31 +140,29 @@ export default function ProgressScreen() {
 
               {showWorkoutDropdown && (
                 <View style={styles.dropdownMenu}>
-                  <ScrollView style={styles.dropdownScrollView} contentContainerStyle={styles.dropdownScrollContent}>
-                    {WORKOUT_DAYS.map((workout) => (
-                      <TouchableOpacity
-                        key={workout.day}
+                  {WORKOUT_DAYS.map((workout) => (
+                    <TouchableOpacity
+                      key={workout.day}
+                      style={[
+                        styles.dropdownMenuItem,
+                        selectedDay === workout.day && styles.dropdownMenuItemActive
+                      ]}
+                      onPress={() => {
+                        setSelectedDay(workout.day as DayNumber);
+                        setShowWorkoutDropdown(false);
+                      }}
+                    >
+                      <Text
                         style={[
-                          styles.dropdownMenuItem,
-                          selectedDay === workout.day && styles.dropdownMenuItemActive
+                          styles.dropdownMenuItemText,
+                          selectedDay === workout.day && styles.dropdownMenuItemTextActive
                         ]}
-                        onPress={() => {
-                          setSelectedDay(workout.day as DayNumber);
-                          setShowWorkoutDropdown(false);
-                        }}
                       >
-                        <Text
-                          style={[
-                            styles.dropdownMenuItemText,
-                            selectedDay === workout.day && styles.dropdownMenuItemTextActive
-                          ]}
-                        >
-                          {workout.name}
-                        </Text>
-                        <Text style={styles.dropdownMenuItemSubtext}>Day {workout.day}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
+                        {workout.name}
+                      </Text>
+                      <Text style={styles.dropdownMenuItemSubtext}>Day {workout.day}</Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
               )}
             </View>
@@ -192,30 +190,28 @@ export default function ProgressScreen() {
 
               {showExerciseDropdown && exercises.length > 0 && (
                 <View style={styles.dropdownMenu}>
-                  <ScrollView style={styles.dropdownScrollView} contentContainerStyle={styles.dropdownScrollContent}>
-                    {exercises.map((exercise, index) => (
-                      <TouchableOpacity
-                        key={index}
+                  {exercises.map((exercise, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        styles.dropdownMenuItem,
+                        currentExerciseIndex === index && styles.dropdownMenuItemActive
+                      ]}
+                      onPress={() => {
+                        setCurrentExerciseIndex(index);
+                        setShowExerciseDropdown(false);
+                      }}
+                    >
+                      <Text
                         style={[
-                          styles.dropdownMenuItem,
-                          currentExerciseIndex === index && styles.dropdownMenuItemActive
+                          styles.dropdownMenuItemText,
+                          currentExerciseIndex === index && styles.dropdownMenuItemTextActive
                         ]}
-                        onPress={() => {
-                          setCurrentExerciseIndex(index);
-                          setShowExerciseDropdown(false);
-                        }}
                       >
-                        <Text
-                          style={[
-                            styles.dropdownMenuItemText,
-                            currentExerciseIndex === index && styles.dropdownMenuItemTextActive
-                          ]}
-                        >
-                          {exercise.name}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
+                        {exercise.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
               )}
             </View>
@@ -437,24 +433,17 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: '#000000',
-    opacity: 1,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
-    maxHeight: 300,
     zIndex: 2000,
     overflow: 'hidden',
-  },
-  dropdownScrollView: {
-    backgroundColor: '#000000',
-  },
-  dropdownScrollContent: {
-    backgroundColor: '#000000',
   },
   dropdownMenuItem: {
     padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: '#000000',
   },
   dropdownMenuItemActive: {
     backgroundColor: 'rgba(45, 219, 219, 0.2)',
