@@ -41,14 +41,6 @@ export default function ProgramScreen() {
   const dayScrollRef = useRef<any>(null);
   const exerciseScrollRef = useRef<any>(null);
 
-  // Track scroll position for showing up/down arrows
-  const [weekScrollAtTop, setWeekScrollAtTop] = useState(true);
-  const [weekScrollAtBottom, setWeekScrollAtBottom] = useState(false);
-  const [dayScrollAtTop, setDayScrollAtTop] = useState(true);
-  const [dayScrollAtBottom, setDayScrollAtBottom] = useState(false);
-  const [exerciseScrollAtTop, setExerciseScrollAtTop] = useState(true);
-  const [exerciseScrollAtBottom, setExerciseScrollAtBottom] = useState(false);
-
   // Fetch exercises when day or week changes
   useEffect(() => {
     fetchExercises();
@@ -77,51 +69,54 @@ export default function ProgramScreen() {
     { number: 3, label: 'Multi-Joint' },
   ];
 
-  // Cycle through week selection
+  // Cycle through week selection with auto-scroll
   const cycleWeek = (direction: 'up' | 'down') => {
-    if (direction === 'down') {
-      setSelectedWeek(selectedWeek === 3 ? 1 : selectedWeek + 1);
-    } else {
-      setSelectedWeek(selectedWeek === 1 ? 3 : selectedWeek - 1);
-    }
+    const newWeek = direction === 'down'
+      ? (selectedWeek === 3 ? 1 : selectedWeek + 1)
+      : (selectedWeek === 1 ? 3 : selectedWeek - 1);
+
+    setSelectedWeek(newWeek);
+
+    // Auto-scroll to make the selected item visible
+    setTimeout(() => {
+      const itemHeight = 65; // Approximate height of each item
+      const scrollPosition = (newWeek - 1) * itemHeight;
+      weekScrollRef.current?.scrollTo({ y: scrollPosition, animated: true });
+    }, 100);
   };
 
-  // Cycle through day selection
+  // Cycle through day selection with auto-scroll
   const cycleDay = (direction: 'up' | 'down') => {
-    if (direction === 'down') {
-      setSelectedDay(selectedDay === 6 ? 1 : selectedDay + 1);
-    } else {
-      setSelectedDay(selectedDay === 1 ? 6 : selectedDay - 1);
-    }
+    const newDay = direction === 'down'
+      ? (selectedDay === 6 ? 1 : selectedDay + 1)
+      : (selectedDay === 1 ? 6 : selectedDay - 1);
+
+    setSelectedDay(newDay);
+
+    // Auto-scroll to make the selected item visible
+    setTimeout(() => {
+      const itemHeight = 65; // Approximate height of each item
+      const scrollPosition = (newDay - 1) * itemHeight;
+      dayScrollRef.current?.scrollTo({ y: scrollPosition, animated: true });
+    }, 100);
   };
 
-  // Cycle through exercise selection
+  // Cycle through exercise selection with auto-scroll
   const cycleExercise = (direction: 'up' | 'down') => {
     if (exercises.length === 0) return;
-    if (direction === 'down') {
-      setSelectedExerciseIndex(selectedExerciseIndex === exercises.length - 1 ? 0 : selectedExerciseIndex + 1);
-    } else {
-      setSelectedExerciseIndex(selectedExerciseIndex === 0 ? exercises.length - 1 : selectedExerciseIndex - 1);
-    }
-  };
 
-  // Handle scroll events to show/hide up/down arrows
-  const handleWeekScroll = (event: any) => {
-    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
-    setWeekScrollAtTop(contentOffset.y <= 0);
-    setWeekScrollAtBottom(contentOffset.y + layoutMeasurement.height >= contentSize.height - 5);
-  };
+    const newIndex = direction === 'down'
+      ? (selectedExerciseIndex === exercises.length - 1 ? 0 : selectedExerciseIndex + 1)
+      : (selectedExerciseIndex === 0 ? exercises.length - 1 : selectedExerciseIndex - 1);
 
-  const handleDayScroll = (event: any) => {
-    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
-    setDayScrollAtTop(contentOffset.y <= 0);
-    setDayScrollAtBottom(contentOffset.y + layoutMeasurement.height >= contentSize.height - 5);
-  };
+    setSelectedExerciseIndex(newIndex);
 
-  const handleExerciseScroll = (event: any) => {
-    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
-    setExerciseScrollAtTop(contentOffset.y <= 0);
-    setExerciseScrollAtBottom(contentOffset.y + layoutMeasurement.height >= contentSize.height - 5);
+    // Auto-scroll to make the selected item visible
+    setTimeout(() => {
+      const itemHeight = 65; // Approximate height of each item
+      const scrollPosition = newIndex * itemHeight;
+      exerciseScrollRef.current?.scrollTo({ y: scrollPosition, animated: true });
+    }, 100);
   };
 
   return (
@@ -184,21 +179,17 @@ export default function ProgramScreen() {
           <View style={styles.columnHeader}>
             <Text style={styles.columnTitle}>Week</Text>
           </View>
-          {!weekScrollAtTop && (
-            <TouchableOpacity
-              style={styles.scrollIndicatorUp}
-              onPress={() => cycleWeek('up')}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.scrollIndicatorText}>↑</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.scrollIndicatorUp}
+            onPress={() => cycleWeek('up')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.scrollIndicatorText}>↑</Text>
+          </TouchableOpacity>
           <ScrollView
             ref={weekScrollRef}
             style={styles.columnScroll}
             showsVerticalScrollIndicator={false}
-            onScroll={handleWeekScroll}
-            scrollEventThrottle={16}
           >
             {weeks.map((week) => (
               <TouchableOpacity
@@ -224,15 +215,13 @@ export default function ProgramScreen() {
               </TouchableOpacity>
             ))}
           </ScrollView>
-          {!weekScrollAtBottom && (
-            <TouchableOpacity
-              style={styles.scrollIndicatorDown}
-              onPress={() => cycleWeek('down')}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.scrollIndicatorText}>↓</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.scrollIndicatorDown}
+            onPress={() => cycleWeek('down')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.scrollIndicatorText}>↓</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Column 2: Days */}
@@ -240,21 +229,17 @@ export default function ProgramScreen() {
           <View style={styles.columnHeader}>
             <Text style={styles.columnTitle}>Day</Text>
           </View>
-          {!dayScrollAtTop && (
-            <TouchableOpacity
-              style={styles.scrollIndicatorUp}
-              onPress={() => cycleDay('up')}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.scrollIndicatorText}>↑</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.scrollIndicatorUp}
+            onPress={() => cycleDay('up')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.scrollIndicatorText}>↑</Text>
+          </TouchableOpacity>
           <ScrollView
             ref={dayScrollRef}
             style={styles.columnScroll}
             showsVerticalScrollIndicator={false}
-            onScroll={handleDayScroll}
-            scrollEventThrottle={16}
           >
             {WORKOUT_DAYS.map((workout) => (
               <TouchableOpacity
@@ -280,15 +265,13 @@ export default function ProgramScreen() {
               </TouchableOpacity>
             ))}
           </ScrollView>
-          {!dayScrollAtBottom && (
-            <TouchableOpacity
-              style={styles.scrollIndicatorDown}
-              onPress={() => cycleDay('down')}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.scrollIndicatorText}>↓</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.scrollIndicatorDown}
+            onPress={() => cycleDay('down')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.scrollIndicatorText}>↓</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Column 3: Exercises */}
@@ -296,21 +279,17 @@ export default function ProgramScreen() {
           <View style={styles.columnHeader}>
             <Text style={styles.columnTitle}>Exercises</Text>
           </View>
-          {!exerciseScrollAtTop && (
-            <TouchableOpacity
-              style={styles.scrollIndicatorUp}
-              onPress={() => cycleExercise('up')}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.scrollIndicatorText}>↑</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.scrollIndicatorUp}
+            onPress={() => cycleExercise('up')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.scrollIndicatorText}>↑</Text>
+          </TouchableOpacity>
           <ScrollView
             ref={exerciseScrollRef}
             style={styles.columnScroll}
             showsVerticalScrollIndicator={false}
-            onScroll={handleExerciseScroll}
-            scrollEventThrottle={16}
           >
             {isLoading ? (
               <Text style={styles.loadingText}>Loading...</Text>
@@ -345,15 +324,13 @@ export default function ProgramScreen() {
               ))
             )}
           </ScrollView>
-          {!exerciseScrollAtBottom && (
-            <TouchableOpacity
-              style={styles.scrollIndicatorDown}
-              onPress={() => cycleExercise('down')}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.scrollIndicatorText}>↓</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.scrollIndicatorDown}
+            onPress={() => cycleExercise('down')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.scrollIndicatorText}>↓</Text>
+          </TouchableOpacity>
         </View>
       </View>
       </View>
