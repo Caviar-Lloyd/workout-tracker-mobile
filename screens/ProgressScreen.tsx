@@ -121,13 +121,16 @@ export default function ProgressScreen() {
 
         {/* Combined Container with Arrows and Dropdowns */}
         <View style={styles.combinedContainer}>
-          {/* Left Arrow */}
-          <TouchableOpacity
-            style={styles.arrowButton}
-            onPress={handlePrevDay}
-          >
-            <Text style={styles.arrowText}>←</Text>
-          </TouchableOpacity>
+          {/* Left Arrow with Day Hint */}
+          <View style={styles.dayNavContainer}>
+            <TouchableOpacity
+              style={styles.arrowButton}
+              onPress={handlePrevDay}
+            >
+              <Text style={styles.arrowText}>←</Text>
+            </TouchableOpacity>
+            <Text style={styles.dayHintText}>Day {selectedDay === 1 ? 6 : selectedDay - 1}</Text>
+          </View>
 
           {/* Dropdowns in the middle */}
           <View style={styles.dropdownsRow}>
@@ -239,13 +242,16 @@ export default function ProgressScreen() {
             </View>
           </View>
 
-          {/* Right Arrow */}
-          <TouchableOpacity
-            style={styles.arrowButton}
-            onPress={handleNextDay}
-          >
-            <Text style={styles.arrowText}>→</Text>
-          </TouchableOpacity>
+          {/* Right Arrow with Day Hint */}
+          <View style={styles.dayNavContainer}>
+            <Text style={styles.dayHintText}>Day {selectedDay === 6 ? 1 : selectedDay + 1}</Text>
+            <TouchableOpacity
+              style={styles.arrowButton}
+              onPress={handleNextDay}
+            >
+              <Text style={styles.arrowText}>→</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {isLoading ? (
@@ -413,6 +419,16 @@ const styles = StyleSheet.create({
     color: '#2ddbdb',
     fontWeight: 'bold',
   },
+  dayNavContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dayHintText: {
+    fontSize: 10,
+    color: '#2ddbdb',
+    fontWeight: '600',
+  },
   dropdownsRow: {
     flex: 1,
     flexDirection: 'row',
@@ -429,11 +445,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(45, 219, 219, 0.3)',
-    padding: 12,
+    padding: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: 70,
+    minHeight: 60,
   },
   dropdownContent: {
     flex: 1,
