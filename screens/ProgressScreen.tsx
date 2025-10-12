@@ -257,6 +257,9 @@ export default function ProgressScreen() {
                   disabled={selectedWeek === 1}
                 >
                   <Text style={styles.weekArrowText}>←</Text>
+                  {selectedWeek > 1 && (
+                    <Text style={styles.weekHintText}>Week {selectedWeek - 1}</Text>
+                  )}
                 </TouchableOpacity>
 
                 <View style={styles.chartTitleContainer}>
@@ -270,6 +273,9 @@ export default function ProgressScreen() {
                   disabled={selectedWeek === 6}
                 >
                   <Text style={styles.weekArrowText}>→</Text>
+                  {selectedWeek < 6 && (
+                    <Text style={styles.weekHintText}>Week {selectedWeek + 1}</Text>
+                  )}
                 </TouchableOpacity>
               </View>
 
@@ -403,7 +409,7 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   dropdownButton: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: 'rgb(0, 0, 0)',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(45, 219, 219, 0.2)',
@@ -442,7 +448,7 @@ const styles = StyleSheet.create({
     top: 75,
     left: 0,
     right: 0,
-    backgroundColor: '#000000',
+    backgroundColor: 'rgb(0, 0, 0)',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
@@ -499,6 +505,12 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: '#2ddbdb',
     fontWeight: 'bold',
+  },
+  weekHintText: {
+    fontSize: 9,
+    color: '#2ddbdb',
+    marginTop: 2,
+    fontWeight: '600',
   },
   chartTitleContainer: {
     flex: 1,
