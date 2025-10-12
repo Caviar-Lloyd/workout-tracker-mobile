@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   dropdownButton: {
-    backgroundColor: 'rgb(0, 0, 0)',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(45, 219, 219, 0.2)',
