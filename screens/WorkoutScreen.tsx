@@ -448,6 +448,7 @@ export default function WorkoutScreen() {
                     <View style={styles.inputColumn}>
                       {currentExercise && (exerciseData[currentExercise.index] || []).map((set, setIndex) => (
                         <View key={setIndex} style={styles.inputRow}>
+                          <Text style={styles.setLabel}>{setIndex + 1}</Text>
                           <TextInput
                             style={styles.columnInput}
                             placeholder="0"
@@ -609,6 +610,8 @@ const styles = StyleSheet.create({
   column1: {
     flex: 2,
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    borderRightWidth: 2,
+    borderRightColor: 'rgba(45, 219, 219, 0.3)',
   },
   inputsWrapper: {
     flex: 2,
@@ -617,6 +620,8 @@ const styles = StyleSheet.create({
   column2: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    borderRightWidth: 2,
+    borderRightColor: 'rgba(45, 219, 219, 0.3)',
   },
   column3: {
     flex: 1,
@@ -718,7 +723,7 @@ const styles = StyleSheet.create({
   // Input Columns (Column 2 & 3)
   inputColumn: {
     flex: 1,
-    padding: 8,
+    padding: 12,
   },
   inputRow: {
     flexDirection: 'row',
