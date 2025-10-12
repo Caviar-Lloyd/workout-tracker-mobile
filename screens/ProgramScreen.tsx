@@ -294,7 +294,6 @@ const styles = StyleSheet.create({
   // Weeks Horizontal Scroll
   weeksSection: {
     paddingHorizontal: 16,
-    marginTop: 12,
     marginBottom: 8,
   },
   weeksScrollContent: {
@@ -304,11 +303,11 @@ const styles = StyleSheet.create({
   weekCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
-    padding: 16,
-    paddingHorizontal: 24,
+    padding: 12,
+    paddingHorizontal: 20,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
-    minWidth: 140,
+    minWidth: 120,
     alignItems: 'center',
   },
   weekCardActive: {
@@ -345,11 +344,11 @@ const styles = StyleSheet.create({
   dayCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 10,
-    padding: 12,
-    paddingHorizontal: 16,
+    padding: 10,
+    paddingHorizontal: 14,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
-    minWidth: 160,
+    minWidth: 130,
   },
   dayCardActive: {
     backgroundColor: 'rgba(45, 219, 219, 0.2)',
@@ -455,20 +454,27 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   videoContainer: {
-    aspectRatio: 9 / 16,
-    backgroundColor: '#000',
     width: '100%',
-    alignSelf: 'center',
+    aspectRatio: 16 / 9,
+    backgroundColor: '#000',
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  videoWrapper: {
+    flex: 1,
   },
   videoPlaceholder: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
   },
   videoPlaceholderText: {
-    color: '#9ca3af',
+    color: '#2ddbdb',
     fontSize: 14,
+    fontWeight: '500',
   },
   // Breadcrumb Navigation - Top Right
   breadcrumb: {
