@@ -488,7 +488,6 @@ export default function WorkoutScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
-            </View>
           </View>
         </View>
       </View>
