@@ -344,123 +344,144 @@ export default function WorkoutScreen() {
               )}
             </View>
 
-            {/* Three Column Layout */}
+            {/* Three Column Layout with Progress Bar */}
             <View style={styles.threeColumnLayout}>
-              {/* Column 1: Scrollable Exercise List */}
-              <View style={styles.column1}>
-                <View style={styles.columnHeader}>
-                  <Text style={styles.columnTitle}>Exercises</Text>
-                </View>
-                <ScrollView
-                  style={styles.exerciseScrollList}
-                  showsVerticalScrollIndicator={false}
-                >
-                  {workoutTemplate.exercises.map((exercise, index) => {
-                    const sets = exerciseData[exercise.index] || [];
-                    const completedSets = sets.filter(set => set.reps && set.weight).length;
-                    const isActive = currentExerciseIndex === exercise.index;
+              {/* Left Section: Exercise List + Timer */}
+              <View style={styles.leftSection}>
+                <View style={styles.column1}>
+                  <View style={styles.columnHeader}>
+                    <Text style={styles.columnTitle}>Exercises</Text>
+                  </View>
+                  <ScrollView
+                    style={styles.exerciseScrollList}
+                    showsVerticalScrollIndicator={false}
+                  >
+                    {workoutTemplate.exercises.map((exercise, index) => {
+                      const sets = exerciseData[exercise.index] || [];
+                      const completedSets = sets.filter(set => set.reps && set.weight).length;
+                      const isActive = currentExerciseIndex === exercise.index;
 
-                    return (
-                      <TouchableOpacity
-                        key={exercise.index}
-                        style={[
-                          styles.exerciseButton,
-                          isActive && styles.exerciseButtonActive
-                        ]}
-                        onPress={() => setCurrentExerciseIndex(exercise.index)}
-                      >
-                        <View style={styles.exerciseButtonContent}>
-                          <Text style={[styles.exerciseNumber, isActive && styles.exerciseNumberActive]}>
-                            {index + 1}
-                          </Text>
-                          <View style={styles.exerciseTextContainer}>
-                            <Text
-                              style={[styles.exerciseButtonName, isActive && styles.exerciseButtonNameActive]}
-                              numberOfLines={2}
-                            >
-                              {exercise.name}
+                      return (
+                        <TouchableOpacity
+                          key={exercise.index}
+                          style={[
+                            styles.exerciseButton,
+                            isActive && styles.exerciseButtonActive
+                          ]}
+                          onPress={() => setCurrentExerciseIndex(exercise.index)}
+                        >
+                          <View style={styles.exerciseButtonContent}>
+                            <Text style={[styles.exerciseNumber, isActive && styles.exerciseNumberActive]}>
+                              {index + 1}
                             </Text>
-                            <Text style={styles.exerciseProgress}>
-                              {completedSets}/{exercise.setCount}
-                            </Text>
+                            <View style={styles.exerciseTextContainer}>
+                              <Text
+                                style={[styles.exerciseButtonName, isActive && styles.exerciseButtonNameActive]}
+                                numberOfLines={2}
+                              >
+                                {exercise.name}
+                              </Text>
+                              <Text style={styles.exerciseProgress}>
+                                {completedSets}/{exercise.setCount}
+                              </Text>
+                            </View>
                           </View>
+                          {completedSets === exercise.setCount && (
+                            <Text style={styles.completedCheck}>✓</Text>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+
+                {/* Timer below exercise list */}
+                <View style={styles.timerContainer}>
+                  <Text style={styles.timerLabel}>Time</Text>
+                  <Text style={styles.timerValue}>{formatTime(elapsedTime)}</Text>
+                </View>
+              </View>
+
+              {/* Progress Bar (vertical) */}
+              <View style={styles.progressBarContainer}>
+                <View style={styles.progressBarTrack}>
+                  <View style={[styles.progressBarFill, { height: `${getProgress()}%` }]} />
+                </View>
+                <Text style={styles.progressBarText}>{Math.round(getProgress())}%</Text>
+              </View>
+
+              {/* Right Section: Reps/Weight + Submit Button */}
+              <View style={styles.rightSection}>
+                <View style={styles.inputsWrapper}>
+                  {/* Column 2: Reps Input */}
+                  <View style={styles.column2}>
+                    <View style={styles.columnHeader}>
+                      <Text style={styles.columnTitle}>Reps</Text>
+                    </View>
+                    <View style={styles.inputColumn}>
+                      {currentExercise && (exerciseData[currentExercise.index] || []).map((set, setIndex) => (
+                        <View key={setIndex} style={styles.inputRow}>
+                          <Text style={styles.setLabel}>{setIndex + 1}</Text>
+                          <TextInput
+                            style={styles.columnInput}
+                            placeholder="0"
+                            placeholderTextColor="#6b7280"
+                            value={set.reps}
+                            onChangeText={(value) => handleInputChange(currentExercise.index, setIndex, 'reps', value)}
+                            keyboardType="numeric"
+                          />
                         </View>
-                        {completedSets === exercise.setCount && (
-                          <Text style={styles.completedCheck}>✓</Text>
-                        )}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-
-              {/* Column 2: Reps Input */}
-              <View style={styles.column2}>
-                <View style={styles.columnHeader}>
-                  <Text style={styles.columnTitle}>Reps</Text>
-                </View>
-                <View style={styles.inputColumn}>
-                  {currentExercise && (exerciseData[currentExercise.index] || []).map((set, setIndex) => (
-                    <View key={setIndex} style={styles.inputRow}>
-                      <Text style={styles.setLabel}>{setIndex + 1}</Text>
-                      <TextInput
-                        style={styles.columnInput}
-                        placeholder="0"
-                        placeholderTextColor="#6b7280"
-                        value={set.reps}
-                        onChangeText={(value) => handleInputChange(currentExercise.index, setIndex, 'reps', value)}
-                        keyboardType="numeric"
-                      />
+                      ))}
                     </View>
-                  ))}
-                </View>
-              </View>
+                  </View>
 
-              {/* Column 3: Weight Input */}
-              <View style={styles.column3}>
-                <View style={styles.columnHeader}>
-                  <Text style={styles.columnTitle}>Weight</Text>
-                </View>
-                <View style={styles.inputColumn}>
-                  {currentExercise && (exerciseData[currentExercise.index] || []).map((set, setIndex) => (
-                    <View key={setIndex} style={styles.inputRow}>
-                      <TextInput
-                        style={styles.columnInput}
-                        placeholder="0"
-                        placeholderTextColor="#6b7280"
-                        value={set.weight}
-                        onChangeText={(value) => handleInputChange(currentExercise.index, setIndex, 'weight', value)}
-                        keyboardType="decimal-pad"
-                      />
-                      {set.reps && set.weight && (
-                        <Text style={styles.inputCheckmark}>✓</Text>
-                      )}
+                  {/* Column 3: Weight Input */}
+                  <View style={styles.column3}>
+                    <View style={styles.columnHeader}>
+                      <Text style={styles.columnTitle}>Weight</Text>
                     </View>
-                  ))}
+                    <View style={styles.inputColumn}>
+                      {currentExercise && (exerciseData[currentExercise.index] || []).map((set, setIndex) => (
+                        <View key={setIndex} style={styles.inputRow}>
+                          <TextInput
+                            style={styles.columnInput}
+                            placeholder="0"
+                            placeholderTextColor="#6b7280"
+                            value={set.weight}
+                            onChangeText={(value) => handleInputChange(currentExercise.index, setIndex, 'weight', value)}
+                            keyboardType="decimal-pad"
+                          />
+                          {set.reps && set.weight && (
+                            <Text style={styles.inputCheckmark}>✓</Text>
+                          )}
+                        </View>
+                      ))}
+                    </View>
+                  </View>
                 </View>
+
+                {/* Submit Button below reps/weight */}
+                <TouchableOpacity
+                  style={[
+                    styles.submitButton,
+                    (isSubmitting || !hasStartedLogging) && styles.submitButtonDisabled,
+                    getProgress() === 100 && styles.submitButtonComplete
+                  ]}
+                  onPress={handleSubmit}
+                  disabled={isSubmitting || !hasStartedLogging}
+                >
+                  <Text style={styles.submitButtonText}>
+                    {isSubmitting
+                      ? 'Saving...'
+                      : !hasStartedLogging
+                        ? 'Start Logging'
+                        : getProgress() === 100
+                          ? 'Complete Workout'
+                          : 'Submit Partial'}
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
-
-            {/* Submit Button at Bottom */}
-            <TouchableOpacity
-              style={[
-                styles.submitButton,
-                (isSubmitting || !hasStartedLogging) && styles.submitButtonDisabled,
-                getProgress() === 100 && styles.submitButtonComplete
-              ]}
-              onPress={handleSubmit}
-              disabled={isSubmitting || !hasStartedLogging}
-            >
-              <Text style={styles.submitButtonText}>
-                {isSubmitting
-                  ? 'Saving...'
-                  : !hasStartedLogging
-                    ? 'Start Logging'
-                    : getProgress() === 100
-                      ? 'Complete Workout'
-                      : 'Submit Partial'}
-              </Text>
-            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -595,15 +616,70 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 4,
   },
-  // Three Column Layout
+  // Three Column Layout with Progress Bar
   threeColumnLayout: {
-    flex: 1,
     flexDirection: 'row',
-    gap: 1,
+    height: 400,
+  },
+  leftSection: {
+    flex: 2,
+    flexDirection: 'column',
   },
   column1: {
-    flex: 2,
+    flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
+  },
+  timerContainer: {
+    backgroundColor: 'rgba(45, 219, 219, 0.1)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 12,
+    alignItems: 'center',
+  },
+  timerLabel: {
+    fontSize: 10,
+    color: '#9ca3af',
+    marginBottom: 4,
+  },
+  timerValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2ddbdb',
+  },
+  progressBarContainer: {
+    width: 40,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+  },
+  progressBarTrack: {
+    width: 20,
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 10,
+    overflow: 'hidden',
+    justifyContent: 'flex-end',
+  },
+  progressBarFill: {
+    width: '100%',
+    backgroundColor: '#2ddbdb',
+    borderRadius: 10,
+  },
+  progressBarText: {
+    fontSize: 10,
+    color: '#2ddbdb',
+    fontWeight: 'bold',
+    marginTop: 8,
+    transform: [{ rotate: '-90deg' }],
+  },
+  rightSection: {
+    flex: 2,
+    flexDirection: 'column',
+  },
+  inputsWrapper: {
+    flex: 1,
+    flexDirection: 'row',
   },
   column2: {
     flex: 1,
@@ -717,10 +793,10 @@ const styles = StyleSheet.create({
   },
   // Submit Button
   submitButton: {
-    margin: 12,
+    margin: 8,
     backgroundColor: 'rgba(255, 165, 0, 0.8)',
     borderRadius: 12,
-    padding: 16,
+    padding: 14,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255, 165, 0, 0.5)',
