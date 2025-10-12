@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Alert, ActivityIndicator, Platform } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Alert, ActivityIndicator, Platform, Animated } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -58,6 +58,9 @@ export default function WorkoutScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [hasStartedLogging, setHasStartedLogging] = useState(false);
 
+  // Animated value for scroll indicator pulse
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
   // Fetch workout template and week schedule
   useEffect(() => {
     const fetchWorkout = async () => {
@@ -109,6 +112,24 @@ export default function WorkoutScreen() {
       }
     }
   }, [exerciseData, timerStarted, hasStartedLogging]);
+
+  // Pulse animation for scroll indicator
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 0.4,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
 
   const handleInputChange = (exerciseIndex: number, setIndex: number, field: 'reps' | 'weight', value: string) => {
     setExerciseData((prev) => ({
@@ -356,6 +377,7 @@ export default function WorkoutScreen() {
                   <View style={styles.scrollableContainer}>
                     <ScrollView
                       style={styles.exerciseScrollList}
+                      contentContainerStyle={styles.exerciseScrollContent}
                       showsVerticalScrollIndicator={false}
                     >
                       {workoutTemplate.exercises.map((exercise, index) => {
@@ -398,7 +420,9 @@ export default function WorkoutScreen() {
                     {/* Scroll indicator */}
                     {workoutTemplate.exercises.length > 4 && (
                       <View style={styles.scrollIndicator}>
-                        <Text style={styles.scrollArrow}>↓</Text>
+                        <Animated.Text style={[styles.scrollArrow, { opacity: pulseAnim }]}>
+                          ↓
+                        </Animated.Text>
                       </View>
                     )}
                   </View>
@@ -722,12 +746,15 @@ const styles = StyleSheet.create({
   exerciseScrollList: {
     flex: 1,
   },
+  exerciseScrollContent: {
+    paddingBottom: 25,
+  },
   scrollIndicator: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: 30,
+    height: 20,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -735,7 +762,7 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(45, 219, 219, 0.3)',
   },
   scrollArrow: {
-    fontSize: 18,
+    fontSize: 14,
     color: '#2ddbdb',
     fontWeight: 'bold',
   },
