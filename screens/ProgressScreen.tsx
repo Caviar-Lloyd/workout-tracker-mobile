@@ -77,15 +77,11 @@ export default function ProgressScreen() {
   }, [selectedWeek, selectedDay, userData]);
 
   const handlePrevDay = () => {
-    if (selectedDay > 1) {
-      setSelectedDay((selectedDay - 1) as DayNumber);
-    }
+    setSelectedDay((selectedDay === 1 ? 6 : selectedDay - 1) as DayNumber);
   };
 
   const handleNextDay = () => {
-    if (selectedDay < 6) {
-      setSelectedDay((selectedDay + 1) as DayNumber);
-    }
+    setSelectedDay((selectedDay === 6 ? 1 : selectedDay + 1) as DayNumber);
   };
 
   const handlePrevWeek = () => {
@@ -115,9 +111,8 @@ export default function ProgressScreen() {
         <View style={styles.combinedContainer}>
           {/* Left Arrow */}
           <TouchableOpacity
-            style={[styles.arrowButton, selectedDay === 1 && styles.arrowButtonDisabled]}
+            style={styles.arrowButton}
             onPress={handlePrevDay}
-            disabled={selectedDay === 1}
           >
             <Text style={styles.arrowText}>←</Text>
           </TouchableOpacity>
@@ -228,9 +223,8 @@ export default function ProgressScreen() {
 
           {/* Right Arrow */}
           <TouchableOpacity
-            style={[styles.arrowButton, selectedDay === 6 && styles.arrowButtonDisabled]}
+            style={styles.arrowButton}
             onPress={handleNextDay}
-            disabled={selectedDay === 6}
           >
             <Text style={styles.arrowText}>→</Text>
           </TouchableOpacity>
