@@ -604,7 +604,6 @@ const styles = StyleSheet.create({
   },
   // Main container with video and columns
   mainContainer: {
-    flex: 1,
     marginHorizontal: 16,
     marginBottom: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -612,6 +611,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     overflow: 'hidden',
+    alignSelf: 'flex-start',
   },
   // 16:9 Video Container
   videoContainer: {
@@ -642,7 +642,6 @@ const styles = StyleSheet.create({
   },
   // Three Column Layout with Progress Bar
   threeColumnLayout: {
-    flex: 1,
     flexDirection: 'column',
   },
   topRow: {
