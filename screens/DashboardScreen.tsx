@@ -1006,22 +1006,19 @@ export default function DashboardScreen() {
             </Text>
           </View>
 
-          {/* Last Workout Details - Clickable to show history */}
+          {/* Last Workout Details - Always clickable */}
           <TouchableOpacity
             style={styles.miniStatCard}
             onPress={() => setShowHistoryModal(true)}
             activeOpacity={0.7}
-            disabled={!lastWorkoutDetails}
           >
             <Text style={styles.miniStatLabel}>Last Workout</Text>
             <Text style={styles.miniStatValue}>
               {lastWorkoutDetails ? new Date(lastWorkoutDetails.workout_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--'}
             </Text>
-            {lastWorkoutDetails && (
-              <Text style={styles.miniStatSubtext}>
-                {lastWorkoutDetails.session_completed}% - Tap to review
-              </Text>
-            )}
+            <Text style={styles.miniStatSubtext}>
+              {lastWorkoutDetails ? `${lastWorkoutDetails.session_completed}% - Tap to review` : 'Tap for info'}
+            </Text>
           </TouchableOpacity>
 
           {/* Today's Workout - Clickable to show recommendations */}
@@ -1741,7 +1738,16 @@ export default function DashboardScreen() {
                   ))}
                 </>
               ) : (
-                <Text style={styles.modalNoData}>No workout data available</Text>
+                <>
+                  <Text style={styles.modalNoData}>No data yet</Text>
+                  <Text style={styles.modalInfoText}>
+                    You'll see your previous workout data here after you complete this workout.
+                    {'\n\n'}
+                    The next time you'll do this workout will be in 3 weeks (Week {nextWorkout ? ((nextWorkout.week % 6) + 1) : '--'}).
+                    {'\n\n'}
+                    This allows you to track your progress and see how your strength improves over time!
+                  </Text>
+                </>
               )}
             </ScrollView>
           </TouchableOpacity>
@@ -3102,5 +3108,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9ca3af',
     fontStyle: 'italic',
+  },
+  modalInfoText: {
+    fontSize: 14,
+    color: '#9ca3af',
+    lineHeight: 22,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    textAlign: 'center',
   },
 });
