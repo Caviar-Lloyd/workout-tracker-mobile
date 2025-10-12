@@ -918,18 +918,11 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {/* Stats Grid - Side by Side */}
+        {/* Stats Grid - 4 Cards Side by Side */}
         <View style={styles.statsGrid}>
           <View style={styles.miniStatCard}>
             <Text style={styles.miniStatLabel}>Total</Text>
             <Text style={styles.miniStatValue}>{totalWorkouts}</Text>
-          </View>
-
-          <View style={styles.miniStatCard}>
-            <Text style={styles.miniStatLabel}>Last</Text>
-            <Text style={styles.miniStatValue}>
-              {lastWorkout ? `W${lastWorkout.week}D${lastWorkout.day}` : '--'}
-            </Text>
           </View>
 
           <View style={styles.miniStatCard}>
@@ -938,43 +931,32 @@ export default function DashboardScreen() {
               {programStartDate ? programStartDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--'}
             </Text>
           </View>
-        </View>
 
-        {/* Workout History Containers */}
-        <View style={styles.historyContainer}>
-          {/* Last Workout */}
-          <View style={styles.historyBox}>
-            <Text style={styles.historyLabel}>Last Workout</Text>
-            {lastWorkoutDetails ? (
-              <>
-                <Text style={styles.historyValue}>
-                  {new Date(lastWorkoutDetails.workout_date).toLocaleDateString()}
-                </Text>
-                <Text style={styles.historySubtext}>
-                  {lastWorkoutDetails.session_completed}% Complete
-                </Text>
-              </>
-            ) : (
-              <Text style={styles.historyValue}>No data</Text>
+          {/* Last Workout Details */}
+          <View style={styles.miniStatCard}>
+            <Text style={styles.miniStatLabel}>Last Workout</Text>
+            <Text style={styles.miniStatValue}>
+              {lastWorkoutDetails ? new Date(lastWorkoutDetails.workout_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--'}
+            </Text>
+            {lastWorkoutDetails && (
+              <Text style={styles.miniStatSubtext}>
+                {lastWorkoutDetails.session_completed}%
+              </Text>
             )}
           </View>
 
           {/* Today's Workout - Clickable */}
           <TouchableOpacity
-            style={styles.historyBox}
+            style={styles.miniStatCard}
             onPress={() => setShowHistoryModal(true)}
             activeOpacity={0.7}
           >
-            <Text style={styles.historyLabel}>Today's Workout</Text>
-            {todayWorkoutDetails ? (
-              <>
-                <Text style={styles.historyValue}>
-                  {new Date(todayWorkoutDetails.workout_date).toLocaleDateString()}
-                </Text>
-                <Text style={styles.historySubtext}>Tap to view details</Text>
-              </>
-            ) : (
-              <Text style={styles.historyValue}>No data</Text>
+            <Text style={styles.miniStatLabel}>Previous</Text>
+            <Text style={styles.miniStatValue}>
+              {todayWorkoutDetails ? new Date(todayWorkoutDetails.workout_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--'}
+            </Text>
+            {todayWorkoutDetails && (
+              <Text style={styles.miniStatSubtext}>Tap for details</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -1791,6 +1773,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#fff',
+    textAlign: 'center',
+  },
+  miniStatSubtext: {
+    fontSize: 9,
+    color: '#2ddbdb',
+    marginTop: 4,
     textAlign: 'center',
   },
   calendarContainer: {
@@ -2889,36 +2877,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#000',
-  },
-  // Workout History
-  historyContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    marginBottom: 12,
-    gap: 12,
-  },
-  historyBox: {
-    flex: 1,
-    backgroundColor: 'rgba(45, 219, 219, 0.1)',
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(45, 219, 219, 0.3)',
-  },
-  historyLabel: {
-    fontSize: 11,
-    color: '#9ca3af',
-    marginBottom: 4,
-  },
-  historyValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  historySubtext: {
-    fontSize: 10,
-    color: '#2ddbdb',
-    marginTop: 2,
   },
   // Modal
   modalOverlay: {
