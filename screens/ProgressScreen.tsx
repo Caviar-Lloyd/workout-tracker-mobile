@@ -89,15 +89,11 @@ export default function ProgressScreen() {
   };
 
   const handlePrevWeek = () => {
-    if (selectedWeek > 1) {
-      setSelectedWeek((selectedWeek - 1) as WeekNumber);
-    }
+    setSelectedWeek((selectedWeek === 1 ? 6 : selectedWeek - 1) as WeekNumber);
   };
 
   const handleNextWeek = () => {
-    if (selectedWeek < 6) {
-      setSelectedWeek((selectedWeek + 1) as WeekNumber);
-    }
+    setSelectedWeek((selectedWeek === 6 ? 1 : selectedWeek + 1) as WeekNumber);
   };
 
   const currentExercise = exercises[currentExerciseIndex];
@@ -251,32 +247,30 @@ export default function ProgressScreen() {
             <View style={styles.chartContainer}>
               {/* Week Navigation in Chart Header */}
               <View style={styles.chartHeaderRow}>
-                <TouchableOpacity
-                  style={[styles.weekArrowButton, selectedWeek === 1 && styles.weekArrowButtonDisabled]}
-                  onPress={handlePrevWeek}
-                  disabled={selectedWeek === 1}
-                >
-                  <Text style={styles.weekArrowText}>←</Text>
-                  {selectedWeek > 1 && (
-                    <Text style={styles.weekHintText}>Week {selectedWeek - 1}</Text>
-                  )}
-                </TouchableOpacity>
+                <View style={styles.weekNavContainer}>
+                  <Text style={styles.weekHintTextLeft}>Week {selectedWeek === 1 ? 6 : selectedWeek - 1}</Text>
+                  <TouchableOpacity
+                    style={styles.weekArrowButton}
+                    onPress={handlePrevWeek}
+                  >
+                    <Text style={styles.weekArrowText}>←</Text>
+                  </TouchableOpacity>
+                </View>
 
                 <View style={styles.chartTitleContainer}>
                   <Text style={styles.chartTitle}>Weight Progress</Text>
                   <Text style={styles.chartWeek}>Week {selectedWeek}</Text>
                 </View>
 
-                <TouchableOpacity
-                  style={[styles.weekArrowButton, selectedWeek === 6 && styles.weekArrowButtonDisabled]}
-                  onPress={handleNextWeek}
-                  disabled={selectedWeek === 6}
-                >
-                  <Text style={styles.weekArrowText}>→</Text>
-                  {selectedWeek < 6 && (
-                    <Text style={styles.weekHintText}>Week {selectedWeek + 1}</Text>
-                  )}
-                </TouchableOpacity>
+                <View style={styles.weekNavContainer}>
+                  <TouchableOpacity
+                    style={styles.weekArrowButton}
+                    onPress={handleNextWeek}
+                  >
+                    <Text style={styles.weekArrowText}>→</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.weekHintTextRight}>Week {selectedWeek === 6 ? 1 : selectedWeek + 1}</Text>
+                </View>
               </View>
 
               {chartData.length > 0 ? (
@@ -490,6 +484,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
+  weekNavContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   weekArrowButton: {
     width: 36,
     height: 36,
@@ -498,18 +497,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  weekArrowButtonDisabled: {
-    opacity: 0.3,
-  },
   weekArrowText: {
     fontSize: 20,
     color: '#2ddbdb',
     fontWeight: 'bold',
   },
-  weekHintText: {
-    fontSize: 9,
+  weekHintTextLeft: {
+    fontSize: 10,
     color: '#2ddbdb',
-    marginTop: 2,
+    fontWeight: '600',
+  },
+  weekHintTextRight: {
+    fontSize: 10,
+    color: '#2ddbdb',
     fontWeight: '600',
   },
   chartTitleContainer: {
