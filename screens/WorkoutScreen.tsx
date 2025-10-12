@@ -454,7 +454,15 @@ export default function WorkoutScreen() {
                 </View>
               </View>
 
-              {/* Bottom Row: Timer | Progress Bar + Submit Button */}
+              {/* Progress Bar (horizontal, full width) */}
+              <View style={styles.progressBarHorizontal}>
+                <View style={styles.progressBarTrackHorizontal}>
+                  <View style={[styles.progressBarFillHorizontal, { width: `${getProgress()}%` }]} />
+                </View>
+                <Text style={styles.progressBarTextHorizontal}>{Math.round(getProgress())}%</Text>
+              </View>
+
+              {/* Bottom Row: Timer | Submit Button */}
               <View style={styles.bottomRow}>
                 {/* Timer (left side, below exercises) */}
                 <View style={styles.timerContainer}>
@@ -462,37 +470,26 @@ export default function WorkoutScreen() {
                   <Text style={styles.timerValue}>{formatTime(elapsedTime)}</Text>
                 </View>
 
-                {/* Right side: Progress Bar + Submit Button */}
-                <View style={styles.rightBottomSection}>
-                  {/* Progress Bar (horizontal) */}
-                  <View style={styles.progressBarHorizontal}>
-                    <View style={styles.progressBarTrackHorizontal}>
-                      <View style={[styles.progressBarFillHorizontal, { width: `${getProgress()}%` }]} />
-                    </View>
-                    <Text style={styles.progressBarTextHorizontal}>{Math.round(getProgress())}%</Text>
-                  </View>
-
-                  {/* Submit Button */}
-                  <TouchableOpacity
-                    style={[
-                      styles.submitButton,
-                      (isSubmitting || !hasStartedLogging) && styles.submitButtonDisabled,
-                      getProgress() === 100 && styles.submitButtonComplete
-                    ]}
-                    onPress={handleSubmit}
-                    disabled={isSubmitting || !hasStartedLogging}
-                  >
-                    <Text style={styles.submitButtonText}>
-                      {isSubmitting
-                        ? 'Saving...'
-                        : !hasStartedLogging
-                          ? 'Start Logging'
-                          : getProgress() === 100
-                            ? 'Complete Workout'
-                            : 'Submit Partial'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                {/* Submit Button (right side) */}
+                <TouchableOpacity
+                  style={[
+                    styles.submitButton,
+                    (isSubmitting || !hasStartedLogging) && styles.submitButtonDisabled,
+                    getProgress() === 100 && styles.submitButtonComplete
+                  ]}
+                  onPress={handleSubmit}
+                  disabled={isSubmitting || !hasStartedLogging}
+                >
+                  <Text style={styles.submitButtonText}>
+                    {isSubmitting
+                      ? 'Saving...'
+                      : !hasStartedLogging
+                        ? 'Start Logging'
+                        : getProgress() === 100
+                          ? 'Complete Workout'
+                          : 'Submit Partial'}
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
@@ -653,12 +650,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
   },
+  progressBarHorizontal: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    gap: 12,
+    height: 44,
+  },
   bottomRow: {
     flexDirection: 'row',
     height: 80,
   },
   timerContainer: {
-    flex: 2,
+    flex: 1,
     backgroundColor: 'rgba(45, 219, 219, 0.1)',
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.1)',
@@ -675,19 +682,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#2ddbdb',
-  },
-  rightBottomSection: {
-    flex: 2,
-    flexDirection: 'column',
-  },
-  progressBarHorizontal: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    gap: 8,
   },
   progressBarTrackHorizontal: {
     flex: 1,
@@ -834,14 +828,13 @@ const styles = StyleSheet.create({
   // Submit Button
   submitButton: {
     flex: 1,
-    margin: 8,
     backgroundColor: 'rgba(255, 165, 0, 0.8)',
-    borderRadius: 12,
-    padding: 14,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 165, 0, 0.5)',
+    borderLeftWidth: 1,
+    borderLeftColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 165, 0, 0.5)',
   },
   submitButtonComplete: {
     backgroundColor: '#2ddbdb',
