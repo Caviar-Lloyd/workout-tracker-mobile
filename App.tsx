@@ -146,12 +146,45 @@ function ExpandableMenu() {
   useEffect(() => {
     if (Platform.OS !== 'android') return;
 
+    let backPressCount = 0;
+    let backPressTimeout: NodeJS.Timeout;
+
     const backAction = () => {
+      // If menu is open, close it
       if (menuOpen) {
         closeMenu();
-        return true; // Prevent default back behavior
+        return true;
       }
-      return false; // Let React Navigation handle it
+
+      // Check if we can go back in navigation stack
+      const state = navigation.getState();
+      const canGoBack = state.index > 0;
+
+      if (canGoBack) {
+        navigation.goBack();
+        return true;
+      }
+
+      // On root screen (Dashboard) - require double press to exit
+      backPressCount++;
+
+      if (backPressCount === 1) {
+        // First press - show toast/alert
+        if (typeof window !== 'undefined' && Platform.OS === 'android') {
+          // Show a brief message (you'd need to add a Toast component for production)
+          console.log('Press back again to exit');
+        }
+
+        backPressTimeout = setTimeout(() => {
+          backPressCount = 0;
+        }, 2000);
+
+        return true; // Prevent exit
+      }
+
+      // Second press within 2 seconds - allow exit
+      clearTimeout(backPressTimeout);
+      return false;
     };
 
     const backHandler = BackHandler.addEventListener(
@@ -159,8 +192,11 @@ function ExpandableMenu() {
       backAction
     );
 
-    return () => backHandler.remove();
-  }, [menuOpen]);
+    return () => {
+      backHandler.remove();
+      if (backPressTimeout) clearTimeout(backPressTimeout);
+    };
+  }, [menuOpen, navigation]);
 
   // Animated arrow bounce effect
   useEffect(() => {
