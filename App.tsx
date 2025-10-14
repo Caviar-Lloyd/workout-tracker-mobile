@@ -1,7 +1,7 @@
 import { NavigationContainer, DefaultTheme, useNavigation, useNavigationState } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View, TouchableOpacity, Text, Animated, Dimensions, ActivityIndicator, Platform } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Text, Animated, Dimensions, ActivityIndicator, Platform, BackHandler } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from './lib/supabase/client';
@@ -141,6 +141,26 @@ function ExpandableMenu() {
 
     checkCoachStatus();
   }, []);
+
+  // Handle Android back button - close menu if open, otherwise navigate back
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+
+    const backAction = () => {
+      if (menuOpen) {
+        closeMenu();
+        return true; // Prevent default back behavior
+      }
+      return false; // Let React Navigation handle it
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction
+    );
+
+    return () => backHandler.remove();
+  }, [menuOpen]);
 
   // Animated arrow bounce effect
   useEffect(() => {
