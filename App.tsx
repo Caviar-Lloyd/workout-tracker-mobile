@@ -503,7 +503,7 @@ export default function App() {
       <SafeAreaProvider>
         <View style={[styles.container, styles.loadingContainer]}>
           <ActivityIndicator size="large" color="#2ddbdb" />
-          <StatusBar style="light" />
+          <StatusBar style="light" hidden={Platform.OS === 'android'} />
         </View>
       </SafeAreaProvider>
     );
@@ -533,7 +533,7 @@ export default function App() {
             )}
           </NavigationContainer>
         </View>
-        <StatusBar style="light" />
+        <StatusBar style="light" hidden={Platform.OS === 'android'} />
         {Platform.OS === "web" && <SpeedInsights />}
       </View>
     </SafeAreaProvider>

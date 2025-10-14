@@ -3115,7 +3115,7 @@ const styles = StyleSheet.create({
   // Breadcrumb Navigation - Top Right
   breadcrumb: {
     position: 'absolute',
-    top: 0,
+    top: Platform.OS === 'android' ? 40 : 0, // Add spacing on Android to avoid status bar
     right: 0,
     paddingTop: 8,
     paddingRight: 20,
