@@ -136,10 +136,29 @@ export default function AuthScreen() {
           if (result.type === 'success') {
             // Extract the URL from the result
             if ('url' in result && result.url) {
+              console.log('Callback URL:', result.url);
+
               // Parse the URL to get the session tokens
+              // Supabase returns tokens in the hash fragment, not query params
               const url = new URL(result.url);
-              const accessToken = url.searchParams.get('access_token');
-              const refreshToken = url.searchParams.get('refresh_token');
+
+              // Try hash fragment first (e.g., #access_token=...)
+              let accessToken = null;
+              let refreshToken = null;
+
+              if (url.hash) {
+                const hashParams = new URLSearchParams(url.hash.substring(1)); // Remove the '#'
+                accessToken = hashParams.get('access_token');
+                refreshToken = hashParams.get('refresh_token');
+              }
+
+              // Fallback to query params if not in hash
+              if (!accessToken) {
+                accessToken = url.searchParams.get('access_token');
+                refreshToken = url.searchParams.get('refresh_token');
+              }
+
+              console.log('Extracted tokens:', { hasAccessToken: !!accessToken, hasRefreshToken: !!refreshToken });
 
               if (accessToken && refreshToken) {
                 // Set the session using the tokens
@@ -151,6 +170,7 @@ export default function AuthScreen() {
                 if (sessionError) throw sessionError;
                 console.log('Session created successfully');
               } else {
+                console.error('Failed to extract tokens. URL:', result.url);
                 Alert.alert('Sign In Failed', 'Could not extract authentication tokens');
               }
             }
