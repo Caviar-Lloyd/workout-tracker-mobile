@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Platform, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Platform, Modal, Image } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase/client';
 import { getNextWorkout, getLastWorkout } from '../lib/supabase/workout-service';
 import ParticleBackground from '../components/ParticleBackground';
 import Svg, { Path } from 'react-native-svg';
+import * as ImagePicker from 'expo-image-picker';
 import type { WeekNumber, DayNumber } from '../types/workout';
 import CustomWorkoutBuilderScreen from './CustomWorkoutBuilderScreen';
 
@@ -85,6 +86,29 @@ function PlayIcon() {
   );
 }
 
+function CameraIcon() {
+  return (
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"
+        fill="#2ddbdb"
+        stroke="#2ddbdb"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M12 17a4 4 0 100-8 4 4 0 000 8z"
+        fill="#0a0e27"
+        stroke="#0a0e27"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 // =====================================================
 // Types
 // =====================================================
@@ -99,6 +123,7 @@ interface ClientData {
   current_day: number;
   trainer_name: string;
   subscription_tier: string;
+  profile_picture_url?: string | null;
 }
 
 interface LastWorkoutInfo {
@@ -146,6 +171,10 @@ export default function ClientDetailScreen() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+
+  // Profile picture
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Workout info
   const [lastWorkout, setLastWorkout] = useState<LastWorkoutInfo | null>(null);
@@ -201,6 +230,7 @@ export default function ClientDetailScreen() {
       setLastName(clientData.last_name || '');
       setEmail(clientData.email || '');
       setPhone(clientData.phone || '');
+      setProfilePictureUrl(clientData.profile_picture_url || null);
 
       // Fetch workout information
       await loadWorkoutInfo(clientEmail);
@@ -240,6 +270,104 @@ export default function ClientDetailScreen() {
       console.error('Error loading workout info:', error);
     } finally {
       setLoadingWorkouts(false);
+    }
+  };
+
+  const showImageOptions = () => {
+    Alert.alert(
+      'Update Profile Picture',
+      'Choose an option',
+      [
+        { text: 'Take Photo', onPress: takePicture },
+        { text: 'Choose from Library', onPress: pickImage },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'We need camera roll permissions to upload a profile picture.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      await uploadImage(result.assets[0].uri);
+    }
+  };
+
+  const takePicture = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'We need camera permissions to take a profile picture.');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      await uploadImage(result.assets[0].uri);
+    }
+  };
+
+  const uploadImage = async (uri: string) => {
+    if (!client) return;
+
+    try {
+      setUploadingImage(true);
+
+      // Convert URI to blob
+      const response = await fetch(uri);
+      const blob = await response.blob();
+
+      // Generate unique filename based on client ID
+      const fileExt = uri.split('.').pop();
+      const fileName = `${client.id}-${Date.now()}.${fileExt}`;
+      const filePath = `profile-pictures/${fileName}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, blob, {
+          contentType: 'image/jpeg',
+          upsert: true,
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // Update client profile in database
+      const { error: updateError } = await supabase
+        .from('clients')
+        .update({ profile_picture_url: publicUrl })
+        .eq('id', client.id);
+
+      if (updateError) throw updateError;
+
+      setProfilePictureUrl(publicUrl);
+      Alert.alert('Success', 'Profile picture updated successfully');
+    } catch (error: any) {
+      console.error('Error uploading image:', error);
+      Alert.alert('Error', 'Failed to upload profile picture');
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -410,12 +538,29 @@ export default function ClientDetailScreen() {
         >
           {/* Client Avatar & Name */}
           <View style={styles.avatarSection}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {client.first_name.charAt(0).toUpperCase()}
-                {client.last_name.charAt(0).toUpperCase()}
-              </Text>
-            </View>
+            <TouchableOpacity
+              style={styles.avatarContainer}
+              onPress={showImageOptions}
+              disabled={uploadingImage}
+            >
+              {uploadingImage ? (
+                <View style={styles.avatar}>
+                  <ActivityIndicator size="large" color="#2ddbdb" />
+                </View>
+              ) : profilePictureUrl ? (
+                <Image source={{ uri: profilePictureUrl }} style={styles.avatarImage} />
+              ) : (
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>
+                    {client.first_name.charAt(0).toUpperCase()}
+                    {client.last_name.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.cameraIconContainer}>
+                <CameraIcon />
+              </View>
+            </TouchableOpacity>
             <Text style={styles.clientNameLarge}>
               {client.first_name} {client.last_name}
             </Text>
@@ -841,6 +986,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 32,
   },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
   avatar: {
     width: 100,
     height: 100,
@@ -850,12 +999,36 @@ const styles = StyleSheet.create({
     borderColor: '#2ddbdb',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+  },
+  avatarImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 3,
+    borderColor: '#2ddbdb',
   },
   avatarText: {
     fontSize: 36,
     fontWeight: 'bold',
     color: '#2ddbdb',
+  },
+  cameraIconContainer: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#0a0e27',
+    borderWidth: 2,
+    borderColor: '#2ddbdb',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#2ddbdb',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 5,
   },
   clientNameLarge: {
     fontSize: 28,
