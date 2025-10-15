@@ -9,6 +9,7 @@ import ParticleBackground from '../components/ParticleBackground';
 import Svg, { Path } from 'react-native-svg';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
+import * as FileSystem from 'expo-file-system';
 import type { WeekNumber, DayNumber } from '../types/workout';
 import CustomWorkoutBuilderScreen from './CustomWorkoutBuilderScreen';
 
@@ -358,34 +359,25 @@ export default function ClientDetailScreen() {
         throw new Error('Not authenticated');
       }
 
-      // Create FormData for React Native file upload
-      const formData = new FormData();
-      formData.append('', {
-        uri: uri,
-        type: 'image/jpeg',
-        name: fileName,
-      } as any);
-
-      // Upload directly to Supabase Storage REST API using fetch
+      // Upload using expo-file-system's uploadAsync (works on React Native)
       const uploadUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/storage/v1/object/avatars/${filePath}`;
       console.log('Upload URL:', uploadUrl);
 
-      const uploadResponse = await fetch(uploadUrl, {
-        method: 'POST',
+      const uploadResult = await FileSystem.uploadAsync(uploadUrl, uri, {
+        httpMethod: 'POST',
+        uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+        fieldName: 'file',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
         },
-        body: formData,
       });
 
-      if (!uploadResponse.ok) {
-        const errorText = await uploadResponse.text();
-        console.error('Upload failed:', uploadResponse.status, errorText);
-        throw new Error(`Upload failed: ${uploadResponse.status} - ${errorText}`);
-      }
+      console.log('Upload response status:', uploadResult.status);
+      console.log('Upload response body:', uploadResult.body);
 
-      const uploadResult = await uploadResponse.json();
-      console.log('Upload successful:', uploadResult);
+      if (uploadResult.status !== 200) {
+        throw new Error(`Upload failed: ${uploadResult.status} - ${uploadResult.body}`);
+      }
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
