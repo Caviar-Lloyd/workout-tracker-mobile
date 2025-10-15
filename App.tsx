@@ -16,6 +16,7 @@ import ProfileScreen from './screens/ProfileScreen';
 import AuthScreen from './screens/AuthScreen';
 import ProfileCompletionScreen from './screens/ProfileCompletionScreen';
 import DatabaseCheckScreen from './screens/DatabaseCheckScreen';
+import CustomWorkoutBuilderScreen from './screens/CustomWorkoutBuilderScreen';
 import ParticleBackground from './components/ParticleBackground';
 import Svg, { Path } from 'react-native-svg';
 import { SpeedInsights } from '@vercel/speed-insights/react';
@@ -99,6 +100,12 @@ const SettingsIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: st
   </Svg>
 );
 
+const DumbbellIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: string }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M6.5 6h1v12h-1a2 2 0 01-2-2V8a2 2 0 012-2zM17.5 6h-1v12h1a2 2 0 002-2V8a2 2 0 00-2-2zM9.5 8h5M9.5 12h5M9.5 16h5" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+  </Svg>
+);
+
 const ProfileIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: string }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path
@@ -128,6 +135,8 @@ function ExpandableMenu() {
   const insets = useSafeAreaInsets();
   const isNavigatingRef = useRef(false);
   const [isCoach, setIsCoach] = useState(false);
+  const [showCustomWorkoutBuilder, setShowCustomWorkoutBuilder] = useState(false);
+  const [coachEmail, setCoachEmail] = useState('');
 
   // Check if user is a coach
   useEffect(() => {
@@ -149,9 +158,11 @@ function ExpandableMenu() {
           if (profile) {
             console.log('Setting isCoach to:', profile.is_coach === true);
             setIsCoach(profile.is_coach === true);
+            setCoachEmail(user.email);
           } else {
             console.log('No profile found, defaulting to false');
             setIsCoach(false);
+            setCoachEmail('');
           }
         }
       } catch (error) {
@@ -403,6 +414,25 @@ function ExpandableMenu() {
           </TouchableOpacity>
         )}
 
+        {/* Create Custom Workout - only for coaches */}
+        {isCoach && (
+          <TouchableOpacity
+            style={styles.menuItem}
+            activeOpacity={0.7}
+            delayPressIn={0}
+            onPressIn={() => {
+              slideAnim.stopAnimation(() => {
+                slideAnim.setValue(700);
+                setMenuOpen(false);
+                setShowCustomWorkoutBuilder(true);
+              });
+            }}
+          >
+            <DumbbellIcon size={22} color="#2ddbdb" />
+            <Text style={styles.menuItemText}>Create Custom Workout</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Show Profile for clients, Settings for coaches */}
         {!isCoach ? (
           <TouchableOpacity
@@ -450,6 +480,16 @@ function ExpandableMenu() {
         </TouchableOpacity>
 
       </Animated.View>
+
+      {/* Custom Workout Builder Modal */}
+      <CustomWorkoutBuilderScreen
+        visible={showCustomWorkoutBuilder}
+        onClose={() => setShowCustomWorkoutBuilder(false)}
+        coachEmail={coachEmail}
+        onSave={() => {
+          setShowCustomWorkoutBuilder(false);
+        }}
+      />
     </>
   );
 }

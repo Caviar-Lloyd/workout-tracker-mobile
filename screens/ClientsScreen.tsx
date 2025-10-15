@@ -6,7 +6,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase/client';
 import { getNextWorkout } from '../lib/supabase/workout-service';
 import ParticleBackground from '../components/ParticleBackground';
-import CustomWorkoutBuilderScreen from './CustomWorkoutBuilderScreen';
 import Svg, { Path } from 'react-native-svg';
 import type { WeekNumber, DayNumber } from '../types/workout';
 
@@ -62,20 +61,6 @@ const RemoveIcon = ({ size = 24, color = '#ef4444' }: { size?: number; color?: s
   </Svg>
 );
 
-// Dumbbell Icon Component (for custom workouts)
-const DumbbellIcon = ({ size = 24, color = '#2ddbdb' }: { size?: number; color?: string }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path d="M6.5 6h1v12h-1a2 2 0 01-2-2V8a2 2 0 012-2zM17.5 6h-1v12h1a2 2 0 002-2V8a2 2 0 00-2-2zM9.5 8h5M9.5 12h5M9.5 16h5" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-  </Svg>
-);
-
-// Menu Icon Component (three dots)
-const MenuIcon = ({ size = 24, color = '#2ddbdb' }: { size?: number; color?: string }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path d="M12 13a1 1 0 100-2 1 1 0 000 2zM12 6a1 1 0 100-2 1 1 0 000 2zM12 20a1 1 0 100-2 1 1 0 000 2z" fill={color} stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-  </Svg>
-);
-
 export default function ClientsScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
@@ -87,8 +72,6 @@ export default function ClientsScreen() {
   const [searching, setSearching] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState('');
   const [currentUserName, setCurrentUserName] = useState('');
-  const [showCustomWorkoutBuilder, setShowCustomWorkoutBuilder] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
 
   useEffect(() => {
     loadClients();
@@ -306,9 +289,9 @@ export default function ClientsScreen() {
             </View>
             <TouchableOpacity
               style={styles.headerButton}
-              onPress={() => setShowMenu(true)}
+              onPress={() => setShowSearchModal(true)}
             >
-              <MenuIcon size={20} color="#2ddbdb" />
+              <SearchIcon size={20} color="#2ddbdb" />
             </TouchableOpacity>
           </View>
 
@@ -471,55 +454,6 @@ export default function ClientsScreen() {
         </View>
       </Modal>
 
-      {/* Menu Modal */}
-      <Modal
-        visible={showMenu}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={() => setShowMenu(false)}
-      >
-        <TouchableOpacity
-          style={styles.menuOverlay}
-          activeOpacity={1}
-          onPress={() => setShowMenu(false)}
-        >
-          <View style={styles.menuContent}>
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                setShowMenu(false);
-                setShowCustomWorkoutBuilder(true);
-              }}
-            >
-              <DumbbellIcon size={20} color="#2ddbdb" />
-              <Text style={styles.menuItemText}>Create Custom Workout</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                setShowMenu(false);
-                setShowSearchModal(true);
-              }}
-            >
-              <SearchIcon size={20} color="#2ddbdb" />
-              <Text style={styles.menuItemText}>Add Client</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* Custom Workout Builder Modal */}
-      <CustomWorkoutBuilderScreen
-        visible={showCustomWorkoutBuilder}
-        onClose={() => setShowCustomWorkoutBuilder(false)}
-        coachEmail={currentUserEmail}
-        clients={clients}
-        onSave={() => {
-          setShowCustomWorkoutBuilder(false);
-          // Optionally reload clients or show success message
-        }}
-      />
     </View>
   );
 }
