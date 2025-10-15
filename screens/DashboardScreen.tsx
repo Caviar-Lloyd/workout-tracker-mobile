@@ -124,7 +124,6 @@ export default function DashboardScreen({ route }: any) {
   const [workoutSchedule, setWorkoutSchedule] = useState<{ [key: string]: { week: number; day: number } }>({});
   const [selectedWorkoutToMove, setSelectedWorkoutToMove] = useState<{ date: string; week: number; day: number } | null>(null);
   const [isCustomMode, setIsCustomMode] = useState(false);
-  const [startingDayOfWeek, setStartingDayOfWeek] = useState<number>(0); // 0=Sun, 1=Mon, etc.
   const [showDayDropdown, setShowDayDropdown] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
@@ -161,10 +160,10 @@ export default function DashboardScreen({ route }: any) {
 
   useEffect(() => {
     // Generate workout schedule only if program is confirmed
-    if (isProgramConfirmed && userData.email) {
+    if (isProgramConfirmed && userData.email && programStartDate) {
       generateWorkoutSchedule();
     }
-  }, [isProgramConfirmed, userData.email]);
+  }, [isProgramConfirmed, userData.email, restDaysOfWeek, programStartDate]);
 
   // Check if selected workout is completed
   useEffect(() => {
@@ -313,6 +312,93 @@ export default function DashboardScreen({ route }: any) {
     console.log('Rest days:', restDaysOfWeek);
     console.log('Rest days type:', typeof restDaysOfWeek, 'Is array:', Array.isArray(restDaysOfWeek));
     console.log('Rest days[0]:', restDaysOfWeek[0]);
+
+    // Check if client is on a custom program
+    const { data: programAssignment } = await supabase
+      .from('client_program_assignments')
+      .select('*')
+      .eq('client_email', userData.email)
+      .single();
+
+    // If on custom program, load custom workout assignments instead
+    if (programAssignment?.program_type === 'custom') {
+      console.log('Client on custom program - loading custom workouts');
+
+      const { data: customAssignments } = await supabase
+        .from('custom_workout_assignments')
+        .select(`
+          *,
+          custom_workouts (
+            workout_name,
+            exercises
+          )
+        `)
+        .eq('client_email', userData.email)
+        .eq('status', 'active');
+
+      if (customAssignments && customAssignments.length > 0) {
+        const assignment = customAssignments[0]; // Take first active assignment
+        const schedule: { [key: string]: { week: number; day: number; customWorkout?: any } } = {};
+
+        // Get completed custom workout sessions
+        const { data: completedSessions } = await supabase
+          .from('custom_workout_logs')
+          .select('*')
+          .eq('assignment_id', assignment.id)
+          .order('workout_date', { ascending: true });
+
+        // Add completed sessions to schedule
+        if (completedSessions) {
+          completedSessions.forEach(session => {
+            schedule[session.workout_date] = {
+              week: 1, // Custom workouts don't have week numbers
+              day: session.session_number,
+              customWorkout: {
+                name: assignment.custom_workouts.workout_name,
+                completed: true,
+              },
+            };
+          });
+        }
+
+        // Generate future scheduled sessions based on frequency_days
+        const startDate = new Date(assignment.start_date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        let currentDate = new Date(Math.max(startDate.getTime(), today.getTime()));
+        let sessionNumber = (completedSessions?.length || 0) + 1;
+        let daysChecked = 0;
+
+        while (sessionNumber <= assignment.total_sessions && daysChecked < 90) {
+          const dateKey = currentDate.toISOString().split('T')[0];
+          const dayOfWeek = currentDate.getDay();
+
+          // Check if this day is a training day for this assignment
+          if (assignment.frequency_days.includes(dayOfWeek) && !schedule[dateKey]) {
+            schedule[dateKey] = {
+              week: 1,
+              day: sessionNumber,
+              customWorkout: {
+                name: assignment.custom_workouts.workout_name,
+                completed: false,
+              },
+            };
+            sessionNumber++;
+          }
+
+          currentDate.setDate(currentDate.getDate() + 1);
+          daysChecked++;
+        }
+
+        console.log('Custom workout schedule:', schedule);
+        setWorkoutSchedule(schedule);
+        return;
+      }
+    }
+
+    // Default: Standard 6-day program
+    console.log('Client on standard program');
 
     // Get all completed workouts from the database
     const completedWorkouts = await getAllCompletedWorkouts(userData.email);
@@ -564,15 +650,10 @@ export default function DashboardScreen({ route }: any) {
             setShowInitialSetup(false);
           } else {
             // For coaches/trainers: Use existing setup flow
-            // Load rest days from database (array) with fallback to old single rest day
+            // Load rest days from database (array)
             if (profile.rest_days && profile.rest_days.length > 0) {
               console.log('Loading rest days from database:', profile.rest_days);
               setRestDaysOfWeek(profile.rest_days);
-              setStartingDayOfWeek(profile.rest_days[0]); // First rest day for backward compat
-            } else if (profile.starting_day_of_week !== null && profile.starting_day_of_week !== undefined) {
-              console.log('Migrating old starting_day_of_week:', profile.starting_day_of_week);
-              setStartingDayOfWeek(profile.starting_day_of_week);
-              setRestDaysOfWeek([profile.starting_day_of_week]);
             } else {
               console.log('No rest days in profile - defaulting to empty array');
               setRestDaysOfWeek([]);
@@ -582,15 +663,11 @@ export default function DashboardScreen({ route }: any) {
             if (profile.program_start_date) {
               const startDate = new Date(profile.program_start_date);
               setProgramStartDate(startDate);
-              // Also pre-fill starting day of week from that date if not already set
-              if (profile.starting_day_of_week === null) {
-                setStartingDayOfWeek(startDate.getDay());
-              }
             }
 
             // Check if user has completed ALL required setup
             const hasCompleteSetup =
-              profile.starting_day_of_week !== null &&
+              profile.rest_days && profile.rest_days.length > 0 &&
               profile.program_start_date;
 
             if (hasCompleteSetup) {
@@ -602,7 +679,7 @@ export default function DashboardScreen({ route }: any) {
             } else {
               // User is missing some info - show setup to fill in the gaps
               // Determine which step to start at based on what's missing
-              if (profile.starting_day_of_week === null) {
+              if (!profile.rest_days || profile.rest_days.length === 0) {
                 setSetupStep('split');  // This is actually rest day selection now
               } else if (!profile.program_start_date) {
                 setSetupStep('date');
@@ -747,11 +824,16 @@ export default function DashboardScreen({ route }: any) {
     // Check if there's a workout on this date and open modal
     const workout = getWorkoutForDate(date);
     if (workout) {
+      // Check if it's a custom workout
+      const workoutName = workout.customWorkout
+        ? workout.customWorkout.name
+        : WORKOUT_NAMES[workout.day] || `Day ${workout.day}`;
+
       setModalWorkoutData({
         week: workout.week,
         day: workout.day,
         date: date,
-        workoutName: WORKOUT_NAMES[workout.day] || `Day ${workout.day}`,
+        workoutName: workoutName,
       });
       setShowWorkoutModal(true);
     }
@@ -989,23 +1071,21 @@ export default function DashboardScreen({ route }: any) {
             </View>
           </View>
 
-        {/* Stats Grid - 4 Cards Side by Side */}
+        {/* Stats Grid - 3 Cards */}
         <View style={styles.statsGrid}>
+          {/* Combined Start Date & Total Workouts */}
           <View style={styles.miniStatCard}>
-            <Text style={styles.miniStatLabel}>Start</Text>
+            <Text style={styles.miniStatLabel}>Start Date</Text>
             <Text style={styles.miniStatValue}>
-              {programStartDate ? programStartDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--'}
+              {programStartDate ? programStartDate.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }).replace(/\//g, '/') : '--'}
             </Text>
-          </View>
-
-          <View style={styles.miniStatCard}>
-            <Text style={styles.miniStatLabel}>Total</Text>
+            <Text style={[styles.miniStatLabel, { marginTop: 8 }]}>Total Workouts</Text>
             <Text style={styles.miniStatValue}>{totalWorkouts}</Text>
           </View>
 
           {/* Last Workout Details - Always clickable */}
           <TouchableOpacity
-            style={styles.miniStatCard}
+            style={[styles.miniStatCard, styles.expandedCard]}
             onPress={() => setShowHistoryModal(true)}
             activeOpacity={0.7}
           >
@@ -1013,14 +1093,15 @@ export default function DashboardScreen({ route }: any) {
             <Text style={styles.miniStatValue}>
               {lastWorkoutDetails ? new Date(lastWorkoutDetails.workout_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--'}
             </Text>
-            <Text style={styles.miniStatSubtext}>
-              {lastWorkoutDetails ? `${lastWorkoutDetails.session_completed}% - Tap to review` : 'Tap for info'}
-            </Text>
+            {lastWorkoutDetails && (
+              <Text style={styles.miniStatValue}>{lastWorkoutDetails.session_completed}%</Text>
+            )}
+            <Text style={styles.miniStatSubtext}>Tap for more info</Text>
           </TouchableOpacity>
 
           {/* Today's Workout - Clickable to show recommendations */}
           <TouchableOpacity
-            style={styles.miniStatCard}
+            style={[styles.miniStatCard, styles.expandedCard]}
             onPress={() => setShowRecommendationsModal(true)}
             activeOpacity={0.7}
           >
@@ -1028,7 +1109,7 @@ export default function DashboardScreen({ route }: any) {
             <Text style={styles.miniStatValue}>
               {nextWorkout ? WORKOUT_NAMES[nextWorkout.day] : '--'}
             </Text>
-            <Text style={styles.miniStatSubtext}>Tap for recommendations</Text>
+            <Text style={styles.miniStatSubtext}>Tap for more info</Text>
           </TouchableOpacity>
         </View>
 
@@ -1299,10 +1380,6 @@ export default function DashboardScreen({ route }: any) {
             <TouchableOpacity
               style={styles.saveSettingsButton}
               onPress={() => {
-                // Use first rest day as starting_day_of_week for compatibility
-                if (restDaysOfWeek.length > 0) {
-                  setStartingDayOfWeek(restDaysOfWeek[0]);
-                }
                 setSetupStep('date');
               }}
             >
@@ -1463,7 +1540,6 @@ export default function DashboardScreen({ route }: any) {
                       .from('clients')
                       .update({
                         rest_days: restDaysOfWeek,
-                        starting_day_of_week: restDaysOfWeek[0] || 0, // Backward compatibility
                         program_start_date: programStartDate?.toISOString().split('T')[0],
                       })
                       .eq('email', user.email);
@@ -1588,7 +1664,6 @@ export default function DashboardScreen({ route }: any) {
                         .from('clients')
                         .update({
                           rest_days: restDaysOfWeek,
-                          starting_day_of_week: restDaysOfWeek[0] || 0, // Backward compatibility
                         })
                         .eq('email', user.email)
                         .select();
@@ -1902,6 +1977,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
+  },
+  expandedCard: {
+    flex: 1.5,
   },
   miniStatLabel: {
     fontSize: 10,
@@ -3115,7 +3193,7 @@ const styles = StyleSheet.create({
   // Breadcrumb Navigation - Top Right
   breadcrumb: {
     position: 'absolute',
-    top: Platform.OS === 'android' ? 40 : 0, // Add spacing on Android to avoid status bar
+    top: 0,
     right: 0,
     paddingTop: 8,
     paddingRight: 20,

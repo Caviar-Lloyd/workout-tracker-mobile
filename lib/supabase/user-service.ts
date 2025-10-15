@@ -7,12 +7,9 @@ export interface UserProfile {
   first_name: string | null;
   last_name?: string | null;
   subscription_tier?: string;
-  schedule_pattern?: '6-1' | '3-1' | '2-1' | '1-1' | 'custom' | null;
-  starting_day_of_week?: number | null;
-  current_week?: number | null;
-  current_day?: number | null;
-  workout_schedule?: { [key: string]: number } | null;
+  rest_days?: number[];
   program_start_date?: string | null;
+  phone?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -60,8 +57,7 @@ export async function createUserProfile(
         email,
         first_name: firstName,
         subscription_tier: 'client',
-        schedule_pattern: '6-1',
-        starting_day_of_week: 0,
+        rest_days: [],
       },
     ])
     .select()
@@ -100,31 +96,4 @@ export async function updateUserProfile(
   return true;
 }
 
-export async function updateWorkoutPreferences(
-  userId: string,
-  schedulePattern: '6-1' | '3-1' | '2-1' | '1-1' | 'custom',
-  startingDayOfWeek: number,
-  workoutSchedule?: { [key: string]: number }
-): Promise<boolean> {
-  const updates: any = {
-    schedule_pattern: schedulePattern,
-    starting_day_of_week: startingDayOfWeek,
-  };
-
-  if (workoutSchedule) {
-    updates.workout_schedule = workoutSchedule;
-  }
-
-  return updateUserProfile(userId, updates);
-}
-
-export async function updateCurrentWorkout(
-  userId: string,
-  week: number,
-  day: number
-): Promise<boolean> {
-  return updateUserProfile(userId, {
-    current_week: week,
-    current_day: day,
-  });
-}
+// Deprecated functions removed - use direct supabase updates for rest_days and program_start_date instead

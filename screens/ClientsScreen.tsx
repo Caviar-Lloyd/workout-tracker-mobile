@@ -18,8 +18,9 @@ interface Client {
   email: string;
   current_week: number;
   current_day: number;
-  trainer_name: string;
   subscription_tier: string;
+  coach_email?: string;
+  coach_name?: string;
 }
 
 interface ClientWithWorkout extends Client {
@@ -46,17 +47,31 @@ const PlusIcon = ({ size = 24, color = '#2ddbdb' }: { size?: number; color?: str
   </Svg>
 );
 
+// Search Icon Component
+const SearchIcon = ({ size = 24, color = '#2ddbdb' }: { size?: number; color?: string }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+  </Svg>
+);
+
+// Remove Icon Component
+const RemoveIcon = ({ size = 24, color = '#ef4444' }: { size?: number; color?: string }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M6 18L18 6M6 6l12 12" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+  </Svg>
+);
+
 export default function ClientsScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const [clients, setClients] = useState<ClientWithWorkout[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [newClient, setNewClient] = useState({
-    first_name: '',
-    last_name: '',
-    email: '',
-  });
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Client[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [currentUserEmail, setCurrentUserEmail] = useState('');
+  const [currentUserName, setCurrentUserName] = useState('');
 
   useEffect(() => {
     loadClients();
@@ -66,27 +81,37 @@ export default function ClientsScreen() {
     try {
       setLoading(true);
 
-      // Get current user to filter by trainer
+      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get trainer's profile
-      const { data: trainerProfile } = await supabase
+      console.log('🔍 Current user email:', user.email);
+      setCurrentUserEmail(user.email || '');
+
+      // Get coach's profile
+      const { data: coachProfile } = await supabase
         .from('clients')
         .select('first_name, last_name')
         .eq('email', user.email)
         .single();
 
-      const trainerName = trainerProfile
-        ? `${trainerProfile.first_name} ${trainerProfile.last_name}`.toLowerCase()
+      const coachName = coachProfile
+        ? `${coachProfile.first_name} ${coachProfile.last_name}`
         : '';
 
-      // Get all clients for this trainer
+      console.log('👤 Coach name:', coachName);
+      setCurrentUserName(coachName);
+
+      // Get all clients assigned to this coach
+      console.log('🔍 Searching for clients with coach_email =', user.email?.toLowerCase());
       const { data, error } = await supabase
         .from('clients')
         .select('*')
-        .eq('trainer_name', trainerName)
+        .eq('coach_email', user.email?.toLowerCase())
+        .eq('subscription_tier', 'client')
         .order('first_name', { ascending: true });
+
+      console.log('📊 Query results:', { data, error, count: data?.length });
 
       if (error) throw error;
 
@@ -122,71 +147,104 @@ export default function ClientsScreen() {
     });
   };
 
-  const handleAddClient = async () => {
-    // Validate inputs
-    if (!newClient.first_name.trim() || !newClient.last_name.trim() || !newClient.email.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(newClient.email)) {
-      Alert.alert('Error', 'Please enter a valid email address');
+  const searchUnassignedClients = async (query: string) => {
+    if (!query.trim()) {
+      setSearchResults([]);
       return;
     }
 
     try {
-      // Get current user to set as trainer
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        Alert.alert('Error', 'You must be logged in to add clients');
-        return;
-      }
+      setSearching(true);
+      const searchTerm = query.toLowerCase().trim();
 
-      // Get trainer profile
-      const { data: trainerProfile } = await supabase
-        .from('clients')
-        .select('first_name, last_name')
-        .eq('email', user.email)
-        .single();
-
-      const trainerName = trainerProfile
-        ? `${trainerProfile.first_name} ${trainerProfile.last_name}`
-        : 'Unknown Trainer';
-
-      // Insert new client
+      // Search for clients with no coach assignment
       const { data, error } = await supabase
         .from('clients')
-        .insert([
-          {
-            first_name: newClient.first_name.trim(),
-            last_name: newClient.last_name.trim(),
-            email: newClient.email.trim().toLowerCase(),
-            trainer_name: trainerName,
-            current_week: 1,
-            current_day: 1,
-            subscription_tier: 'client',
-          },
-        ])
-        .select();
+        .select('*')
+        .eq('subscription_tier', 'client')
+        .is('coach_email', null)
+        .or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
+        .order('first_name', { ascending: true })
+        .limit(20);
 
-      if (error) {
-        console.error('Error adding client:', error);
-        Alert.alert('Error', error.message || 'Failed to add client');
-        return;
-      }
+      if (error) throw error;
 
-      // Success!
-      Alert.alert('Success', 'Client added successfully!');
-      setShowAddModal(false);
-      setNewClient({ first_name: '', last_name: '', email: '' });
+      setSearchResults(data || []);
+    } catch (error: any) {
+      console.error('Error searching clients:', error.message);
+      Alert.alert('Error', 'Failed to search clients');
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleAddClient = async (client: Client) => {
+    try {
+      // Assign coach to client
+      const { error } = await supabase
+        .from('clients')
+        .update({
+          coach_email: currentUserEmail,
+          coach_name: currentUserName,
+        })
+        .eq('email', client.email);
+
+      if (error) throw error;
+
+      Alert.alert('Success', `${client.first_name} ${client.last_name} has been added to your clients`);
+      setShowSearchModal(false);
+      setSearchQuery('');
+      setSearchResults([]);
       loadClients(); // Reload the client list
     } catch (error: any) {
       console.error('Error adding client:', error);
-      Alert.alert('Error', 'An unexpected error occurred');
+      Alert.alert('Error', 'Failed to add client');
     }
   };
+
+  const handleRemoveClient = async (client: ClientWithWorkout) => {
+    Alert.alert(
+      'Remove Client',
+      `Are you sure you want to remove ${client.first_name} ${client.last_name} from your clients?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Unassign coach from client
+              const { error } = await supabase
+                .from('clients')
+                .update({
+                  coach_email: null,
+                  coach_name: null,
+                })
+                .eq('email', client.email);
+
+              if (error) throw error;
+
+              Alert.alert('Success', `${client.first_name} ${client.last_name} has been removed from your clients`);
+              loadClients(); // Reload the client list
+            } catch (error: any) {
+              console.error('Error removing client:', error);
+              Alert.alert('Error', 'Failed to remove client');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  useEffect(() => {
+    const delaySearch = setTimeout(() => {
+      if (searchQuery) {
+        searchUnassignedClients(searchQuery);
+      }
+    }, 300); // Debounce search by 300ms
+
+    return () => clearTimeout(delaySearch);
+  }, [searchQuery]);
 
   if (loading) {
     return (
@@ -231,9 +289,9 @@ export default function ClientsScreen() {
             </View>
             <TouchableOpacity
               style={styles.addButton}
-              onPress={() => setShowAddModal(true)}
+              onPress={() => setShowSearchModal(true)}
             >
-              <PlusIcon size={24} color="#2ddbdb" />
+              <SearchIcon size={24} color="#2ddbdb" />
             </TouchableOpacity>
           </View>
 
@@ -253,9 +311,9 @@ export default function ClientsScreen() {
         >
           {clients.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No clients yet</Text>
+              <Text style={styles.emptyText}>No clients assigned yet</Text>
               <Text style={styles.emptySubtext}>
-                Clients will appear here once they are assigned to you
+                Tap the search icon above to find and add clients
               </Text>
             </View>
           ) : (
@@ -284,6 +342,15 @@ export default function ClientsScreen() {
                       </Text>
                       <Text style={styles.clientEmail}>{client.email}</Text>
                     </View>
+                    <TouchableOpacity
+                      style={styles.removeButton}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleRemoveClient(client);
+                      }}
+                    >
+                      <RemoveIcon size={20} color="#ef4444" />
+                    </TouchableOpacity>
                   </View>
 
                   {client.nextWorkout && (
@@ -311,61 +378,74 @@ export default function ClientsScreen() {
         </View>
       </View>
 
-      {/* Add Client Modal */}
+      {/* Search & Add Client Modal */}
       <Modal
-        visible={showAddModal}
+        visible={showSearchModal}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setShowAddModal(false)}
+        onRequestClose={() => {
+          setShowSearchModal(false);
+          setSearchQuery('');
+          setSearchResults([]);
+        }}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add New Client</Text>
+            <Text style={styles.modalTitle}>Search Unassigned Clients</Text>
 
             <TextInput
               style={styles.input}
-              placeholder="First Name"
+              placeholder="Search by name or email..."
               placeholderTextColor="#666"
-              value={newClient.first_name}
-              onChangeText={(text) => setNewClient({ ...newClient, first_name: text })}
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Last Name"
-              placeholderTextColor="#666"
-              value={newClient.last_name}
-              onChangeText={(text) => setNewClient({ ...newClient, last_name: text })}
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor="#666"
-              value={newClient.email}
-              onChangeText={(text) => setNewClient({ ...newClient, email: text })}
-              keyboardType="email-address"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
               autoCapitalize="none"
+              autoFocus
             />
 
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => {
-                  setShowAddModal(false);
-                  setNewClient({ first_name: '', last_name: '', email: '' });
-                }}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
+            {searching && (
+              <View style={styles.searchingContainer}>
+                <ActivityIndicator size="small" color="#2ddbdb" />
+                <Text style={styles.searchingText}>Searching...</Text>
+              </View>
+            )}
 
-              <TouchableOpacity
-                style={[styles.modalButton, styles.addButtonModal]}
-                onPress={handleAddClient}
-              >
-                <Text style={styles.addButtonText}>Add Client</Text>
-              </TouchableOpacity>
-            </View>
+            <ScrollView style={styles.searchResults} showsVerticalScrollIndicator={false}>
+              {searchQuery && !searching && searchResults.length === 0 && (
+                <View style={styles.noResultsContainer}>
+                  <Text style={styles.noResultsText}>No unassigned clients found</Text>
+                </View>
+              )}
+
+              {searchResults.map((client) => (
+                <TouchableOpacity
+                  key={client.id}
+                  style={styles.searchResultCard}
+                  onPress={() => handleAddClient(client)}
+                >
+                  <View style={styles.searchResultInfo}>
+                    <Text style={styles.searchResultName}>
+                      {client.first_name} {client.last_name}
+                    </Text>
+                    <Text style={styles.searchResultEmail}>{client.email}</Text>
+                  </View>
+                  <View style={styles.addIcon}>
+                    <PlusIcon size={20} color="#2ddbdb" />
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => {
+                setShowSearchModal(false);
+                setSearchQuery('');
+                setSearchResults([]);
+              }}
+            >
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -489,6 +569,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#9ca3af',
   },
+  removeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   workoutInfo: {
     marginTop: 4,
     paddingTop: 16,
@@ -555,7 +645,8 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    maxWidth: 400,
+    maxWidth: 500,
+    maxHeight: '80%',
     backgroundColor: '#1a1f3a',
     borderRadius: 20,
     padding: 24,
@@ -566,7 +657,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 24,
+    marginBottom: 20,
     textAlign: 'center',
   },
   input: {
@@ -579,34 +670,73 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginBottom: 16,
   },
-  modalButtons: {
+  searchingContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
     gap: 12,
-    marginTop: 8,
   },
-  modalButton: {
+  searchingText: {
+    color: '#9ca3af',
+    fontSize: 14,
+  },
+  searchResults: {
     flex: 1,
+    marginBottom: 16,
+  },
+  noResultsContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  noResultsText: {
+    color: '#9ca3af',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  searchResultCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: 'rgba(45, 219, 219, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(45, 219, 219, 0.2)',
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  searchResultInfo: {
+    flex: 1,
+  },
+  searchResultName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  searchResultEmail: {
+    fontSize: 14,
+    color: '#9ca3af',
+  },
+  addIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(45, 219, 219, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
-  cancelButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  cancelButtonText: {
+  closeButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-  },
-  addButtonModal: {
-    backgroundColor: '#2ddbdb',
-  },
-  addButtonText: {
-    color: '#000',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   // Breadcrumb Navigation - Top Right
   breadcrumb: {

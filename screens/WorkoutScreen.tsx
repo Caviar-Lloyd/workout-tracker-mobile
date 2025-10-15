@@ -373,6 +373,7 @@ export default function WorkoutScreen() {
                 <View style={styles.videoWrapper}>
                   <View style={styles.videoPlaceholder}>
                     <Text style={styles.videoPlaceholderText}>{currentExercise.name}</Text>
+                    <Text style={styles.videoPlaceholderRepRange}>{currentExercise.repRange} reps</Text>
                     <Text style={styles.videoPlaceholderSubtext}>3-5 sec demo</Text>
                   </View>
                 </View>
@@ -643,6 +644,13 @@ const styles = StyleSheet.create({
     color: '#2ddbdb',
     fontSize: 14,
     fontWeight: '600',
+  },
+  videoPlaceholderRepRange: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    marginTop: 6,
+    marginBottom: 4,
   },
   videoPlaceholderSubtext: {
     color: '#9ca3af',

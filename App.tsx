@@ -1,7 +1,7 @@
 import { NavigationContainer, DefaultTheme, useNavigation, useNavigationState } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View, TouchableOpacity, Text, Animated, Dimensions, ActivityIndicator, Platform, BackHandler } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Text, Animated, Dimensions, ActivityIndicator, Platform, StatusBar as RNStatusBar, AppState } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from './lib/supabase/client';
@@ -18,6 +18,7 @@ import DatabaseCheckScreen from './screens/DatabaseCheckScreen';
 import ParticleBackground from './components/ParticleBackground';
 import Svg, { Path } from 'react-native-svg';
 import { SpeedInsights } from '@vercel/speed-insights/react';
+import * as NavigationBar from 'expo-navigation-bar';
 
 const Stack = createNativeStackNavigator();
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -139,64 +140,19 @@ function ExpandableMenu() {
       }
     };
 
+    // Check on mount
     checkCoachStatus();
-  }, []);
 
-  // Handle Android back button - close menu if open, otherwise navigate back
-  useEffect(() => {
-    if (Platform.OS !== 'android') return;
-
-    let backPressCount = 0;
-    let backPressTimeout: NodeJS.Timeout;
-
-    const backAction = () => {
-      // If menu is open, close it
-      if (menuOpen) {
-        closeMenu();
-        return true;
-      }
-
-      // Check if we can go back in navigation stack
-      const state = navigation.getState();
-      const canGoBack = state.index > 0;
-
-      if (canGoBack) {
-        navigation.goBack();
-        return true;
-      }
-
-      // On root screen (Dashboard) - require double press to exit
-      backPressCount++;
-
-      if (backPressCount === 1) {
-        // First press - show toast/alert
-        if (typeof window !== 'undefined' && Platform.OS === 'android') {
-          // Show a brief message (you'd need to add a Toast component for production)
-          console.log('Press back again to exit');
-        }
-
-        backPressTimeout = setTimeout(() => {
-          backPressCount = 0;
-        }, 2000);
-
-        return true; // Prevent exit
-      }
-
-      // Second press within 2 seconds - allow exit
-      clearTimeout(backPressTimeout);
-      return false;
-    };
-
-    const backHandler = BackHandler.addEventListener(
-      'hardwareBackPress',
-      backAction
-    );
+    // Re-check when auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔄 Auth state changed:', event);
+      checkCoachStatus();
+    });
 
     return () => {
-      backHandler.remove();
-      if (backPressTimeout) clearTimeout(backPressTimeout);
+      authListener?.subscription?.unsubscribe();
     };
-  }, [menuOpen, navigation]);
+  }, []);
 
   // Animated arrow bounce effect
   useEffect(() => {
@@ -229,13 +185,34 @@ function ExpandableMenu() {
     }
   }, [showTooltip]);
 
-  const toggleMenu = () => {
+  const toggleMenu = async () => {
     // Don't toggle if currently navigating
     if (isNavigatingRef.current) return;
 
     // Hide tooltip when user interacts
     if (showTooltip) {
       setShowTooltip(false);
+    }
+
+    // Re-check coach status when opening menu
+    if (!menuOpen) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.email) {
+          const { data: profile } = await supabase
+            .from('clients')
+            .select('is_coach')
+            .eq('email', user.email)
+            .single();
+
+          if (profile) {
+            console.log('📋 Menu opened - coach status:', profile.is_coach);
+            setIsCoach(profile.is_coach === true);
+          }
+        }
+      } catch (error) {
+        console.error('Error re-checking coach status on menu open:', error);
+      }
     }
 
     const toValue = menuOpen ? 700 : 0; // 700 = hidden off-screen, 0 = visible
@@ -465,6 +442,25 @@ export default function App() {
   const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
 
   useEffect(() => {
+    // Function to hide Android system UI
+    const hideAndroidSystemUI = () => {
+      if (Platform.OS === 'android') {
+        RNStatusBar.setHidden(true);
+        NavigationBar.setVisibilityAsync("hidden");
+        NavigationBar.setBehaviorAsync("overlay-swipe");
+      }
+    };
+
+    // Hide on mount
+    hideAndroidSystemUI();
+
+    // Re-hide when app comes to foreground
+    const appStateSubscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active') {
+        hideAndroidSystemUI();
+      }
+    });
+
     // Check current session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -477,7 +473,10 @@ export default function App() {
       checkProfileCompletion(session);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      appStateSubscription.remove();
+    };
   }, []);
 
   const checkProfileCompletion = async (session: Session | null) => {
@@ -522,7 +521,6 @@ export default function App() {
               email: session.user.email,
               subscription_tier: 'client',
               rest_days: [], // Empty array = no rest days initially
-              starting_day_of_week: 0, // Backward compatibility
               program_start_date: today,
               first_name: '',  // Explicitly set empty string to avoid NOT NULL constraint
               last_name: '',   // Will be filled in via profile modal
@@ -559,7 +557,7 @@ export default function App() {
       <SafeAreaProvider>
         <View style={[styles.container, styles.loadingContainer]}>
           <ActivityIndicator size="large" color="#2ddbdb" />
-          <StatusBar style="light" hidden={Platform.OS === 'android'} />
+          <StatusBar style="light" />
         </View>
       </SafeAreaProvider>
     );
@@ -589,7 +587,7 @@ export default function App() {
             )}
           </NavigationContainer>
         </View>
-        <StatusBar style="light" hidden={Platform.OS === 'android'} />
+        <StatusBar style="light" />
         {Platform.OS === "web" && <SpeedInsights />}
       </View>
     </SafeAreaProvider>

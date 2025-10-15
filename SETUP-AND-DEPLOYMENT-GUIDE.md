@@ -293,6 +293,76 @@ navigation.navigate('NewScreen');
 - Verify Supabase project is active
 - Check network/firewall settings
 
+### Old Supabase URL Being Referenced After Updates
+
+**Problem:** App continues using old Supabase URL even after updating code and environment variables. Changes revert after EAS builds/updates.
+
+**Root Cause:**
+- Old environment variables stored in EAS dashboard override local configuration
+- EAS updates can only update JavaScript code, NOT environment variables
+- Environment variables are baked into builds at build time
+- Apps with same runtime version share the same compiled environment variables
+
+**Solution:**
+
+1. **Delete Old EAS Environment Variables**
+   - Visit: https://expo.dev/accounts/[your-account]/projects/[project-name]/environment-variables
+   - Delete ALL old environment variables from EAS dashboard
+   - Particularly look for variables created days/weeks ago
+   - Delete these for each environment (preview, production):
+     - `EXPO_PUBLIC_SUPABASE_URL`
+     - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+     - `EXPO_PUBLIC_DEV_MODE`
+
+2. **Update Version Number in app.json**
+   ```json
+   {
+     "expo": {
+       "version": "1.0.X"  // Increment this (e.g., 1.0.7 → 1.0.8)
+     }
+   }
+   ```
+   This creates a new runtime version, separating from old builds.
+
+3. **Ensure eas.json Has Correct Values**
+   ```json
+   {
+     "build": {
+       "preview": {
+         "env": {
+           "EXPO_PUBLIC_SUPABASE_URL": "https://your-correct-url.supabase.co",
+           "EXPO_PUBLIC_SUPABASE_ANON_KEY": "your-correct-key"
+         }
+       }
+     }
+   }
+   ```
+
+4. **Create Fresh Build**
+   ```bash
+   npx eas-cli build --platform android --profile preview
+   ```
+
+5. **Verify Build Logs Show Correct Configuration**
+   Look for this line in build output:
+   ```
+   No environment variables with visibility "Plain text" and "Sensitive"
+   found for the "preview" environment on EAS
+   ```
+   This confirms old variables are deleted and only eas.json is used.
+
+**Prevention for Future Builds:**
+- NEVER create EAS environment variables in the dashboard
+- ALWAYS use eas.json for environment configuration
+- Increment app version number for breaking changes
+- Document which runtime version has which environment variables
+
+**Note on EXPO_PUBLIC Variables:**
+- Variables prefixed with `EXPO_PUBLIC_` are NOT secret
+- They're embedded in compiled JavaScript (visible to clients)
+- Supabase ANON_KEY is designed to be public (Row Level Security protects data)
+- Use service_role_key (not exposed) for admin operations
+
 ---
 
 ## 📞 Support & Resources

@@ -20,6 +20,7 @@ export interface ExerciseInfo {
   name: string;
   setCount: number; // 3 or 4 sets
   repRange: string; // e.g., "8-10", "10-12"
+  videoUrl?: string; // Optional video demonstration URL
 }
 
 export interface WorkoutTemplate {
@@ -98,8 +99,8 @@ const WEEK1_DAY2_EXERCISES: ExerciseInfo[] = [
   { index: 1, name: 'Shoulder Press', setCount: 4 },
   { index: 2, name: 'Alternating Standing DB Shoulder Press', setCount: 3 },
   { index: 3, name: 'Dumbbell Standing Upright Row', setCount: 3 },
-  { index: 4, name: 'Squat', setCount: 4 },
-  { index: 5, name: 'Deadlift', setCount: 4 },
+  { index: 4, name: 'Squat', setCount: 4, videoUrl: 'https://storage.googleapis.com/msgsndr/z3m4mhravHce78P6jW12/media/68ec84ffc2b02e039123864c.jpeg' }, // Barbell squat
+  { index: 5, name: 'Deadlift', setCount: 4, videoUrl: 'https://storage.googleapis.com/msgsndr/z3m4mhravHce78P6jW12/media/68ec84ffb0fd86f7127fe202.jpeg' }, // Barbell Romanian deadlift
   { index: 6, name: 'Walking Lunges', setCount: 3 },
   { index: 7, name: 'Standing Calf Raise', setCount: 3 },
 ];
@@ -110,7 +111,7 @@ const WEEK1_DAY3_EXERCISES: ExerciseInfo[] = [
   { index: 2, name: 'Dumbbell Bent Over Row', setCount: 3 },
   { index: 3, name: 'Seated Cable Row', setCount: 3 },
   { index: 4, name: 'Barbell Shrug', setCount: 4 },
-  { index: 5, name: 'Barbell Curl', setCount: 4 },
+  { index: 5, name: 'Barbell Curl', setCount: 4, videoUrl: 'https://storage.googleapis.com/msgsndr/z3m4mhravHce78P6jW12/media/68ec84ffa6b7f90537141283.jpeg' }, // Dumbbell Bicep curls
   { index: 6, name: 'EZ Bar Preacher Curl', setCount: 3 },
   { index: 7, name: 'Barbell Wrist Curl', setCount: 3 },
 ];
@@ -131,15 +132,15 @@ const WEEK1_DAY5_EXERCISES: ExerciseInfo[] = [
   { index: 1, name: 'Dumbbell Lateral Raise', setCount: 4 },
   { index: 2, name: 'Barbell Front Raise', setCount: 3 },
   { index: 3, name: 'Dumbbell Bent Over Lateral Raise', setCount: 3 },
-  { index: 4, name: 'Leg Extension', setCount: 4 },
-  { index: 5, name: 'Leg Curl', setCount: 4 },
-  { index: 6, name: 'Seated Calf Raise', setCount: 3 },
+  { index: 4, name: 'Leg Extension', setCount: 4, videoUrl: 'https://storage.googleapis.com/msgsndr/z3m4mhravHce78P6jW12/media/68ec84ff14f4a53fc495ca12.jpeg' }, // leg Extension
+  { index: 5, name: 'Leg Curl', setCount: 4, videoUrl: 'https://storage.googleapis.com/msgsndr/z3m4mhravHce78P6jW12/media/68ec84ffa6b7f9db60141281.jpeg' }, // Lying hamstring curl
+  { index: 6, name: 'Seated Calf Raise', setCount: 3, videoUrl: 'https://storage.googleapis.com/msgsndr/z3m4mhravHce78P6jW12/media/68ec84ffb0fd86a20f7fe1ff.jpeg' }, // Seated calf press
   { index: 7, name: 'Leg Press Calf Raise', setCount: 3 },
 ];
 
 // Week 1, Day 6 - Back, Traps, Biceps Isolation (NO DATA YET - using Week 2 Day 6 structure)
 const WEEK1_DAY6_EXERCISES: ExerciseInfo[] = [
-  { index: 1, name: 'Lat Pull Down', setCount: 4 },
+  { index: 1, name: 'Lat Pull Down', setCount: 4, videoUrl: 'https://storage.googleapis.com/msgsndr/z3m4mhravHce78P6jW12/media/68ec84ffa6b7f949c7141284.jpeg' }, // Medium grip lap pull down
   { index: 2, name: 'Reverse Grip Pull Down', setCount: 3 },
   { index: 3, name: 'Straight Arm Pull Down', setCount: 3 },
   { index: 4, name: 'Smith Machine Behind the Back Shrug', setCount: 4 },

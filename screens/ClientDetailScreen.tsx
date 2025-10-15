@@ -8,6 +8,7 @@ import { getNextWorkout, getLastWorkout } from '../lib/supabase/workout-service'
 import ParticleBackground from '../components/ParticleBackground';
 import Svg, { Path } from 'react-native-svg';
 import type { WeekNumber, DayNumber } from '../types/workout';
+import CustomWorkoutBuilderScreen from './CustomWorkoutBuilderScreen';
 
 // =====================================================
 // Icon Components
@@ -158,9 +159,25 @@ export default function ClientDetailScreen() {
   // Custom workout name
   const customWorkoutName = WORKOUT_NAMES[selectedDay] || 'Unknown Workout';
 
+  // Custom workout builder state
+  const [showCustomWorkoutBuilder, setShowCustomWorkoutBuilder] = useState(false);
+  const [coachEmail, setCoachEmail] = useState('');
+
   useEffect(() => {
     loadClientData();
+    loadCoachEmail();
   }, [clientEmail, clientId]);
+
+  const loadCoachEmail = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        setCoachEmail(user.email);
+      }
+    } catch (error) {
+      console.error('Error loading coach email:', error);
+    }
+  };
 
   const loadClientData = async () => {
     try {
@@ -539,6 +556,24 @@ export default function ClientDetailScreen() {
                   )}
                 </View>
 
+                {/* Create Custom Workout Button */}
+                <TouchableOpacity
+                  style={styles.createCustomWorkoutButton}
+                  onPress={() => setShowCustomWorkoutBuilder(true)}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={['#9333ea', '#7e22ce']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.createCustomWorkoutGradient}
+                  >
+                    <Text style={styles.createCustomWorkoutText}>
+                      + Create Custom Workout
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+
                 {/* Custom Workout Selector */}
                 <View style={styles.customWorkoutSection}>
                   <View style={styles.customWorkoutHeader}>
@@ -665,6 +700,18 @@ export default function ClientDetailScreen() {
         </ScrollView>
         </View>
       </View>
+
+      {/* Custom Workout Builder Modal */}
+      <CustomWorkoutBuilderScreen
+        visible={showCustomWorkoutBuilder}
+        onClose={() => setShowCustomWorkoutBuilder(false)}
+        clientEmail={client?.email}
+        coachEmail={coachEmail}
+        onSave={() => {
+          loadClientData();
+          loadWorkoutInfo(clientEmail);
+        }}
+      />
     </View>
   );
 }
@@ -1010,5 +1057,21 @@ const styles = StyleSheet.create({
   breadcrumbCurrent: {
     color: '#9ca3af',
     fontWeight: '400',
+  },
+  createCustomWorkoutButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 20,
+  },
+  createCustomWorkoutGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 18,
+  },
+  createCustomWorkoutText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
   },
 });
