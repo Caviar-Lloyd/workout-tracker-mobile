@@ -12,6 +12,7 @@ import ProgramScreen from './screens/ProgramScreen';
 import ProgressScreen from './screens/ProgressScreen';
 import ClientsScreen from './screens/ClientsScreen';
 import ClientDetailScreen from './screens/ClientDetailScreen';
+import ProfileScreen from './screens/ProfileScreen';
 import AuthScreen from './screens/AuthScreen';
 import ProfileCompletionScreen from './screens/ProfileCompletionScreen';
 import DatabaseCheckScreen from './screens/DatabaseCheckScreen';
@@ -90,6 +91,25 @@ const SettingsIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: st
     />
     <Path
       d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+const ProfileIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: string }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M12 11a4 4 0 100-8 4 4 0 000 8z"
       stroke={color}
       strokeWidth={2}
       strokeLinecap="round"
@@ -383,22 +403,41 @@ function ExpandableMenu() {
           </TouchableOpacity>
         )}
 
-        <TouchableOpacity
-          style={styles.menuItem}
-          activeOpacity={0.7}
-          delayPressIn={0}
-          onPressIn={() => {
-            slideAnim.stopAnimation(() => {
-              slideAnim.setValue(700);
-              setMenuOpen(false);
-              // Navigate to Dashboard with a param to open settings
-              navigation.navigate('Dashboard', { openSettings: true });
-            });
-          }}
-        >
-          <SettingsIcon size={22} color="#2ddbdb" />
-          <Text style={styles.menuItemText}>Settings</Text>
-        </TouchableOpacity>
+        {/* Show Profile for clients, Settings for coaches */}
+        {!isCoach ? (
+          <TouchableOpacity
+            style={styles.menuItem}
+            activeOpacity={0.7}
+            delayPressIn={0}
+            onPressIn={() => {
+              slideAnim.stopAnimation(() => {
+                slideAnim.setValue(700);
+                setMenuOpen(false);
+                navigateTo('Profile');
+              });
+            }}
+          >
+            <ProfileIcon size={22} color="#2ddbdb" />
+            <Text style={styles.menuItemText}>Profile</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.menuItem}
+            activeOpacity={0.7}
+            delayPressIn={0}
+            onPressIn={() => {
+              slideAnim.stopAnimation(() => {
+                slideAnim.setValue(700);
+                setMenuOpen(false);
+                // Navigate to Dashboard with a param to open settings
+                navigation.navigate('Dashboard', { openSettings: true });
+              });
+            }}
+          >
+            <SettingsIcon size={22} color="#2ddbdb" />
+            <Text style={styles.menuItemText}>Settings</Text>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity
           style={styles.menuItem}
@@ -430,6 +469,7 @@ function AppNavigator() {
         <Stack.Screen name="Progress" component={ProgressScreen} />
         <Stack.Screen name="Clients" component={ClientsScreen} />
         <Stack.Screen name="ClientDetail" component={ClientDetailScreen} />
+        <Stack.Screen name="Profile" component={ProfileScreen} />
       </Stack.Navigator>
       <ExpandableMenu />
     </>
