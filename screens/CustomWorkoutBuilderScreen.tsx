@@ -272,13 +272,7 @@ export default function CustomWorkoutBuilderScreen({
 
             {/* Exercises */}
             <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.label}>Exercises</Text>
-                <TouchableOpacity onPress={addExercise} style={styles.addButton}>
-                  <PlusIcon size={20} color="#2ddbdb" />
-                  <Text style={styles.addButtonText}>Add Exercise</Text>
-                </TouchableOpacity>
-              </View>
+              <Text style={styles.label}>Exercises</Text>
 
               {exercises.map((exercise, exerciseIndex) => (
                 <View key={exercise.id} style={styles.exerciseCard}>
@@ -383,6 +377,12 @@ export default function CustomWorkoutBuilderScreen({
                   <Text style={styles.emptySubtext}>Tap "Add Exercise" to get started</Text>
                 </View>
               )}
+
+              {/* Add Exercise Button - positioned after all exercises */}
+              <TouchableOpacity onPress={addExercise} style={styles.addExerciseButton}>
+                <PlusIcon size={20} color="#2ddbdb" />
+                <Text style={styles.addButtonText}>Add Exercise</Text>
+              </TouchableOpacity>
             </View>
 
             {/* Notes */}
@@ -573,6 +573,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  addExerciseButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#1a1f3a',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 12,
+    borderWidth: 2,
+    borderColor: '#2ddbdb',
+    borderStyle: 'dashed',
   },
   addButtonText: {
     color: '#2ddbdb',

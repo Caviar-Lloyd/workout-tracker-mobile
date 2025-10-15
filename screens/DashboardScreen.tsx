@@ -609,13 +609,27 @@ export default function DashboardScreen({ route }: any) {
           setShowProfileModal(true);
         }
 
-        // Check if user is a client (not coach/trainer)
-        const isClient = profile?.subscription_tier === 'client';
-
         if (profile) {
-          // For clients: Auto-set to custom split and get earliest workout date
+          // Load rest days from database for EVERYONE (coaches and clients)
+          if (profile.rest_days && profile.rest_days.length > 0) {
+            console.log('Loading rest days from database:', profile.rest_days);
+            setRestDaysOfWeek(profile.rest_days);
+          } else {
+            console.log('No rest days in profile - defaulting to empty array');
+            setRestDaysOfWeek([]);
+          }
+
+          // Load program start date for EVERYONE
+          if (profile.program_start_date) {
+            const startDate = new Date(profile.program_start_date);
+            setProgramStartDate(startDate);
+          }
+
+          // Check if user is a client (for auto-setup behavior only)
+          const isClient = profile?.subscription_tier === 'client' && profile?.is_coach !== true;
+
           if (isClient) {
-            // Default to custom split for clients - no need to set schedule pattern anymore
+            // For clients: Auto-detect start date from earliest workout if not set
 
             // Auto-detect start date from earliest workout in database
             if (!profile.program_start_date) {
@@ -650,20 +664,7 @@ export default function DashboardScreen({ route }: any) {
             setShowInitialSetup(false);
           } else {
             // For coaches/trainers: Use existing setup flow
-            // Load rest days from database (array)
-            if (profile.rest_days && profile.rest_days.length > 0) {
-              console.log('Loading rest days from database:', profile.rest_days);
-              setRestDaysOfWeek(profile.rest_days);
-            } else {
-              console.log('No rest days in profile - defaulting to empty array');
-              setRestDaysOfWeek([]);
-            }
-
-            // Pre-fill program start date from workout history if it exists
-            if (profile.program_start_date) {
-              const startDate = new Date(profile.program_start_date);
-              setProgramStartDate(startDate);
-            }
+            // Rest days and start date already loaded above for everyone
 
             // Check if user has completed ALL required setup
             const hasCompleteSetup =
