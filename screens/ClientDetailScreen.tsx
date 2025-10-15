@@ -352,25 +352,40 @@ export default function ClientDetailScreen() {
       const filePath = `profile-pictures/${fileName}`;
       console.log('Uploading to path:', filePath);
 
-      // Fetch the image as a blob for direct upload
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      console.log('Blob created, size:', blob.size, 'type:', blob.type);
-
-      // Upload blob to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, blob, {
-          contentType: 'image/jpeg',
-          upsert: true,
-        });
-
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        throw new Error(`Upload failed: ${uploadError.message}`);
+      // Get session token for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated');
       }
 
-      console.log('Upload successful:', uploadData);
+      // Create FormData for React Native file upload
+      const formData = new FormData();
+      formData.append('', {
+        uri: uri,
+        type: 'image/jpeg',
+        name: fileName,
+      } as any);
+
+      // Upload directly to Supabase Storage REST API using fetch
+      const uploadUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/storage/v1/object/avatars/${filePath}`;
+      console.log('Upload URL:', uploadUrl);
+
+      const uploadResponse = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text();
+        console.error('Upload failed:', uploadResponse.status, errorText);
+        throw new Error(`Upload failed: ${uploadResponse.status} - ${errorText}`);
+      }
+
+      const uploadResult = await uploadResponse.json();
+      console.log('Upload successful:', uploadResult);
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
