@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Platform, Modal, Image } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase/client';
@@ -202,6 +202,13 @@ export default function ClientDetailScreen() {
     loadClientData();
     loadCoachEmail();
   }, [clientEmail, clientId]);
+
+  // Reload data when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadClientData();
+    }, [clientEmail])
+  );
 
   const loadCoachEmail = async () => {
     try {
