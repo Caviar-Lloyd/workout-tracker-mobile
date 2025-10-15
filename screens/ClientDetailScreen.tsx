@@ -9,7 +9,6 @@ import ParticleBackground from '../components/ParticleBackground';
 import Svg, { Path } from 'react-native-svg';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
-import * as FileSystem from 'expo-file-system';
 import type { WeekNumber, DayNumber } from '../types/workout';
 import CustomWorkoutBuilderScreen from './CustomWorkoutBuilderScreen';
 
@@ -352,19 +351,20 @@ export default function ClientDetailScreen() {
     try {
       setUploadingImage(true);
 
-      // Convert URI to blob
+      // Read file using fetch (works in React Native)
       const response = await fetch(uri);
-      const blob = await response.blob();
+      const arrayBuffer = await response.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
 
       // Generate unique filename based on client ID
-      const fileExt = uri.split('.').pop() || 'jpg';
+      const fileExt = uri.split('.').pop()?.toLowerCase() ?? 'jpeg';
       const fileName = `${client.id}-${Date.now()}.${fileExt}`;
       const filePath = `profile-pictures/${fileName}`;
 
       // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, blob, {
+        .upload(filePath, bytes, {
           contentType: 'image/jpeg',
           upsert: true,
         });

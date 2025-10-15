@@ -286,19 +286,20 @@ export default function ProfileScreen() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Convert URI to blob
+      // Read file using fetch (works in React Native)
       const response = await fetch(uri);
-      const blob = await response.blob();
+      const arrayBuffer = await response.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
 
       // Generate unique filename
-      const fileExt = uri.split('.').pop();
+      const fileExt = uri.split('.').pop()?.toLowerCase() ?? 'jpeg';
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
       const filePath = `profile-pictures/${fileName}`;
 
       // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, blob, {
+        .upload(filePath, bytes, {
           contentType: 'image/jpeg',
           upsert: true,
         });
