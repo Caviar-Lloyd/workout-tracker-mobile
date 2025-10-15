@@ -351,47 +351,30 @@ export default function ClientDetailScreen() {
 
     try {
       setUploadingImage(true);
-      console.log('Starting image upload for client:', client.id);
-      console.log('Image URI:', uri);
+
+      // Convert URI to blob
+      const response = await fetch(uri);
+      const blob = await response.blob();
 
       // Generate unique filename based on client ID
       const fileExt = uri.split('.').pop() || 'jpg';
       const fileName = `${client.id}-${Date.now()}.${fileExt}`;
       const filePath = `profile-pictures/${fileName}`;
-      console.log('Uploading to path:', filePath);
 
-      // Get session token for authentication
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('Not authenticated');
-      }
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, blob, {
+          contentType: 'image/jpeg',
+          upsert: true,
+        });
 
-      // Upload using expo-file-system's uploadAsync (works on React Native)
-      const uploadUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/storage/v1/object/avatars/${filePath}`;
-      console.log('Upload URL:', uploadUrl);
-
-      const uploadResult = await FileSystem.uploadAsync(uploadUrl, uri, {
-        httpMethod: 'POST',
-        uploadType: FileSystem.FileSystemUploadType.MULTIPART,
-        fieldName: 'file',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-      });
-
-      console.log('Upload response status:', uploadResult.status);
-      console.log('Upload response body:', uploadResult.body);
-
-      if (uploadResult.status !== 200) {
-        throw new Error(`Upload failed: ${uploadResult.status} - ${uploadResult.body}`);
-      }
+      if (uploadError) throw uploadError;
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
-
-      console.log('Public URL:', publicUrl);
 
       // Update client profile in database
       const { error: updateError } = await supabase
@@ -399,10 +382,7 @@ export default function ClientDetailScreen() {
         .update({ profile_picture_url: publicUrl })
         .eq('id', client.id);
 
-      if (updateError) {
-        console.error('Database update error:', updateError);
-        throw new Error(`Database update failed: ${updateError.message}`);
-      }
+      if (updateError) throw updateError;
 
       setProfilePictureUrl(publicUrl);
       Alert.alert('Success', 'Profile picture updated successfully');
