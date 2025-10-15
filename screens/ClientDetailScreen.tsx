@@ -348,9 +348,9 @@ export default function ClientDetailScreen() {
       console.log('Starting image upload for client:', client.id);
       console.log('Image URI:', uri);
 
-      // Read the file as base64
+      // Read the file as base64 (use string 'base64' instead of enum)
       const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
+        encoding: 'base64',
       });
       console.log('Converted to base64, length:', base64.length);
 
