@@ -8,9 +8,7 @@ import { getNextWorkout, getLastWorkout } from '../lib/supabase/workout-service'
 import ParticleBackground from '../components/ParticleBackground';
 import Svg, { Path } from 'react-native-svg';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
-import { decode } from 'base64-arraybuffer';
 import type { WeekNumber, DayNumber } from '../types/workout';
 import CustomWorkoutBuilderScreen from './CustomWorkoutBuilderScreen';
 
@@ -348,26 +346,21 @@ export default function ClientDetailScreen() {
       console.log('Starting image upload for client:', client.id);
       console.log('Image URI:', uri);
 
-      // Read the file as base64 (use string 'base64' instead of enum)
-      const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: 'base64',
-      });
-      console.log('Converted to base64, length:', base64.length);
-
       // Generate unique filename based on client ID
       const fileExt = uri.split('.').pop() || 'jpg';
       const fileName = `${client.id}-${Date.now()}.${fileExt}`;
       const filePath = `profile-pictures/${fileName}`;
       console.log('Uploading to path:', filePath);
 
-      // Convert base64 to ArrayBuffer for Supabase
-      const arrayBuffer = decode(base64);
-      console.log('ArrayBuffer size:', arrayBuffer.byteLength);
+      // Fetch the image as a blob for direct upload
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      console.log('Blob created, size:', blob.size, 'type:', blob.type);
 
-      // Upload to Supabase Storage using the JS client with ArrayBuffer
+      // Upload blob to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, arrayBuffer, {
+        .upload(filePath, blob, {
           contentType: 'image/jpeg',
           upsert: true,
         });
