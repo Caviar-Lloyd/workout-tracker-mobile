@@ -296,23 +296,17 @@ export default function ClientDetailScreen() {
   };
 
   const pickImage = async () => {
-    // Check current permission status first
-    const permission = await ImagePicker.getMediaLibraryPermissionsAsync();
-
-    // Only request if not already granted
-    if (!permission.granted) {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'We need camera roll permissions to upload a profile picture.');
-        return;
-      }
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'We need camera roll permissions to upload a profile picture.');
+      return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.8,
+      quality: 0.5,
     });
 
     if (!result.canceled && result.assets[0]) {
@@ -321,16 +315,10 @@ export default function ClientDetailScreen() {
   };
 
   const takePicture = async () => {
-    // Check current camera permission status first
-    const cameraPermission = await ImagePicker.getCameraPermissionsAsync();
-
-    // Only request if not already granted
-    if (!cameraPermission.granted) {
-      const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
-      if (cameraStatus !== 'granted') {
-        Alert.alert('Permission Denied', 'We need camera permissions to take a profile picture.');
-        return;
-      }
+    const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
+    if (cameraStatus !== 'granted') {
+      Alert.alert('Permission Denied', 'We need camera permissions to take a profile picture.');
+      return;
     }
 
     const result = await ImagePicker.launchCameraAsync({
@@ -342,16 +330,10 @@ export default function ClientDetailScreen() {
     if (!result.canceled && result.assets[0]) {
       const photoUri = result.assets[0].uri;
 
-      // Save to camera roll - check permission first
+      // Save to camera roll
       try {
-        const mediaPermission = await MediaLibrary.getPermissionsAsync();
-        if (!mediaPermission.granted) {
-          const { status: mediaStatus } = await MediaLibrary.requestPermissionsAsync();
-          if (mediaStatus === 'granted') {
-            await MediaLibrary.saveToLibraryAsync(photoUri);
-            console.log('Photo saved to camera roll');
-          }
-        } else {
+        const { status: mediaStatus } = await MediaLibrary.requestPermissionsAsync();
+        if (mediaStatus === 'granted') {
           await MediaLibrary.saveToLibraryAsync(photoUri);
           console.log('Photo saved to camera roll');
         }
@@ -370,44 +352,46 @@ export default function ClientDetailScreen() {
     try {
       setUploadingImage(true);
       console.log('Starting image upload for client:', client.id);
-
-      // Delete old profile picture if it exists
-      if (client.profile_picture_url) {
-        try {
-          const oldUrl = client.profile_picture_url.split('?')[0]; // Remove cache-busting params
-          const oldPath = oldUrl.split('/avatars/')[1];
-          if (oldPath) {
-            console.log('Deleting old profile picture:', oldPath);
-            await supabase.storage.from('avatars').remove([oldPath]);
-          }
-        } catch (deleteError) {
-          console.log('Could not delete old image (may not exist):', deleteError);
-        }
-      }
-
-      // Convert URI to blob
-      const response = await fetch(uri);
-      const blob = await response.blob();
+      console.log('Image URI:', uri);
 
       // Generate unique filename based on client ID
       const fileExt = uri.split('.').pop() || 'jpg';
       const fileName = `${client.id}-${Date.now()}.${fileExt}`;
       const filePath = `profile-pictures/${fileName}`;
+      console.log('Uploading to path:', filePath);
 
-      // Upload to Supabase Storage using blob
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, blob, {
-          contentType: 'image/jpeg',
-          upsert: true,
-        });
+      // Get session token for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
 
-      if (uploadError) throw uploadError;
+      // Upload using expo-file-system's uploadAsync (works on React Native)
+      const uploadUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/storage/v1/object/avatars/${filePath}`;
+      console.log('Upload URL:', uploadUrl);
+
+      const uploadResult = await FileSystem.uploadAsync(uploadUrl, uri, {
+        httpMethod: 'POST',
+        uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+        fieldName: 'file',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      console.log('Upload response status:', uploadResult.status);
+      console.log('Upload response body:', uploadResult.body);
+
+      if (uploadResult.status !== 200) {
+        throw new Error(`Upload failed: ${uploadResult.status} - ${uploadResult.body}`);
+      }
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
+
+      console.log('Public URL:', publicUrl);
 
       // Update client profile in database
       const { error: updateError } = await supabase
@@ -415,10 +399,12 @@ export default function ClientDetailScreen() {
         .update({ profile_picture_url: publicUrl })
         .eq('id', client.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Database update error:', updateError);
+        throw new Error(`Database update failed: ${updateError.message}`);
+      }
 
-      // Reload client data to refresh the image
-      await loadClientData();
+      setProfilePictureUrl(publicUrl);
       Alert.alert('Success', 'Profile picture updated successfully');
     } catch (error: any) {
       console.error('Full error details:', error);
