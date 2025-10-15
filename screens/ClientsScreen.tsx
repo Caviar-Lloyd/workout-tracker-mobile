@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, Platform, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, Platform, Modal, TextInput, Alert, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -331,11 +331,15 @@ export default function ClientsScreen() {
                   style={styles.cardGradient}
                 >
                   <View style={styles.clientHeader}>
-                    <View style={styles.clientInitial}>
-                      <Text style={styles.initialText}>
-                        {client.first_name.charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
+                    {client.profile_picture_url ? (
+                      <Image source={{ uri: client.profile_picture_url }} style={styles.clientAvatar} />
+                    ) : (
+                      <View style={styles.clientInitial}>
+                        <Text style={styles.initialText}>
+                          {client.first_name.charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
                     <View style={styles.clientInfo}>
                       <Text style={styles.clientName}>
                         {client.first_name} {client.last_name}
@@ -539,6 +543,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
+  },
+  clientAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 12,
+    borderWidth: 2,
+    borderColor: '#2ddbdb',
   },
   clientInitial: {
     width: 50,
