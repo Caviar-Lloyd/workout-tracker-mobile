@@ -328,30 +328,41 @@ export default function ClientDetailScreen() {
 
     try {
       setUploadingImage(true);
+      console.log('Starting image upload for client:', client.id);
+      console.log('Image URI:', uri);
 
       // Convert URI to blob
       const response = await fetch(uri);
       const blob = await response.blob();
+      console.log('Blob created, size:', blob.size, 'type:', blob.type);
 
       // Generate unique filename based on client ID
       const fileExt = uri.split('.').pop();
       const fileName = `${client.id}-${Date.now()}.${fileExt}`;
       const filePath = `profile-pictures/${fileName}`;
+      console.log('Uploading to path:', filePath);
 
       // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, blob, {
           contentType: 'image/jpeg',
           upsert: true,
         });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
+
+      console.log('Upload successful:', uploadData);
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
+
+      console.log('Public URL:', publicUrl);
 
       // Update client profile in database
       const { error: updateError } = await supabase
@@ -359,13 +370,20 @@ export default function ClientDetailScreen() {
         .update({ profile_picture_url: publicUrl })
         .eq('id', client.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Database update error:', updateError);
+        throw new Error(`Database update failed: ${updateError.message}`);
+      }
 
       setProfilePictureUrl(publicUrl);
       Alert.alert('Success', 'Profile picture updated successfully');
     } catch (error: any) {
-      console.error('Error uploading image:', error);
-      Alert.alert('Error', 'Failed to upload profile picture');
+      console.error('Full error details:', error);
+      const errorMessage = error?.message || 'Unknown error occurred';
+      Alert.alert(
+        'Upload Failed',
+        `${errorMessage}\n\nMake sure the "avatars" bucket exists in Supabase Storage and is set to public with proper RLS policies.`
+      );
     } finally {
       setUploadingImage(false);
     }
