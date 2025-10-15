@@ -331,31 +331,47 @@ export default function ClientDetailScreen() {
       console.log('Starting image upload for client:', client.id);
       console.log('Image URI:', uri);
 
-      // Convert URI to blob
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      console.log('Blob created, size:', blob.size, 'type:', blob.type);
-
       // Generate unique filename based on client ID
-      const fileExt = uri.split('.').pop();
+      const fileExt = uri.split('.').pop() || 'jpg';
       const fileName = `${client.id}-${Date.now()}.${fileExt}`;
       const filePath = `profile-pictures/${fileName}`;
       console.log('Uploading to path:', filePath);
 
-      // Upload to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, blob, {
-          contentType: 'image/jpeg',
-          upsert: true,
-        });
+      // Create form data for React Native
+      const formData = new FormData();
+      formData.append('file', {
+        uri: uri,
+        type: 'image/jpeg',
+        name: fileName,
+      } as any);
 
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        throw new Error(`Upload failed: ${uploadError.message}`);
+      // For React Native, we need to use fetch directly with the Supabase Storage API
+      // Get the storage URL and authorization header
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated');
       }
 
-      console.log('Upload successful:', uploadData);
+      const storageUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/storage/v1/object/avatars/${filePath}`;
+      console.log('Storage URL:', storageUrl);
+
+      const uploadResponse = await fetch(storageUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text();
+        console.error('Upload response error:', errorText);
+        throw new Error(`Upload failed: ${uploadResponse.status} - ${errorText}`);
+      }
+
+      const uploadResult = await uploadResponse.json();
+      console.log('Upload successful:', uploadResult);
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
