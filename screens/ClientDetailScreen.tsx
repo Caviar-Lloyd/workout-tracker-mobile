@@ -296,17 +296,23 @@ export default function ClientDetailScreen() {
   };
 
   const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'We need camera roll permissions to upload a profile picture.');
-      return;
+    // Check current permission status first
+    const permission = await ImagePicker.getMediaLibraryPermissionsAsync();
+
+    // Only request if not already granted
+    if (!permission.granted) {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'We need camera roll permissions to upload a profile picture.');
+        return;
+      }
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.5,
+      quality: 0.8,
     });
 
     if (!result.canceled && result.assets[0]) {
@@ -315,10 +321,16 @@ export default function ClientDetailScreen() {
   };
 
   const takePicture = async () => {
-    const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
-    if (cameraStatus !== 'granted') {
-      Alert.alert('Permission Denied', 'We need camera permissions to take a profile picture.');
-      return;
+    // Check current camera permission status first
+    const cameraPermission = await ImagePicker.getCameraPermissionsAsync();
+
+    // Only request if not already granted
+    if (!cameraPermission.granted) {
+      const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
+      if (cameraStatus !== 'granted') {
+        Alert.alert('Permission Denied', 'We need camera permissions to take a profile picture.');
+        return;
+      }
     }
 
     const result = await ImagePicker.launchCameraAsync({
@@ -330,10 +342,16 @@ export default function ClientDetailScreen() {
     if (!result.canceled && result.assets[0]) {
       const photoUri = result.assets[0].uri;
 
-      // Save to camera roll
+      // Save to camera roll - check permission first
       try {
-        const { status: mediaStatus } = await MediaLibrary.requestPermissionsAsync();
-        if (mediaStatus === 'granted') {
+        const mediaPermission = await MediaLibrary.getPermissionsAsync();
+        if (!mediaPermission.granted) {
+          const { status: mediaStatus } = await MediaLibrary.requestPermissionsAsync();
+          if (mediaStatus === 'granted') {
+            await MediaLibrary.saveToLibraryAsync(photoUri);
+            console.log('Photo saved to camera roll');
+          }
+        } else {
           await MediaLibrary.saveToLibraryAsync(photoUri);
           console.log('Photo saved to camera roll');
         }
@@ -354,17 +372,31 @@ export default function ClientDetailScreen() {
       console.log('Starting image upload for client:', client.id);
       console.log('Image URI:', uri);
 
-      // Generate unique filename based on client ID
-      const fileExt = uri.split('.').pop() || 'jpg';
-      const fileName = `${client.id}-${Date.now()}.${fileExt}`;
-      const filePath = `profile-pictures/${fileName}`;
-      console.log('Uploading to path:', filePath);
-
       // Get session token for authentication
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         throw new Error('Not authenticated');
       }
+
+      // Delete old profile picture if it exists
+      if (client.profile_picture_url) {
+        try {
+          const oldUrl = client.profile_picture_url.split('?')[0]; // Remove cache-busting params
+          const oldPath = oldUrl.split('/avatars/')[1];
+          if (oldPath) {
+            console.log('Deleting old profile picture:', oldPath);
+            await supabase.storage.from('avatars').remove([oldPath]);
+          }
+        } catch (deleteError) {
+          console.log('Could not delete old image (may not exist):', deleteError);
+        }
+      }
+
+      // Generate unique filename based on client ID
+      const fileExt = uri.split('.').pop() || 'jpg';
+      const fileName = `${client.id}-${Date.now()}.${fileExt}`;
+      const filePath = `profile-pictures/${fileName}`;
+      console.log('Uploading to path:', filePath);
 
       // Upload using expo-file-system's uploadAsync (works on React Native)
       const uploadUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/storage/v1/object/avatars/${filePath}`;
@@ -393,6 +425,9 @@ export default function ClientDetailScreen() {
 
       console.log('Public URL:', publicUrl);
 
+      // Add cache-busting parameter to force image reload
+      const urlWithCacheBust = `${publicUrl}?t=${Date.now()}`;
+
       // Update client profile in database
       const { error: updateError } = await supabase
         .from('clients')
@@ -404,7 +439,8 @@ export default function ClientDetailScreen() {
         throw new Error(`Database update failed: ${updateError.message}`);
       }
 
-      setProfilePictureUrl(publicUrl);
+      // Reload client data to refresh the image
+      await loadClientData();
       Alert.alert('Success', 'Profile picture updated successfully');
     } catch (error: any) {
       console.error('Full error details:', error);

@@ -15,6 +15,8 @@ import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
+import * as MediaLibrary from 'expo-media-library';
+import * as FileSystem from 'expo-file-system';
 import { supabase } from '../lib/supabase/client';
 import { getNextWorkout, getLastWorkout } from '../lib/supabase/workout-service';
 import ParticleBackground from '../components/ParticleBackground';
@@ -230,11 +232,16 @@ export default function ProfileScreen() {
 
   const pickImage = async () => {
     try {
-      // Request permission
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Sorry, we need camera roll permissions to upload a profile picture.');
-        return;
+      // Check current permission status first
+      const permission = await ImagePicker.getMediaLibraryPermissionsAsync();
+
+      // Only request if not already granted
+      if (!permission.granted) {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission Denied', 'Sorry, we need camera roll permissions to upload a profile picture.');
+          return;
+        }
       }
 
       // Pick image
@@ -242,7 +249,7 @@ export default function ProfileScreen() {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.5,
+        quality: 0.8,
       });
 
       if (!result.canceled && result.assets[0]) {
@@ -256,22 +263,46 @@ export default function ProfileScreen() {
 
   const takePicture = async () => {
     try {
-      // Request permission
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Sorry, we need camera permissions to take a profile picture.');
-        return;
+      // Check current camera permission status first
+      const cameraPermission = await ImagePicker.getCameraPermissionsAsync();
+
+      // Only request if not already granted
+      if (!cameraPermission.granted) {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission Denied', 'Sorry, we need camera permissions to take a profile picture.');
+          return;
+        }
       }
 
       // Take picture
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.5,
+        quality: 0.8,
       });
 
       if (!result.canceled && result.assets[0]) {
-        await uploadImage(result.assets[0].uri);
+        const photoUri = result.assets[0].uri;
+
+        // Save to camera roll - check permission first
+        try {
+          const mediaPermission = await MediaLibrary.getPermissionsAsync();
+          if (!mediaPermission.granted) {
+            const { status: mediaStatus } = await MediaLibrary.requestPermissionsAsync();
+            if (mediaStatus === 'granted') {
+              await MediaLibrary.saveToLibraryAsync(photoUri);
+              console.log('Photo saved to camera roll');
+            }
+          } else {
+            await MediaLibrary.saveToLibraryAsync(photoUri);
+            console.log('Photo saved to camera roll');
+          }
+        } catch (error) {
+          console.error('Error saving to camera roll:', error);
+        }
+
+        await uploadImage(photoUri);
       }
     } catch (error: any) {
       console.error('Error taking picture:', error);
@@ -280,49 +311,69 @@ export default function ProfileScreen() {
   };
 
   const uploadImage = async (uri: string) => {
+    if (!profile) return;
+
     try {
       setUploadingImage(true);
+      console.log('Starting image upload for profile:', profile.id);
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
 
-      // Convert URI to blob
-      const response = await fetch(uri);
-      const blob = await response.blob();
+      // Delete old profile picture if it exists
+      if (profile.profile_picture_url) {
+        try {
+          const oldUrl = profile.profile_picture_url.split('?')[0]; // Remove cache-busting params
+          const oldPath = oldUrl.split('/avatars/')[1];
+          if (oldPath) {
+            console.log('Deleting old profile picture:', oldPath);
+            await supabase.storage.from('avatars').remove([oldPath]);
+          }
+        } catch (deleteError) {
+          console.log('Could not delete old image (may not exist):', deleteError);
+        }
+      }
 
-      // Generate unique filename
-      const fileExt = uri.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const fileExt = uri.split('.').pop() || 'jpg';
+      const fileName = `${profile.id}-${Date.now()}.${fileExt}`;
       const filePath = `profile-pictures/${fileName}`;
 
-      // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, blob, {
-          contentType: 'image/jpeg',
-          upsert: true,
-        });
+      // Upload using expo-file-system's uploadAsync (works on React Native)
+      const uploadUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/storage/v1/object/avatars/${filePath}`;
 
-      if (uploadError) throw uploadError;
+      const uploadResult = await FileSystem.uploadAsync(uploadUrl, uri, {
+        httpMethod: 'POST',
+        uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+        fieldName: 'file',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
 
-      // Get public URL
+      if (uploadResult.status !== 200) {
+        throw new Error(`Upload failed: ${uploadResult.status} - ${uploadResult.body}`);
+      }
+
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
 
-      // Update profile in database
+      // Add cache-busting parameter to force image reload
+      const urlWithCacheBust = `${publicUrl}?t=${Date.now()}`;
+
       const { error: updateError } = await supabase
         .from('clients')
         .update({ profile_picture_url: publicUrl })
-        .eq('email', user.email);
+        .eq('id', profile.id);
 
       if (updateError) throw updateError;
 
-      setProfilePictureUrl(publicUrl);
+      // Reload profile data to refresh the image
+      await loadProfileData();
       Alert.alert('Success', 'Profile picture updated successfully');
     } catch (error: any) {
-      console.error('Error uploading image:', error);
-      Alert.alert('Error', 'Failed to upload profile picture');
+      console.error('Full error details:', error);
+      Alert.alert('Upload Failed', `${error?.message}`);
     } finally {
       setUploadingImage(false);
     }

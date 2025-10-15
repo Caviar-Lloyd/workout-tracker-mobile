@@ -24,8 +24,18 @@ interface Exercise {
   id: string;
   name: string;
   repRange: string; // e.g., "8-10" or "12-15"
+  repType: 'single' | 'range'; // single reps or rep range
+  repLow: string; // for range mode
+  repHigh: string; // for range mode
   sets: Set[];
   numSets: number;
+}
+
+interface Client {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
 }
 
 interface CustomWorkoutBuilderScreenProps {
@@ -33,6 +43,7 @@ interface CustomWorkoutBuilderScreenProps {
   onClose: () => void;
   clientEmail?: string;
   coachEmail: string;
+  clients?: Client[];
   onSave?: () => void;
 }
 
@@ -41,12 +52,23 @@ export default function CustomWorkoutBuilderScreen({
   onClose,
   clientEmail,
   coachEmail,
+  clients = [],
   onSave,
 }: CustomWorkoutBuilderScreenProps) {
   const [workoutName, setWorkoutName] = useState('');
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [selectedClients, setSelectedClients] = useState<number[]>([]);
+  const [showClientSelector, setShowClientSelector] = useState(false);
+
+  const toggleClientSelection = (clientId: number) => {
+    setSelectedClients(prev =>
+      prev.includes(clientId)
+        ? prev.filter(id => id !== clientId)
+        : [...prev, clientId]
+    );
+  };
 
   // Scheduler state
   const [showScheduler, setShowScheduler] = useState(false);
@@ -80,7 +102,10 @@ export default function CustomWorkoutBuilderScreen({
     const newExercise: Exercise = {
       id: Date.now().toString(),
       name: '',
-      repRange: '8-12', // Default rep range
+      repRange: '0',
+      repType: 'single',
+      repLow: '0',
+      repHigh: '0',
       sets: [{ reps: '', weight: '' }],
       numSets: 1,
     };
@@ -100,6 +125,48 @@ export default function CustomWorkoutBuilderScreen({
   const updateRepRange = (id: string, repRange: string) => {
     setExercises(
       exercises.map((ex) => (ex.id === id ? { ...ex, repRange } : ex))
+    );
+  };
+
+  const updateRepType = (id: string, repType: 'single' | 'range') => {
+    setExercises(
+      exercises.map((ex) => {
+        if (ex.id === id) {
+          // When switching to range, construct repRange from repLow-repHigh
+          if (repType === 'range') {
+            const low = ex.repLow || '0';
+            const high = ex.repHigh || '0';
+            return { ...ex, repType, repRange: `${low}-${high}` };
+          }
+          // When switching to single, use repRange as single value
+          return { ...ex, repType, repRange: ex.repRange };
+        }
+        return ex;
+      })
+    );
+  };
+
+  const updateRepLow = (id: string, repLow: string) => {
+    setExercises(
+      exercises.map((ex) => {
+        if (ex.id === id) {
+          const newRepRange = `${repLow}-${ex.repHigh}`;
+          return { ...ex, repLow, repRange: newRepRange };
+        }
+        return ex;
+      })
+    );
+  };
+
+  const updateRepHigh = (id: string, repHigh: string) => {
+    setExercises(
+      exercises.map((ex) => {
+        if (ex.id === id) {
+          const newRepRange = `${ex.repLow}-${repHigh}`;
+          return { ...ex, repHigh, repRange: newRepRange };
+        }
+        return ex;
+      })
     );
   };
 
@@ -165,8 +232,8 @@ export default function CustomWorkoutBuilderScreen({
       }
     }
 
-    // If assigning to client, show scheduler
-    if (clientEmail) {
+    // If assigning to specific client or selected clients, show scheduler
+    if (clientEmail || selectedClients.length > 0) {
       setShowScheduler(true);
     } else {
       // Just save as template
@@ -181,7 +248,7 @@ export default function CustomWorkoutBuilderScreen({
       // Format exercises for JSONB storage
       const formattedExercises = exercises.map((ex) => ({
         name: ex.name,
-        repRange: ex.repRange || '8-12',
+        repRange: ex.repRange || '0',
         sets: ex.sets.map((set) => ({
           reps: set.reps || '0',
           weight: set.weight || '0',
@@ -204,70 +271,95 @@ export default function CustomWorkoutBuilderScreen({
 
       if (workoutError) throw workoutError;
 
-      // If assigning to client, create assignment
-      if (assignToClient && clientEmail && workout) {
-        let assignmentData: any = {
-          custom_workout_id: workout.id,
-          client_email: clientEmail,
-          coach_email: coachEmail,
-          workout_type: workoutType,
-          notify_coach_on_completion: !autoResume,
-          auto_switch_to_program: autoResume,
-        };
+      // If assigning to client(s), create assignment(s)
+      if (assignToClient && workout) {
+        // Get list of client emails to assign to
+        const clientEmailsToAssign: string[] = [];
 
-        if (workoutType === 'workout') {
-          // Additional workout assignment
-          if (schedulingMode === 'one-time') {
-            // One-time workout on specific date
-            assignmentData.start_date = selectedDate.toISOString().split('T')[0];
-            assignmentData.end_date = selectedDate.toISOString().split('T')[0];
-            assignmentData.scheduling_mode = 'one-time';
-            assignmentData.status = 'active';
-          } else {
-            // Duration-based recurring workout
-            const weeks = parseInt(duration) || 4;
-            const startDate = new Date();
-            const endDate = new Date();
-            endDate.setDate(startDate.getDate() + weeks * 7);
-
-            assignmentData.start_date = startDate.toISOString().split('T')[0];
-            assignmentData.end_date = endDate.toISOString().split('T')[0];
-            assignmentData.duration_weeks = weeks;
-            assignmentData.frequency_days = selectedDays;
-            assignmentData.scheduling_mode = 'duration';
-            assignmentData.status = 'active';
-          }
-        } else {
-          // Warm-up assignment - associate with program days
-          assignmentData.program_days = selectedProgramDays;
-          assignmentData.scheduling_mode = 'warmup';
-          assignmentData.status = 'active';
+        if (clientEmail) {
+          // Single client assignment (from client detail view)
+          clientEmailsToAssign.push(clientEmail);
+        } else if (selectedClients.length > 0) {
+          // Multiple client assignment (from clients list view)
+          const selectedClientObjects = clients.filter(c => selectedClients.includes(c.id));
+          clientEmailsToAssign.push(...selectedClientObjects.map(c => c.email));
         }
 
-        const { error: assignmentError } = await supabase
-          .from('custom_workout_assignments')
-          .insert(assignmentData);
+        // Create assignments for each client
+        for (const email of clientEmailsToAssign) {
+          let assignmentData: any = {
+            custom_workout_id: workout.id,
+            client_email: email,
+            coach_email: coachEmail,
+            workout_type: workoutType,
+            notify_coach_on_completion: !autoResume,
+            auto_switch_to_program: autoResume,
+          };
 
-        if (assignmentError) throw assignmentError;
+          if (workoutType === 'workout') {
+            // Additional workout assignment
+            if (schedulingMode === 'one-time') {
+              // One-time workout on specific date
+              assignmentData.start_date = selectedDate.toISOString().split('T')[0];
+              assignmentData.end_date = selectedDate.toISOString().split('T')[0];
+              assignmentData.scheduling_mode = 'one-time';
+              assignmentData.status = 'active';
+            } else {
+              // Duration-based recurring workout
+              const weeks = parseInt(duration) || 4;
+              const startDate = new Date();
+              const endDate = new Date();
+              endDate.setDate(startDate.getDate() + weeks * 7);
 
-        // Update client program assignment to 'custom' only for full workouts, not warm-ups
-        if (workoutType === 'workout') {
-          const { error: programError } = await supabase
-            .from('client_program_assignments')
-            .update({ program_type: 'custom' })
-            .eq('client_email', clientEmail);
+              assignmentData.start_date = startDate.toISOString().split('T')[0];
+              assignmentData.end_date = endDate.toISOString().split('T')[0];
+              assignmentData.duration_weeks = weeks;
+              assignmentData.frequency_days = selectedDays;
+              assignmentData.scheduling_mode = 'duration';
+              assignmentData.status = 'active';
+            }
+          } else {
+            // Warm-up assignment - associate with program days
+            assignmentData.program_days = selectedProgramDays;
+            assignmentData.scheduling_mode = 'warmup';
+            assignmentData.status = 'active';
+          }
 
-          if (programError) throw programError;
+          const { error: assignmentError } = await supabase
+            .from('custom_workout_assignments')
+            .insert(assignmentData);
+
+          if (assignmentError) throw assignmentError;
+
+          // Update client program assignment to 'custom' only for full workouts, not warm-ups
+          if (workoutType === 'workout') {
+            const { error: programError } = await supabase
+              .from('client_program_assignments')
+              .update({ program_type: 'custom' })
+              .eq('client_email', email);
+
+            if (programError) throw programError;
+          }
         }
       }
 
-      Alert.alert('Success', `${workoutType === 'warmup' ? 'Warm-up' : 'Workout'} saved successfully!`);
+      // Success message
+      let successMessage = `${workoutType === 'warmup' ? 'Warm-up' : 'Workout'} saved successfully!`;
+      if (assignToClient) {
+        const clientCount = clientEmail ? 1 : selectedClients.length;
+        if (clientCount > 0) {
+          successMessage += ` Assigned to ${clientCount} client${clientCount > 1 ? 's' : ''}.`;
+        }
+      }
+      Alert.alert('Success', successMessage);
 
       // Reset form
       setWorkoutName('');
       setExercises([]);
       setNotes('');
       setShowScheduler(false);
+      setSelectedClients([]);
+      setShowClientSelector(false);
 
       if (onSave) onSave();
       onClose();
@@ -330,6 +422,46 @@ export default function CustomWorkoutBuilderScreen({
               />
             </View>
 
+            {/* Client Selection - only show if no specific clientEmail and clients available */}
+            {!clientEmail && clients.length > 0 && (
+              <View style={styles.section}>
+                <TouchableOpacity
+                  style={styles.clientSelectorToggle}
+                  onPress={() => setShowClientSelector(!showClientSelector)}
+                >
+                  <View>
+                    <Text style={styles.label}>Assign to Clients (Optional)</Text>
+                    <Text style={styles.clientSelectorHint}>
+                      {selectedClients.length === 0
+                        ? 'Tap to select clients'
+                        : `${selectedClients.length} client${selectedClients.length > 1 ? 's' : ''} selected`}
+                    </Text>
+                  </View>
+                  <Text style={styles.clientSelectorArrow}>{showClientSelector ? '▼' : '▶'}</Text>
+                </TouchableOpacity>
+
+                {showClientSelector && (
+                  <View style={styles.clientList}>
+                    {clients.map((client) => (
+                      <TouchableOpacity
+                        key={client.id}
+                        style={styles.clientItem}
+                        onPress={() => toggleClientSelection(client.id)}
+                      >
+                        <View style={[styles.checkbox, selectedClients.includes(client.id) && styles.checkboxChecked]}>
+                          {selectedClients.includes(client.id) && <View style={styles.checkboxInner} />}
+                        </View>
+                        <Text style={styles.clientName}>
+                          {client.first_name} {client.last_name}
+                        </Text>
+                        <Text style={styles.clientEmail}>{client.email}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
+
             {/* Exercises */}
             <View style={styles.section}>
               <Text style={styles.label}>Exercises</Text>
@@ -355,17 +487,89 @@ export default function CustomWorkoutBuilderScreen({
                     onChangeText={(text) => updateExerciseName(exercise.id, text)}
                   />
 
-                  {/* Rep Range */}
+                  {/* Rep Type Selector */}
+                  <View style={styles.repTypeContainer}>
+                    <Text style={styles.repRangeLabel}>Rep Type</Text>
+                    <View style={styles.repTypeButtons}>
+                      <TouchableOpacity
+                        style={[
+                          styles.repTypeButton,
+                          exercise.repType === 'single' && styles.repTypeButtonActive,
+                        ]}
+                        onPress={() => updateRepType(exercise.id, 'single')}
+                      >
+                        <Text
+                          style={[
+                            styles.repTypeButtonText,
+                            exercise.repType === 'single' && styles.repTypeButtonTextActive,
+                          ]}
+                        >
+                          Single
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.repTypeButton,
+                          exercise.repType === 'range' && styles.repTypeButtonActive,
+                        ]}
+                        onPress={() => updateRepType(exercise.id, 'range')}
+                      >
+                        <Text
+                          style={[
+                            styles.repTypeButtonText,
+                            exercise.repType === 'range' && styles.repTypeButtonTextActive,
+                          ]}
+                        >
+                          Range
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {/* Rep Input */}
                   <View style={styles.repRangeContainer}>
-                    <Text style={styles.repRangeLabel}>Rep Range</Text>
-                    <TextInput
-                      style={styles.repRangeInput}
-                      placeholder="8-12"
-                      placeholderTextColor="#666"
-                      value={exercise.repRange}
-                      onChangeText={(text) => updateRepRange(exercise.id, text)}
-                    />
-                    <Text style={styles.repRangeHint}>e.g., "8-10" or "12-15"</Text>
+                    {exercise.repType === 'single' ? (
+                      <>
+                        <Text style={styles.repRangeLabel}>Reps</Text>
+                        <TextInput
+                          style={styles.repRangeInput}
+                          placeholder="0"
+                          placeholderTextColor="#666"
+                          keyboardType="numeric"
+                          value={exercise.repRange}
+                          onChangeText={(text) => updateRepRange(exercise.id, text)}
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <Text style={styles.repRangeLabel}>Rep Range</Text>
+                        <View style={styles.repRangeRow}>
+                          <View style={styles.repRangeInputGroup}>
+                            <Text style={styles.repRangeInputLabel}>Low</Text>
+                            <TextInput
+                              style={styles.repRangeInputSmall}
+                              placeholder="0"
+                              placeholderTextColor="#666"
+                              keyboardType="numeric"
+                              value={exercise.repLow}
+                              onChangeText={(text) => updateRepLow(exercise.id, text)}
+                            />
+                          </View>
+                          <Text style={styles.repRangeDash}>-</Text>
+                          <View style={styles.repRangeInputGroup}>
+                            <Text style={styles.repRangeInputLabel}>High</Text>
+                            <TextInput
+                              style={styles.repRangeInputSmall}
+                              placeholder="0"
+                              placeholderTextColor="#666"
+                              keyboardType="numeric"
+                              value={exercise.repHigh}
+                              onChangeText={(text) => updateRepHigh(exercise.id, text)}
+                            />
+                          </View>
+                        </View>
+                      </>
+                    )}
                   </View>
 
                   {/* Number of Sets */}
@@ -473,7 +677,7 @@ export default function CustomWorkoutBuilderScreen({
                 <ActivityIndicator color="#0a0e27" />
               ) : (
                 <Text style={styles.saveButtonText}>
-                  {clientEmail ? 'Continue to Schedule' : 'Save Template'}
+                  {clientEmail || selectedClients.length > 0 ? 'Continue to Schedule' : 'Save Template'}
                 </Text>
               )}
             </TouchableOpacity>
@@ -822,6 +1026,34 @@ const styles = StyleSheet.create({
   deleteButton: {
     padding: 4,
   },
+  repTypeContainer: {
+    marginTop: 12,
+  },
+  repTypeButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  repTypeButton: {
+    flex: 1,
+    borderRadius: 8,
+    padding: 10,
+    alignItems: 'center',
+    backgroundColor: '#0a0e27',
+    borderWidth: 1,
+    borderColor: '#2a2f4a',
+  },
+  repTypeButtonActive: {
+    backgroundColor: '#2ddbdb',
+    borderColor: '#2ddbdb',
+  },
+  repTypeButtonText: {
+    color: '#999',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  repTypeButtonTextActive: {
+    color: '#0a0e27',
+  },
   repRangeContainer: {
     marginTop: 12,
   },
@@ -838,7 +1070,34 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderColor: '#2a2f4a',
+  },
+  repRangeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  repRangeInputGroup: {
+    flex: 1,
+  },
+  repRangeInputLabel: {
+    fontSize: 12,
+    color: '#666',
     marginBottom: 4,
+  },
+  repRangeInputSmall: {
+    backgroundColor: '#0a0e27',
+    borderRadius: 8,
+    padding: 12,
+    color: '#fff',
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#2a2f4a',
+  },
+  repRangeDash: {
+    color: '#999',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 16,
   },
   repRangeHint: {
     fontSize: 12,
@@ -1131,5 +1390,51 @@ const styles = StyleSheet.create({
   },
   programDayButtonTextActive: {
     color: '#0a0e27',
+  },
+  clientSelectorToggle: {
+    backgroundColor: '#1a1f3a',
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#2a2f4a',
+  },
+  clientSelectorHint: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+  },
+  clientSelectorArrow: {
+    fontSize: 18,
+    color: '#2ddbdb',
+  },
+  clientList: {
+    marginTop: 12,
+    backgroundColor: '#0a0e27',
+    borderRadius: 12,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#2a2f4a',
+  },
+  clientItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a1f3a',
+  },
+  clientName: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+    marginLeft: 12,
+    flex: 1,
+  },
+  clientEmail: {
+    color: '#666',
+    fontSize: 12,
+    marginLeft: 8,
   },
 });
