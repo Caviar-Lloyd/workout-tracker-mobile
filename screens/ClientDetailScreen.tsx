@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Platform, Modal } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -155,6 +155,10 @@ export default function ClientDetailScreen() {
   // Custom workout selector
   const [selectedWeek, setSelectedWeek] = useState<WeekNumber>(1);
   const [selectedDay, setSelectedDay] = useState<DayNumber>(1);
+
+  // Dropdown modals
+  const [showWeekDropdown, setShowWeekDropdown] = useState(false);
+  const [showDayDropdown, setShowDayDropdown] = useState(false);
 
   // Custom workout name
   const customWorkoutName = WORKOUT_NAMES[selectedDay] || 'Unknown Workout';
@@ -422,75 +426,79 @@ export default function ClientDetailScreen() {
             <Text style={styles.sectionTitle}>Profile Information</Text>
 
             <View style={styles.infoCard}>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>First Name</Text>
-                {isEditing ? (
-                  <TextInput
-                    style={styles.input}
-                    value={firstName}
-                    onChangeText={setFirstName}
-                    placeholder="First Name"
-                    placeholderTextColor="#6b7280"
-                  />
-                ) : (
-                  <Text style={styles.infoValue}>{client.first_name}</Text>
-                )}
+              {/* Row 1: First Name & Last Name */}
+              <View style={styles.twoColumnRow}>
+                <View style={styles.columnItem}>
+                  <Text style={styles.infoLabel}>First Name</Text>
+                  {isEditing ? (
+                    <TextInput
+                      style={styles.input}
+                      value={firstName}
+                      onChangeText={setFirstName}
+                      placeholder="First Name"
+                      placeholderTextColor="#6b7280"
+                    />
+                  ) : (
+                    <Text style={styles.infoValue}>{client.first_name}</Text>
+                  )}
+                </View>
+
+                <View style={styles.columnItem}>
+                  <Text style={styles.infoLabel}>Last Name</Text>
+                  {isEditing ? (
+                    <TextInput
+                      style={styles.input}
+                      value={lastName}
+                      onChangeText={setLastName}
+                      placeholder="Last Name"
+                      placeholderTextColor="#6b7280"
+                    />
+                  ) : (
+                    <Text style={styles.infoValue}>{client.last_name}</Text>
+                  )}
+                </View>
               </View>
 
               <View style={styles.divider} />
 
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Last Name</Text>
-                {isEditing ? (
-                  <TextInput
-                    style={styles.input}
-                    value={lastName}
-                    onChangeText={setLastName}
-                    placeholder="Last Name"
-                    placeholderTextColor="#6b7280"
-                  />
-                ) : (
-                  <Text style={styles.infoValue}>{client.last_name}</Text>
-                )}
-              </View>
+              {/* Row 2: Phone & Email */}
+              <View style={styles.twoColumnRow}>
+                <View style={styles.columnItem}>
+                  <Text style={styles.infoLabel}>Phone</Text>
+                  {isEditing ? (
+                    <TextInput
+                      style={styles.input}
+                      value={phone}
+                      onChangeText={setPhone}
+                      placeholder="Phone"
+                      placeholderTextColor="#6b7280"
+                      keyboardType="phone-pad"
+                    />
+                  ) : (
+                    <Text style={styles.infoValue}>
+                      {client.phone || 'Not provided'}
+                    </Text>
+                  )}
+                </View>
 
-              <View style={styles.divider} />
-
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Email</Text>
-                {isEditing ? (
-                  <TextInput
-                    style={styles.input}
-                    value={email}
-                    onChangeText={setEmail}
-                    placeholder="Email"
-                    placeholderTextColor="#6b7280"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                  />
-                ) : (
-                  <Text style={styles.infoValue}>{client.email}</Text>
-                )}
-              </View>
-
-              <View style={styles.divider} />
-
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Phone</Text>
-                {isEditing ? (
-                  <TextInput
-                    style={styles.input}
-                    value={phone}
-                    onChangeText={setPhone}
-                    placeholder="Phone Number"
-                    placeholderTextColor="#6b7280"
-                    keyboardType="phone-pad"
-                  />
-                ) : (
-                  <Text style={styles.infoValue}>
-                    {client.phone || 'Not provided'}
-                  </Text>
-                )}
+                <View style={styles.columnItem}>
+                  <Text style={styles.infoLabel}>Email</Text>
+                  {isEditing ? (
+                    <TextInput
+                      style={styles.input}
+                      value={email}
+                      onChangeText={setEmail}
+                      placeholder="Email"
+                      placeholderTextColor="#6b7280"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                    />
+                  ) : (
+                    <Text style={styles.infoValue} numberOfLines={1}>
+                      {client.email}
+                    </Text>
+                  )}
+                </View>
               </View>
             </View>
           </View>
@@ -506,200 +514,224 @@ export default function ClientDetailScreen() {
               </View>
             ) : (
               <>
-                {/* Last Completed Workout */}
-                <View style={styles.workoutCard}>
-                  <View style={styles.workoutCardHeader}>
-                    <Text style={styles.workoutCardLabel}>Last Completed</Text>
+                {/* Workout Progress Cards - 2 Column Layout */}
+                <View style={styles.workoutCardsRow}>
+                  {/* Last Completed Workout */}
+                  <View style={styles.workoutCardSmall}>
+                    <Text style={styles.workoutCardLabelSmall}>COMPLETED</Text>
+                    {lastWorkout ? (
+                      <>
+                        <Text style={styles.workoutCardTitleSmall} numberOfLines={2}>
+                          {lastWorkout.workoutName}
+                        </Text>
+                        <Text style={styles.workoutCardMetaSmall}>
+                          Week {lastWorkout.week} • Day {lastWorkout.day}
+                        </Text>
+                        <Text style={styles.workoutCardDateSmall}>
+                          {new Date(lastWorkout.date).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                          })}
+                        </Text>
+                      </>
+                    ) : (
+                      <Text style={styles.workoutCardEmptySmall}>
+                        No workouts yet
+                      </Text>
+                    )}
                   </View>
-                  {lastWorkout ? (
-                    <>
-                      <Text style={styles.workoutCardTitle}>
-                        {lastWorkout.workoutName}
-                      </Text>
-                      <Text style={styles.workoutCardMeta}>
-                        Week {lastWorkout.week} • Day {lastWorkout.day}
-                      </Text>
-                      <Text style={styles.workoutCardDate}>
-                        {new Date(lastWorkout.date).toLocaleDateString('en-US', {
-                          weekday: 'long',
-                          month: 'long',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })}
-                      </Text>
-                    </>
-                  ) : (
-                    <Text style={styles.workoutCardEmpty}>
-                      No workouts completed yet
-                    </Text>
-                  )}
-                </View>
 
-                {/* Next Scheduled Workout */}
-                <View style={[styles.workoutCard, styles.nextWorkoutCard]}>
-                  <View style={styles.workoutCardHeader}>
-                    <Text style={styles.workoutCardLabel}>Next Workout</Text>
+                  {/* Next Scheduled Workout */}
+                  <View style={[styles.workoutCardSmall, styles.nextWorkoutCardSmall]}>
+                    <Text style={styles.workoutCardLabelSmall}>NEXT WORKOUT</Text>
+                    {nextWorkout ? (
+                      <>
+                        <Text style={styles.workoutCardTitleSmall} numberOfLines={2}>
+                          {nextWorkout.workoutName}
+                        </Text>
+                        <Text style={styles.workoutCardMetaSmall}>
+                          Week {nextWorkout.week} • Day {nextWorkout.day}
+                        </Text>
+                        {/* Start Workout Button */}
+                        <TouchableOpacity
+                          style={styles.startWorkoutButtonSmall}
+                          onPress={handleStartWorkout}
+                          activeOpacity={0.8}
+                        >
+                          <PlayIcon />
+                          <Text style={styles.startWorkoutButtonTextSmall}>Start</Text>
+                        </TouchableOpacity>
+                      </>
+                    ) : (
+                      <Text style={styles.workoutCardEmptySmall}>
+                        No workout scheduled
+                      </Text>
+                    )}
                   </View>
-                  {nextWorkout ? (
-                    <>
-                      <Text style={styles.workoutCardTitle}>
-                        {nextWorkout.workoutName}
-                      </Text>
-                      <Text style={styles.workoutCardMeta}>
-                        Week {nextWorkout.week} • Day {nextWorkout.day}
-                      </Text>
-                    </>
-                  ) : (
-                    <Text style={styles.workoutCardEmpty}>
-                      No workout scheduled
-                    </Text>
-                  )}
                 </View>
-
-                {/* Create Custom Workout Button */}
-                <TouchableOpacity
-                  style={styles.createCustomWorkoutButton}
-                  onPress={() => setShowCustomWorkoutBuilder(true)}
-                  activeOpacity={0.8}
-                >
-                  <LinearGradient
-                    colors={['#9333ea', '#7e22ce']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.createCustomWorkoutGradient}
-                  >
-                    <Text style={styles.createCustomWorkoutText}>
-                      + Create Custom Workout
-                    </Text>
-                  </LinearGradient>
-                </TouchableOpacity>
 
                 {/* Custom Workout Selector */}
                 <View style={styles.customWorkoutSection}>
-                  <View style={styles.customWorkoutHeader}>
-                    <Text style={styles.customWorkoutTitle}>Choose Custom Workout</Text>
-                    <Text style={styles.customWorkoutSubtitle}>Select a different workout to train</Text>
+                  <Text style={styles.customWorkoutTitle}>Choose Custom Workout</Text>
+
+                  {/* Dropdowns Row */}
+                  <View style={styles.dropdownsRow}>
+                    {/* Week Dropdown */}
+                    <View style={styles.dropdownContainer}>
+                      <Text style={styles.dropdownLabel}>Week</Text>
+                      <TouchableOpacity
+                        style={styles.dropdownButton}
+                        onPress={() => setShowWeekDropdown(true)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.dropdownButtonText}>Week {selectedWeek}</Text>
+                        <Text style={styles.dropdownArrow}>▼</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Day Dropdown */}
+                    <View style={styles.dropdownContainer}>
+                      <Text style={styles.dropdownLabel}>Day</Text>
+                      <TouchableOpacity
+                        style={styles.dropdownButton}
+                        onPress={() => setShowDayDropdown(true)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.dropdownButtonText}>Day {selectedDay}</Text>
+                        <Text style={styles.dropdownArrow}>▼</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
 
-                  {/* Week Selector */}
-                  <View style={styles.selectorContainer}>
-                    <Text style={styles.selectorLabel}>Week</Text>
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      style={styles.selectorScroll}
-                      contentContainerStyle={styles.selectorContent}
+                  {/* Workout Preview */}
+                  <Text style={styles.workoutPreviewNameCompact} numberOfLines={2}>
+                    {customWorkoutName}
+                  </Text>
+
+                  {/* Action Buttons Row */}
+                  <View style={styles.actionButtonsRow}>
+                    {/* Start Workout Button */}
+                    <TouchableOpacity
+                      style={styles.startWorkoutButtonCompact}
+                      onPress={handleStartCustomWorkout}
+                      activeOpacity={0.8}
                     >
-                      {Array.from({ length: 6 }, (_, i) => i + 1).map((week) => (
-                        <TouchableOpacity
-                          key={week}
-                          style={[
-                            styles.selectorButton,
-                            selectedWeek === week && styles.selectorButtonSelected,
-                          ]}
-                          onPress={() => setSelectedWeek(week as WeekNumber)}
-                          activeOpacity={0.7}
-                        >
-                          <Text
-                            style={[
-                              styles.selectorButtonText,
-                              selectedWeek === week && styles.selectorButtonTextSelected,
-                            ]}
-                          >
-                            {week}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
+                      <LinearGradient
+                        colors={['#2ddbdb', '#1fb8b8']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.compactButtonGradient}
+                      >
+                        <PlayIcon />
+                        <Text style={styles.compactButtonText}>Start Workout</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
 
-                  {/* Day Selector */}
-                  <View style={styles.selectorContainer}>
-                    <Text style={styles.selectorLabel}>Day</Text>
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      style={styles.selectorScroll}
-                      contentContainerStyle={styles.selectorContent}
+                    {/* Create Custom Workout Button */}
+                    <TouchableOpacity
+                      style={styles.createCustomButtonCompact}
+                      onPress={() => setShowCustomWorkoutBuilder(true)}
+                      activeOpacity={0.8}
                     >
-                      {Array.from({ length: 6 }, (_, i) => i + 1).map((day) => (
-                        <TouchableOpacity
-                          key={day}
-                          style={[
-                            styles.selectorButton,
-                            selectedDay === day && styles.selectorButtonSelected,
-                          ]}
-                          onPress={() => setSelectedDay(day as DayNumber)}
-                          activeOpacity={0.7}
-                        >
-                          <Text
-                            style={[
-                              styles.selectorButtonText,
-                              selectedDay === day && styles.selectorButtonTextSelected,
-                            ]}
-                          >
-                            {day}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
+                      <LinearGradient
+                        colors={['#9333ea', '#7e22ce']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.compactButtonGradient}
+                      >
+                        <Text style={styles.compactButtonText}>+ Create</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
                   </View>
-
-                  {/* Selected Workout Preview */}
-                  <View style={styles.workoutPreview}>
-                    <Text style={styles.workoutPreviewLabel}>Selected Workout</Text>
-                    <Text style={styles.workoutPreviewName}>{customWorkoutName}</Text>
-                    <Text style={styles.workoutPreviewMeta}>
-                      Week {selectedWeek} • Day {selectedDay}
-                    </Text>
-                  </View>
-
-                  {/* Start Custom Workout Button */}
-                  <TouchableOpacity
-                    style={styles.startCustomWorkoutButton}
-                    onPress={handleStartCustomWorkout}
-                    activeOpacity={0.8}
-                  >
-                    <LinearGradient
-                      colors={['#2ddbdb', '#1fb8b8']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.startWorkoutGradient}
-                    >
-                      <PlayIcon />
-                      <Text style={styles.startWorkoutText}>
-                        Start Custom Workout
-                      </Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
                 </View>
-
-                {/* Start Workout Button */}
-                {nextWorkout && (
-                  <TouchableOpacity
-                    style={styles.startWorkoutButton}
-                    onPress={handleStartWorkout}
-                    activeOpacity={0.8}
-                  >
-                    <LinearGradient
-                      colors={['#2ddbdb', '#1fb8b8']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.startWorkoutGradient}
-                    >
-                      <PlayIcon />
-                      <Text style={styles.startWorkoutText}>
-                        Start Next Workout
-                      </Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                )}
               </>
             )}
           </View>
         </ScrollView>
         </View>
       </View>
+
+      {/* Week Dropdown Modal */}
+      <Modal
+        visible={showWeekDropdown}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowWeekDropdown(false)}
+      >
+        <TouchableOpacity
+          style={styles.dropdownOverlay}
+          activeOpacity={1}
+          onPress={() => setShowWeekDropdown(false)}
+        >
+          <View style={styles.dropdownModal}>
+            <Text style={styles.dropdownModalTitle}>Select Week</Text>
+            {Array.from({ length: 6 }, (_, i) => i + 1).map((week) => (
+              <TouchableOpacity
+                key={week}
+                style={[
+                  styles.dropdownOption,
+                  selectedWeek === week && styles.dropdownOptionSelected,
+                ]}
+                onPress={() => {
+                  setSelectedWeek(week as WeekNumber);
+                  setShowWeekDropdown(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.dropdownOptionText,
+                    selectedWeek === week && styles.dropdownOptionTextSelected,
+                  ]}
+                >
+                  Week {week}
+                </Text>
+                {selectedWeek === week && <Text style={styles.checkmark}>✓</Text>}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Day Dropdown Modal */}
+      <Modal
+        visible={showDayDropdown}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowDayDropdown(false)}
+      >
+        <TouchableOpacity
+          style={styles.dropdownOverlay}
+          activeOpacity={1}
+          onPress={() => setShowDayDropdown(false)}
+        >
+          <View style={styles.dropdownModal}>
+            <Text style={styles.dropdownModalTitle}>Select Day</Text>
+            {Array.from({ length: 6 }, (_, i) => i + 1).map((day) => (
+              <TouchableOpacity
+                key={day}
+                style={[
+                  styles.dropdownOption,
+                  selectedDay === day && styles.dropdownOptionSelected,
+                ]}
+                onPress={() => {
+                  setSelectedDay(day as DayNumber);
+                  setShowDayDropdown(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.dropdownOptionText,
+                    selectedDay === day && styles.dropdownOptionTextSelected,
+                  ]}
+                >
+                  Day {day} - {WORKOUT_NAMES[day]}
+                </Text>
+                {selectedDay === day && <Text style={styles.checkmark}>✓</Text>}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Custom Workout Builder Modal */}
       <CustomWorkoutBuilderScreen
@@ -1071,6 +1103,201 @@ const styles = StyleSheet.create({
   },
   createCustomWorkoutText: {
     fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  // Two-column layout styles
+  twoColumnRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  columnItem: {
+    flex: 1,
+  },
+  // Compact workout cards
+  workoutCardsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  workoutCardSmall: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    minHeight: 140,
+  },
+  nextWorkoutCardSmall: {
+    backgroundColor: 'rgba(45, 219, 219, 0.1)',
+    borderColor: 'rgba(45, 219, 219, 0.3)',
+  },
+  workoutCardLabelSmall: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: '#9ca3af',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  workoutCardTitleSmall: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 6,
+    lineHeight: 16,
+  },
+  workoutCardMetaSmall: {
+    fontSize: 11,
+    color: '#9ca3af',
+    marginBottom: 6,
+  },
+  workoutCardDateSmall: {
+    fontSize: 10,
+    color: '#2ddbdb',
+    fontWeight: '500',
+  },
+  workoutCardEmptySmall: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontStyle: 'italic',
+    marginTop: 8,
+  },
+  startWorkoutButtonSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2ddbdb',
+    borderRadius: 8,
+    padding: 8,
+    marginTop: 8,
+    gap: 6,
+  },
+  startWorkoutButtonTextSmall: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  // Dropdown styles
+  dropdownsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  dropdownContainer: {
+    flex: 1,
+  },
+  dropdownLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#9ca3af',
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  dropdownButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(45, 219, 219, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(45, 219, 219, 0.3)',
+    borderRadius: 10,
+    padding: 12,
+  },
+  dropdownButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  dropdownArrow: {
+    fontSize: 10,
+    color: '#2ddbdb',
+  },
+  dropdownOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  dropdownModal: {
+    backgroundColor: '#1a1f3a',
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
+    maxWidth: 300,
+    borderWidth: 1,
+    borderColor: 'rgba(45, 219, 219, 0.3)',
+  },
+  dropdownModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2ddbdb',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  dropdownOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  dropdownOptionSelected: {
+    backgroundColor: 'rgba(45, 219, 219, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(45, 219, 219, 0.5)',
+  },
+  dropdownOptionText: {
+    fontSize: 14,
+    color: '#fff',
+    flex: 1,
+  },
+  dropdownOptionTextSelected: {
+    fontWeight: 'bold',
+    color: '#2ddbdb',
+  },
+  checkmark: {
+    fontSize: 16,
+    color: '#2ddbdb',
+    fontWeight: 'bold',
+  },
+  // Compact workout preview
+  workoutPreviewNameCompact: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 12,
+    lineHeight: 18,
+  },
+  // Action buttons row
+  actionButtonsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  startWorkoutButtonCompact: {
+    flex: 1.2,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  createCustomButtonCompact: {
+    flex: 0.8,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  compactButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    gap: 6,
+  },
+  compactButtonText: {
+    fontSize: 13,
     fontWeight: 'bold',
     color: '#fff',
   },
