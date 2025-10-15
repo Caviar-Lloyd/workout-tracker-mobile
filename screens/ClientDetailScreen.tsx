@@ -9,6 +9,7 @@ import ParticleBackground from '../components/ParticleBackground';
 import Svg, { Path } from 'react-native-svg';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
+import * as MediaLibrary from 'expo-media-library';
 import { decode } from 'base64-arraybuffer';
 import type { WeekNumber, DayNumber } from '../types/workout';
 import CustomWorkoutBuilderScreen from './CustomWorkoutBuilderScreen';
@@ -308,8 +309,8 @@ export default function ClientDetailScreen() {
   };
 
   const takePicture = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
+    const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
+    if (cameraStatus !== 'granted') {
       Alert.alert('Permission Denied', 'We need camera permissions to take a profile picture.');
       return;
     }
@@ -317,11 +318,25 @@ export default function ClientDetailScreen() {
     const result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.5,
+      quality: 0.8,
     });
 
     if (!result.canceled && result.assets[0]) {
-      await uploadImage(result.assets[0].uri);
+      const photoUri = result.assets[0].uri;
+
+      // Save to camera roll
+      try {
+        const { status: mediaStatus } = await MediaLibrary.requestPermissionsAsync();
+        if (mediaStatus === 'granted') {
+          await MediaLibrary.saveToLibraryAsync(photoUri);
+          console.log('Photo saved to camera roll');
+        }
+      } catch (error) {
+        console.error('Error saving to camera roll:', error);
+        // Don't block upload if save fails
+      }
+
+      await uploadImage(photoUri);
     }
   };
 
