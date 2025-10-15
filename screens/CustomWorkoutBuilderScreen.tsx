@@ -9,7 +9,9 @@ import {
   Alert,
   Modal,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '../lib/supabase/client';
 import { X as XIcon, Plus as PlusIcon, Trash as TrashIcon } from 'lucide-react-native';
 
@@ -48,8 +50,19 @@ export default function CustomWorkoutBuilderScreen({
 
   // Scheduler state
   const [showScheduler, setShowScheduler] = useState(false);
-  const [totalSessions, setTotalSessions] = useState('6');
+  const [workoutType, setWorkoutType] = useState<'workout' | 'warmup'>('workout'); // workout or warmup
+
+  // Workout-specific state
+  const [schedulingMode, setSchedulingMode] = useState<'one-time' | 'duration'>('duration'); // one-time or duration
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [duration, setDuration] = useState('4'); // Number of weeks
   const [selectedDays, setSelectedDays] = useState<number[]>([1, 3, 5]); // Mon, Wed, Fri
+
+  // Warm-up specific state
+  const [selectedProgramDays, setSelectedProgramDays] = useState<number[]>([1]); // Program day 1, 2, 3, etc.
+
+  // Common state
   const [saveAsTemplate, setSaveAsTemplate] = useState(true);
   const [autoResume, setAutoResume] = useState(true);
 
@@ -125,6 +138,14 @@ export default function CustomWorkoutBuilderScreen({
     }
   };
 
+  const toggleProgramDay = (day: number) => {
+    if (selectedProgramDays.includes(day)) {
+      setSelectedProgramDays(selectedProgramDays.filter((d) => d !== day));
+    } else {
+      setSelectedProgramDays([...selectedProgramDays, day].sort());
+    }
+  };
+
   const handleSaveWorkout = async () => {
     // Validate inputs
     if (!workoutName.trim()) {
@@ -176,6 +197,7 @@ export default function CustomWorkoutBuilderScreen({
           exercises: formattedExercises,
           notes: notes || null,
           is_template: isTemplate,
+          workout_type: workoutType, // 'workout' or 'warmup'
         })
         .select()
         .single();
@@ -184,35 +206,62 @@ export default function CustomWorkoutBuilderScreen({
 
       // If assigning to client, create assignment
       if (assignToClient && clientEmail && workout) {
-        const sessions = parseInt(totalSessions) || 6;
+        let assignmentData: any = {
+          custom_workout_id: workout.id,
+          client_email: clientEmail,
+          coach_email: coachEmail,
+          workout_type: workoutType,
+          notify_coach_on_completion: !autoResume,
+          auto_switch_to_program: autoResume,
+        };
+
+        if (workoutType === 'workout') {
+          // Additional workout assignment
+          if (schedulingMode === 'one-time') {
+            // One-time workout on specific date
+            assignmentData.start_date = selectedDate.toISOString().split('T')[0];
+            assignmentData.end_date = selectedDate.toISOString().split('T')[0];
+            assignmentData.scheduling_mode = 'one-time';
+            assignmentData.status = 'active';
+          } else {
+            // Duration-based recurring workout
+            const weeks = parseInt(duration) || 4;
+            const startDate = new Date();
+            const endDate = new Date();
+            endDate.setDate(startDate.getDate() + weeks * 7);
+
+            assignmentData.start_date = startDate.toISOString().split('T')[0];
+            assignmentData.end_date = endDate.toISOString().split('T')[0];
+            assignmentData.duration_weeks = weeks;
+            assignmentData.frequency_days = selectedDays;
+            assignmentData.scheduling_mode = 'duration';
+            assignmentData.status = 'active';
+          }
+        } else {
+          // Warm-up assignment - associate with program days
+          assignmentData.program_days = selectedProgramDays;
+          assignmentData.scheduling_mode = 'warmup';
+          assignmentData.status = 'active';
+        }
 
         const { error: assignmentError } = await supabase
           .from('custom_workout_assignments')
-          .insert({
-            custom_workout_id: workout.id,
-            client_email: clientEmail,
-            coach_email: coachEmail,
-            start_date: new Date().toISOString().split('T')[0],
-            total_sessions: sessions,
-            completed_sessions: 0,
-            frequency_days: selectedDays,
-            status: 'active',
-            notify_coach_on_completion: !autoResume,
-            auto_switch_to_program: autoResume,
-          });
+          .insert(assignmentData);
 
         if (assignmentError) throw assignmentError;
 
-        // Update client program assignment to 'custom'
-        const { error: programError } = await supabase
-          .from('client_program_assignments')
-          .update({ program_type: 'custom' })
-          .eq('client_email', clientEmail);
+        // Update client program assignment to 'custom' only for full workouts, not warm-ups
+        if (workoutType === 'workout') {
+          const { error: programError } = await supabase
+            .from('client_program_assignments')
+            .update({ program_type: 'custom' })
+            .eq('client_email', clientEmail);
 
-        if (programError) throw programError;
+          if (programError) throw programError;
+        }
       }
 
-      Alert.alert('Success', 'Workout saved successfully!');
+      Alert.alert('Success', `${workoutType === 'warmup' ? 'Warm-up' : 'Workout'} saved successfully!`);
 
       // Reset form
       setWorkoutName('');
@@ -231,15 +280,26 @@ export default function CustomWorkoutBuilderScreen({
   };
 
   const handleSchedulerSave = () => {
-    if (selectedDays.length === 0) {
-      Alert.alert('Error', 'Please select at least one training day');
-      return;
-    }
-
-    const sessions = parseInt(totalSessions);
-    if (isNaN(sessions) || sessions < 1) {
-      Alert.alert('Error', 'Please enter a valid number of sessions');
-      return;
+    if (workoutType === 'workout') {
+      // Validate workout assignment
+      if (schedulingMode === 'duration') {
+        if (selectedDays.length === 0) {
+          Alert.alert('Error', 'Please select at least one training day');
+          return;
+        }
+        const weeks = parseInt(duration);
+        if (isNaN(weeks) || weeks < 1) {
+          Alert.alert('Error', 'Please enter a valid duration (number of weeks)');
+          return;
+        }
+      }
+      // One-time mode doesn't need extra validation - date is already set
+    } else {
+      // Validate warm-up assignment
+      if (selectedProgramDays.length === 0) {
+        Alert.alert('Error', 'Please select at least one program day');
+        return;
+      }
     }
 
     saveWorkout(saveAsTemplate, true);
@@ -424,92 +484,242 @@ export default function CustomWorkoutBuilderScreen({
       {/* Scheduler Modal */}
       <Modal visible={showScheduler} animationType="slide" transparent={true}>
         <View style={styles.schedulerOverlay}>
-          <View style={styles.schedulerContent}>
-            <Text style={styles.schedulerTitle}>Schedule Workout</Text>
+          <ScrollView style={styles.schedulerScrollView} contentContainerStyle={styles.schedulerScrollContent}>
+            <View style={styles.schedulerContent}>
+              <Text style={styles.schedulerTitle}>Schedule {workoutType === 'warmup' ? 'Warm-up' : 'Workout'}</Text>
 
-            {/* Total Sessions */}
-            <View style={styles.schedulerSection}>
-              <Text style={styles.schedulerLabel}>Total Sessions</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="6"
-                placeholderTextColor="#666"
-                keyboardType="numeric"
-                value={totalSessions}
-                onChangeText={setTotalSessions}
-              />
-            </View>
-
-            {/* Training Days */}
-            <View style={styles.schedulerSection}>
-              <Text style={styles.schedulerLabel}>Training Days</Text>
-              <View style={styles.daysContainer}>
-                {daysOfWeek.map((day) => (
+              {/* Workout Type Selection */}
+              <View style={styles.schedulerSection}>
+                <Text style={styles.schedulerLabel}>Type</Text>
+                <View style={styles.typeButtonsContainer}>
                   <TouchableOpacity
-                    key={day.value}
                     style={[
-                      styles.dayButton,
-                      selectedDays.includes(day.value) && styles.dayButtonActive,
+                      styles.typeButton,
+                      workoutType === 'workout' && styles.typeButtonActive,
                     ]}
-                    onPress={() => toggleDay(day.value)}
+                    onPress={() => setWorkoutType('workout')}
                   >
                     <Text
                       style={[
-                        styles.dayButtonText,
-                        selectedDays.includes(day.value) && styles.dayButtonTextActive,
+                        styles.typeButtonText,
+                        workoutType === 'workout' && styles.typeButtonTextActive,
                       ]}
                     >
-                      {day.label}
+                      Additional Workout
                     </Text>
                   </TouchableOpacity>
-                ))}
+                  <TouchableOpacity
+                    style={[
+                      styles.typeButton,
+                      workoutType === 'warmup' && styles.typeButtonActive,
+                    ]}
+                    onPress={() => setWorkoutType('warmup')}
+                  >
+                    <Text
+                      style={[
+                        styles.typeButtonText,
+                        workoutType === 'warmup' && styles.typeButtonTextActive,
+                      ]}
+                    >
+                      Warm-up
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Conditional UI based on workout type */}
+              {workoutType === 'workout' ? (
+                <>
+                  {/* Scheduling Mode for Workouts */}
+                  <View style={styles.schedulerSection}>
+                    <Text style={styles.schedulerLabel}>Schedule As</Text>
+                    <View style={styles.typeButtonsContainer}>
+                      <TouchableOpacity
+                        style={[
+                          styles.typeButton,
+                          schedulingMode === 'one-time' && styles.typeButtonActive,
+                        ]}
+                        onPress={() => setSchedulingMode('one-time')}
+                      >
+                        <Text
+                          style={[
+                            styles.typeButtonText,
+                            schedulingMode === 'one-time' && styles.typeButtonTextActive,
+                          ]}
+                        >
+                          One-Time
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.typeButton,
+                          schedulingMode === 'duration' && styles.typeButtonActive,
+                        ]}
+                        onPress={() => setSchedulingMode('duration')}
+                      >
+                        <Text
+                          style={[
+                            styles.typeButtonText,
+                            schedulingMode === 'duration' && styles.typeButtonTextActive,
+                          ]}
+                        >
+                          Recurring
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {schedulingMode === 'one-time' ? (
+                    /* One-time date picker */
+                    <View style={styles.schedulerSection}>
+                      <Text style={styles.schedulerLabel}>Select Date</Text>
+                      <TouchableOpacity
+                        style={styles.datePickerButton}
+                        onPress={() => setShowDatePicker(true)}
+                      >
+                        <Text style={styles.datePickerText}>
+                          {selectedDate.toLocaleDateString('en-US', {
+                            weekday: 'short',
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                          })}
+                        </Text>
+                      </TouchableOpacity>
+                      {showDatePicker && (
+                        <DateTimePicker
+                          value={selectedDate}
+                          mode="date"
+                          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                          onChange={(event, date) => {
+                            setShowDatePicker(Platform.OS === 'ios');
+                            if (date) setSelectedDate(date);
+                          }}
+                          minimumDate={new Date()}
+                        />
+                      )}
+                    </View>
+                  ) : (
+                    <>
+                      {/* Duration input */}
+                      <View style={styles.schedulerSection}>
+                        <Text style={styles.schedulerLabel}>Duration (weeks)</Text>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="4"
+                          placeholderTextColor="#666"
+                          keyboardType="numeric"
+                          value={duration}
+                          onChangeText={setDuration}
+                        />
+                      </View>
+
+                      {/* Training Days */}
+                      <View style={styles.schedulerSection}>
+                        <Text style={styles.schedulerLabel}>Training Days</Text>
+                        <View style={styles.daysContainer}>
+                          {daysOfWeek.map((day) => (
+                            <TouchableOpacity
+                              key={day.value}
+                              style={[
+                                styles.dayButton,
+                                selectedDays.includes(day.value) && styles.dayButtonActive,
+                              ]}
+                              onPress={() => toggleDay(day.value)}
+                            >
+                              <Text
+                                style={[
+                                  styles.dayButtonText,
+                                  selectedDays.includes(day.value) && styles.dayButtonTextActive,
+                                ]}
+                              >
+                                {day.label}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      </View>
+                    </>
+                  )}
+                </>
+              ) : (
+                /* Warm-up: Select program days */
+                <View style={styles.schedulerSection}>
+                  <Text style={styles.schedulerLabel}>Program Days</Text>
+                  <Text style={styles.schedulerHint}>Select which days of the program this warm-up applies to</Text>
+                  <View style={styles.programDaysContainer}>
+                    {[1, 2, 3, 4, 5, 6].map((day) => (
+                      <TouchableOpacity
+                        key={day}
+                        style={[
+                          styles.programDayButton,
+                          selectedProgramDays.includes(day) && styles.programDayButtonActive,
+                        ]}
+                        onPress={() => toggleProgramDay(day)}
+                      >
+                        <Text
+                          style={[
+                            styles.programDayButtonText,
+                            selectedProgramDays.includes(day) && styles.programDayButtonTextActive,
+                          ]}
+                        >
+                          Day {day}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* Options */}
+              <TouchableOpacity
+                style={styles.checkboxRow}
+                onPress={() => setSaveAsTemplate(!saveAsTemplate)}
+              >
+                <View style={[styles.checkbox, saveAsTemplate && styles.checkboxChecked]}>
+                  {saveAsTemplate && <View style={styles.checkboxInner} />}
+                </View>
+                <Text style={styles.checkboxLabel}>Save as template for reuse</Text>
+              </TouchableOpacity>
+
+              {workoutType === 'workout' && (
+                <TouchableOpacity
+                  style={styles.checkboxRow}
+                  onPress={() => setAutoResume(!autoResume)}
+                >
+                  <View style={[styles.checkbox, autoResume && styles.checkboxChecked]}>
+                    {autoResume && <View style={styles.checkboxInner} />}
+                  </View>
+                  <Text style={styles.checkboxLabel}>
+                    Auto-resume standard program after completion
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Buttons */}
+              <View style={styles.schedulerButtons}>
+                <TouchableOpacity
+                  style={[styles.schedulerButton, styles.cancelButton]}
+                  onPress={() => setShowScheduler(false)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.schedulerButton, styles.confirmButton]}
+                  onPress={handleSchedulerSave}
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <ActivityIndicator color="#0a0e27" />
+                  ) : (
+                    <Text style={styles.confirmButtonText}>
+                      Assign {workoutType === 'warmup' ? 'Warm-up' : 'Workout'}
+                    </Text>
+                  )}
+                </TouchableOpacity>
               </View>
             </View>
-
-            {/* Options */}
-            <TouchableOpacity
-              style={styles.checkboxRow}
-              onPress={() => setSaveAsTemplate(!saveAsTemplate)}
-            >
-              <View style={[styles.checkbox, saveAsTemplate && styles.checkboxChecked]}>
-                {saveAsTemplate && <View style={styles.checkboxInner} />}
-              </View>
-              <Text style={styles.checkboxLabel}>Save as template for reuse</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.checkboxRow}
-              onPress={() => setAutoResume(!autoResume)}
-            >
-              <View style={[styles.checkbox, autoResume && styles.checkboxChecked]}>
-                {autoResume && <View style={styles.checkboxInner} />}
-              </View>
-              <Text style={styles.checkboxLabel}>
-                Auto-resume standard program after completion
-              </Text>
-            </TouchableOpacity>
-
-            {/* Buttons */}
-            <View style={styles.schedulerButtons}>
-              <TouchableOpacity
-                style={[styles.schedulerButton, styles.cancelButton]}
-                onPress={() => setShowScheduler(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.schedulerButton, styles.confirmButton]}
-                onPress={handleSchedulerSave}
-                disabled={saving}
-              >
-                {saving ? (
-                  <ActivityIndicator color="#0a0e27" />
-                ) : (
-                  <Text style={styles.confirmButtonText}>Assign Workout</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
+          </ScrollView>
         </View>
       </Modal>
     </>
@@ -736,6 +946,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  schedulerScrollView: {
+    width: '100%',
+    maxHeight: '90%',
+  },
+  schedulerScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: 20,
   },
   schedulerContent: {
@@ -844,5 +1063,73 @@ const styles = StyleSheet.create({
     color: '#0a0e27',
     fontSize: 14,
     fontWeight: '700',
+  },
+  typeButtonsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  typeButton: {
+    flex: 1,
+    borderRadius: 12,
+    padding: 14,
+    alignItems: 'center',
+    backgroundColor: '#0a0e27',
+    borderWidth: 2,
+    borderColor: '#2a2f4a',
+  },
+  typeButtonActive: {
+    backgroundColor: '#2ddbdb',
+    borderColor: '#2ddbdb',
+  },
+  typeButtonText: {
+    color: '#999',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  typeButtonTextActive: {
+    color: '#0a0e27',
+  },
+  datePickerButton: {
+    backgroundColor: '#0a0e27',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#2a2f4a',
+  },
+  datePickerText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  schedulerHint: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+    marginBottom: 12,
+    fontStyle: 'italic',
+  },
+  programDaysContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    flexWrap: 'wrap',
+  },
+  programDayButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#0a0e27',
+    borderWidth: 1,
+    borderColor: '#2a2f4a',
+  },
+  programDayButtonActive: {
+    backgroundColor: '#2ddbdb',
+    borderColor: '#2ddbdb',
+  },
+  programDayButtonText: {
+    color: '#999',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  programDayButtonTextActive: {
+    color: '#0a0e27',
   },
 });
