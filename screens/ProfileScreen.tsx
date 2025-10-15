@@ -317,9 +317,6 @@ export default function ProfileScreen() {
       setUploadingImage(true);
       console.log('Starting image upload for profile:', profile.id);
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
-
       // Delete old profile picture if it exists
       if (profile.profile_picture_url) {
         try {
@@ -334,33 +331,31 @@ export default function ProfileScreen() {
         }
       }
 
+      // Convert URI to blob
+      const response = await fetch(uri);
+      const blob = await response.blob();
+
+      // Generate unique filename
       const fileExt = uri.split('.').pop() || 'jpg';
       const fileName = `${profile.id}-${Date.now()}.${fileExt}`;
       const filePath = `profile-pictures/${fileName}`;
 
-      // Upload using expo-file-system's uploadAsync (works on React Native)
-      const uploadUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/storage/v1/object/avatars/${filePath}`;
+      // Upload to Supabase Storage using blob
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, blob, {
+          contentType: 'image/jpeg',
+          upsert: true,
+        });
 
-      const uploadResult = await FileSystem.uploadAsync(uploadUrl, uri, {
-        httpMethod: 'POST',
-        uploadType: FileSystem.FileSystemUploadType.MULTIPART,
-        fieldName: 'file',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-      });
+      if (uploadError) throw uploadError;
 
-      if (uploadResult.status !== 200) {
-        throw new Error(`Upload failed: ${uploadResult.status} - ${uploadResult.body}`);
-      }
-
+      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
 
-      // Add cache-busting parameter to force image reload
-      const urlWithCacheBust = `${publicUrl}?t=${Date.now()}`;
-
+      // Update profile in database
       const { error: updateError } = await supabase
         .from('clients')
         .update({ profile_picture_url: publicUrl })
