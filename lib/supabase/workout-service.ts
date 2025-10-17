@@ -415,9 +415,10 @@ export async function getLastWorkout(userEmail: string): Promise<{
       queries.push(
         supabase
           .from(tableName)
-          .select('workout_date')
+          .select('workout_date, session_end_time, created_at')
           .ilike('client_email', userEmail)
           .order('workout_date', { ascending: false })
+          .order('created_at', { ascending: false })
           .limit(1)
           .then(result => ({
             ...result,
@@ -435,11 +436,15 @@ export async function getLastWorkout(userEmail: string): Promise<{
   for (const result of results) {
     if (!result.error && result.data && result.data.length > 0) {
       const workout = result.data[0];
-      if (!mostRecentWorkout || workout.workout_date > mostRecentWorkout.date) {
+      if (!mostRecentWorkout ||
+          workout.workout_date > mostRecentWorkout.date ||
+          (workout.workout_date === mostRecentWorkout.date &&
+           workout.created_at > mostRecentWorkout.created_at)) {
         mostRecentWorkout = {
           week: result.week,
           day: result.day,
           date: workout.workout_date,
+          created_at: workout.created_at,
         };
       }
     }

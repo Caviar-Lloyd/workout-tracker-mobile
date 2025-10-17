@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.0.1] - 2025-10-16 (Database Schema Fix)### Fixed- **DATABASE:** Added missing Exercise 5 Set 4 columns to Supabase tables  - Fixed week1_day2_workout_tracking table - added exercise_5_set4_reps, exercise_5_set4_weight  - Fixed week1_day3_workout_tracking table - added exercise_5_set4_reps, exercise_5_set4_weight  - Resolved "Could not find exercise_5_set4_reps column" error when logging workouts### Tested- ✅ Week 1 Day 2 workout logging works- ✅ Week 1 Day 3 workout logging works- ✅ Client email logging confirmed working (saves with client email, not trainer email)
+n## [2.0.2] - 2025-10-16 (Workout Progression Timestamp Fix)
+
+### Fixed
+- **WORKOUT PROGRESSION:** Fixed workout progression with same-day workouts
+  - Updated getLastWorkout function to use timestamps (created_at) when comparing workouts with the same date
+  - Resolves issue where multiple workouts logged on same date could not determine which was most recent
+  - Now uses created_at timestamp as tiebreaker when workout_date is identical
+  - File: lib/supabase/workout-service.ts:439-448
+
+### Technical Details
+- Modified query to fetch created_at timestamp in addition to workout_date
+- Updated comparison logic to compare timestamps when dates are equal
+- Stores created_at in mostRecentWorkout object for accurate tracking
+
 ## [2.0.0] - 2025-10-16
 
 ### Added
