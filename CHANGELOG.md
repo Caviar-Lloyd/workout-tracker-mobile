@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2025-10-16 (Database Schema Fix)### Fixed- **DATABASE:** Added missing Exercise 5 Set 4 columns to Supabase tables  - Fixed week1_day2_workout_tracking table - added exercise_5_set4_reps, exercise_5_set4_weight  - Fixed week1_day3_workout_tracking table - added exercise_5_set4_reps, exercise_5_set4_weight  - Resolved "Could not find exercise_5_set4_reps column" error when logging workouts### Tested- ✅ Week 1 Day 2 workout logging works- ✅ Week 1 Day 3 workout logging works- ✅ Client email logging confirmed working (saves with client email, not trainer email)
 ## [2.0.0] - 2025-10-16
 
 ### Added
