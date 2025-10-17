@@ -4,8 +4,9 @@ import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase/client';
-import { getNextWorkout } from '../lib/supabase/workout-service';
+import { getNextWorkoutByEmail } from '../lib/supabase/workout-service';
 import ParticleBackground from '../components/ParticleBackground';
+import UniversalHeader from '../components/UniversalHeader';
 import Svg, { Path } from 'react-native-svg';
 import type { WeekNumber, DayNumber } from '../types/workout';
 
@@ -21,6 +22,7 @@ interface Client {
   subscription_tier: string;
   coach_email?: string;
   coach_name?: string;
+  profile_picture_url?: string;
 }
 
 interface ClientWithWorkout extends Client {
@@ -58,6 +60,13 @@ const SearchIcon = ({ size = 24, color = '#2ddbdb' }: { size?: number; color?: s
 const RemoveIcon = ({ size = 24, color = '#ef4444' }: { size?: number; color?: string }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path d="M6 18L18 6M6 6l12 12" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+  </Svg>
+);
+
+// Dashboard Icon Component (for breadcrumb)
+const DashboardIcon = ({ size = 20, color = '#2ddbdb' }: { size?: number; color?: string }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" fill={color} />
   </Svg>
 );
 
@@ -119,7 +128,7 @@ export default function ClientsScreen() {
       const clientsWithWorkouts = await Promise.all(
         (data || []).map(async (client) => {
           try {
-            const nextWorkout = await getNextWorkout(client.email);
+            const nextWorkout = await getNextWorkoutByEmail(client.email);
             return {
               ...client,
               nextWorkout,
@@ -281,28 +290,22 @@ export default function ClientsScreen() {
           paddingTop: Math.max(insets.top, 20) + 10,
           paddingBottom: Math.max(insets.bottom, 20) + 80,
         }]}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View>
-              <Text style={styles.title}>My Clients</Text>
-              <Text style={styles.subtitle}>{clients.length} active clients</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.headerButton}
-              onPress={() => setShowSearchModal(true)}
-            >
-              <SearchIcon size={20} color="#2ddbdb" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Breadcrumb Navigation */}
-          <View style={styles.breadcrumb}>
-            <Text style={styles.breadcrumbText}>
-              <Text style={styles.breadcrumbHome} onPress={() => navigation.navigate('Dashboard')}>Home</Text>
-              <Text style={styles.breadcrumbSeparator}> / </Text>
-              <Text style={styles.breadcrumbCurrent}>My Clients</Text>
-            </Text>
-          </View>
+          {/* Universal Header */}
+          <UniversalHeader
+            title="My Clients"
+            subtitle={`${clients.length} active clients`}
+            breadcrumbs={[
+              { icon: <DashboardIcon />, screen: 'Dashboard' },
+            ]}
+            rightComponent={
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => setShowSearchModal(true)}
+              >
+                <SearchIcon size={24} color="#2ddbdb" />
+              </TouchableOpacity>
+            }
+          />
 
         {/* Clients Scroll List */}
         <ScrollView
@@ -331,15 +334,18 @@ export default function ClientsScreen() {
                   style={styles.cardGradient}
                 >
                   <View style={styles.clientHeader}>
-                    {client.profile_picture_url ? (
-                      <Image source={{ uri: client.profile_picture_url }} style={styles.clientAvatar} />
-                    ) : (
-                      <View style={styles.clientInitial}>
+                    <View style={styles.clientInitial}>
+                      {client.profile_picture_url ? (
+                        <Image
+                          source={{ uri: client.profile_picture_url }}
+                          style={styles.profileImage}
+                        />
+                      ) : (
                         <Text style={styles.initialText}>
                           {client.first_name.charAt(0).toUpperCase()}
                         </Text>
-                      </View>
-                    )}
+                      )}
+                    </View>
                     <View style={styles.clientInfo}>
                       <Text style={styles.clientName}>
                         {client.first_name} {client.last_name}
@@ -453,7 +459,6 @@ export default function ClientsScreen() {
           </View>
         </View>
       </Modal>
-
     </View>
   );
 }
@@ -505,20 +510,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
-  headerButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  headerButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(45, 219, 219, 0.1)',
-    borderWidth: 2,
-    borderColor: 'rgba(45, 219, 219, 0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   addButton: {
     width: 48,
     height: 48,
@@ -559,14 +550,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  clientAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 12,
-    borderWidth: 2,
-    borderColor: '#2ddbdb',
-  },
   clientInitial: {
     width: 50,
     height: 50,
@@ -582,6 +565,11 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#2ddbdb',
+  },
+  profileImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
   },
   clientInfo: {
     flex: 1,
@@ -787,35 +775,5 @@ const styles = StyleSheet.create({
   breadcrumbCurrent: {
     color: '#9ca3af',
     fontWeight: '400',
-  },
-  // Menu styles
-  menuOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-start',
-    alignItems: 'flex-end',
-    paddingTop: 80,
-    paddingRight: 20,
-  },
-  menuContent: {
-    backgroundColor: '#1a1f3a',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(45, 219, 219, 0.3)',
-    minWidth: 220,
-    overflow: 'hidden',
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(45, 219, 219, 0.1)',
-  },
-  menuItemText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '500',
   },
 });

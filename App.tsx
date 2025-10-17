@@ -1,7 +1,7 @@
 import { NavigationContainer, DefaultTheme, useNavigation, useNavigationState } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View, TouchableOpacity, Text, Animated, Dimensions, ActivityIndicator, Platform, StatusBar as RNStatusBar, AppState } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Text, Animated, Dimensions, ActivityIndicator, Platform, StatusBar as RNStatusBar } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from './lib/supabase/client';
@@ -12,11 +12,10 @@ import ProgramScreen from './screens/ProgramScreen';
 import ProgressScreen from './screens/ProgressScreen';
 import ClientsScreen from './screens/ClientsScreen';
 import ClientDetailScreen from './screens/ClientDetailScreen';
-import ProfileScreen from './screens/ProfileScreen';
+import CustomWorkoutBuilderScreen from './screens/CustomWorkoutBuilderScreen';
 import AuthScreen from './screens/AuthScreen';
 import ProfileCompletionScreen from './screens/ProfileCompletionScreen';
 import DatabaseCheckScreen from './screens/DatabaseCheckScreen';
-import CustomWorkoutBuilderScreen from './screens/CustomWorkoutBuilderScreen';
 import ParticleBackground from './components/ParticleBackground';
 import Svg, { Path } from 'react-native-svg';
 import { SpeedInsights } from '@vercel/speed-insights/react';
@@ -69,6 +68,12 @@ const ClientsIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: str
   </Svg>
 );
 
+const CustomWorkoutIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: string }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29z" fill={color} />
+  </Svg>
+);
+
 const ArrowUpIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: string }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z" fill={color} />
@@ -100,31 +105,6 @@ const SettingsIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: st
   </Svg>
 );
 
-const DumbbellIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: string }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path d="M6.5 6h1v12h-1a2 2 0 01-2-2V8a2 2 0 012-2zM17.5 6h-1v12h1a2 2 0 002-2V8a2 2 0 00-2-2zM9.5 8h5M9.5 12h5M9.5 16h5" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-  </Svg>
-);
-
-const ProfileIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: string }) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"
-      stroke={color}
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <Path
-      d="M12 11a4 4 0 100-8 4 4 0 000 8z"
-      stroke={color}
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
-
 function ExpandableMenu() {
   const navigation = useNavigation();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -135,8 +115,16 @@ function ExpandableMenu() {
   const insets = useSafeAreaInsets();
   const isNavigatingRef = useRef(false);
   const [isCoach, setIsCoach] = useState(false);
-  const [showCustomWorkoutBuilder, setShowCustomWorkoutBuilder] = useState(false);
-  const [coachEmail, setCoachEmail] = useState('');
+  const [isVisible, setIsVisible] = useState(false); // Delay menu visibility until after initial load
+
+  // Delay menu visibility to sync with page load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, 2000); // 2000ms delay to allow page content to load first
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Check if user is a coach
   useEffect(() => {
@@ -158,11 +146,9 @@ function ExpandableMenu() {
           if (profile) {
             console.log('Setting isCoach to:', profile.is_coach === true);
             setIsCoach(profile.is_coach === true);
-            setCoachEmail(user.email);
           } else {
             console.log('No profile found, defaulting to false');
             setIsCoach(false);
-            setCoachEmail('');
           }
         }
       } catch (error) {
@@ -171,23 +157,12 @@ function ExpandableMenu() {
       }
     };
 
-    // Check on mount
     checkCoachStatus();
-
-    // Re-check when auth state changes
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('🔄 Auth state changed:', event);
-      checkCoachStatus();
-    });
-
-    return () => {
-      authListener?.subscription?.unsubscribe();
-    };
   }, []);
 
-  // Animated arrow bounce effect
+  // Animated arrow bounce effect - only run when menu is visible
   useEffect(() => {
-    if (showTooltip) {
+    if (showTooltip && isVisible) {
       Animated.loop(
         Animated.sequence([
           Animated.timing(bounceAnim, {
@@ -214,36 +189,15 @@ function ExpandableMenu() {
 
       return () => clearTimeout(timer);
     }
-  }, [showTooltip]);
+  }, [showTooltip, isVisible]);
 
-  const toggleMenu = async () => {
+  const toggleMenu = () => {
     // Don't toggle if currently navigating
     if (isNavigatingRef.current) return;
 
     // Hide tooltip when user interacts
     if (showTooltip) {
       setShowTooltip(false);
-    }
-
-    // Re-check coach status when opening menu
-    if (!menuOpen) {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user?.email) {
-          const { data: profile } = await supabase
-            .from('clients')
-            .select('is_coach')
-            .eq('email', user.email)
-            .single();
-
-          if (profile) {
-            console.log('📋 Menu opened - coach status:', profile.is_coach);
-            setIsCoach(profile.is_coach === true);
-          }
-        }
-      } catch (error) {
-        console.error('Error re-checking coach status on menu open:', error);
-      }
     }
 
     const toValue = menuOpen ? 700 : 0; // 700 = hidden off-screen, 0 = visible
@@ -281,6 +235,11 @@ function ExpandableMenu() {
     });
     await supabase.auth.signOut();
   };
+
+  // Don't render until visible
+  if (!isVisible) {
+    return null;
+  }
 
   return (
     <>
@@ -414,7 +373,7 @@ function ExpandableMenu() {
           </TouchableOpacity>
         )}
 
-        {/* Create Custom Workout - only for coaches */}
+        {/* Only show Custom Workout Builder for coaches/trainers */}
         {isCoach && (
           <TouchableOpacity
             style={styles.menuItem}
@@ -424,50 +383,31 @@ function ExpandableMenu() {
               slideAnim.stopAnimation(() => {
                 slideAnim.setValue(700);
                 setMenuOpen(false);
-                setShowCustomWorkoutBuilder(true);
+                navigateTo('CustomWorkoutBuilder');
               });
             }}
           >
-            <DumbbellIcon size={22} color="#2ddbdb" />
-            <Text style={styles.menuItemText}>Create Custom Workout</Text>
+            <CustomWorkoutIcon size={22} color="#2ddbdb" />
+            <Text style={styles.menuItemText}>Custom Workout Builder</Text>
           </TouchableOpacity>
         )}
 
-        {/* Show Profile for clients, Settings for coaches */}
-        {!isCoach ? (
-          <TouchableOpacity
-            style={styles.menuItem}
-            activeOpacity={0.7}
-            delayPressIn={0}
-            onPressIn={() => {
-              slideAnim.stopAnimation(() => {
-                slideAnim.setValue(700);
-                setMenuOpen(false);
-                navigateTo('Profile');
-              });
-            }}
-          >
-            <ProfileIcon size={22} color="#2ddbdb" />
-            <Text style={styles.menuItemText}>Profile</Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={styles.menuItem}
-            activeOpacity={0.7}
-            delayPressIn={0}
-            onPressIn={() => {
-              slideAnim.stopAnimation(() => {
-                slideAnim.setValue(700);
-                setMenuOpen(false);
-                // Navigate to Dashboard with a param to open settings
-                navigation.navigate('Dashboard', { openSettings: true });
-              });
-            }}
-          >
-            <SettingsIcon size={22} color="#2ddbdb" />
-            <Text style={styles.menuItemText}>Settings</Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          style={styles.menuItem}
+          activeOpacity={0.7}
+          delayPressIn={0}
+          onPressIn={() => {
+            slideAnim.stopAnimation(() => {
+              slideAnim.setValue(700);
+              setMenuOpen(false);
+              // Navigate to Dashboard with a param to open settings
+              navigation.navigate('Dashboard', { openSettings: true });
+            });
+          }}
+        >
+          <SettingsIcon size={22} color="#2ddbdb" />
+          <Text style={styles.menuItemText}>Settings</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.menuItem}
@@ -480,16 +420,6 @@ function ExpandableMenu() {
         </TouchableOpacity>
 
       </Animated.View>
-
-      {/* Custom Workout Builder Modal */}
-      <CustomWorkoutBuilderScreen
-        visible={showCustomWorkoutBuilder}
-        onClose={() => setShowCustomWorkoutBuilder(false)}
-        coachEmail={coachEmail}
-        onSave={() => {
-          setShowCustomWorkoutBuilder(false);
-        }}
-      />
     </>
   );
 }
@@ -509,7 +439,7 @@ function AppNavigator() {
         <Stack.Screen name="Progress" component={ProgressScreen} />
         <Stack.Screen name="Clients" component={ClientsScreen} />
         <Stack.Screen name="ClientDetail" component={ClientDetailScreen} />
-        <Stack.Screen name="Profile" component={ProfileScreen} />
+        <Stack.Screen name="CustomWorkoutBuilder" component={CustomWorkoutBuilderScreen} />
       </Stack.Navigator>
       <ExpandableMenu />
     </>
@@ -522,24 +452,16 @@ export default function App() {
   const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
 
   useEffect(() => {
-    // Function to hide Android system UI
-    const hideAndroidSystemUI = () => {
-      if (Platform.OS === 'android') {
-        RNStatusBar.setHidden(true);
-        NavigationBar.setVisibilityAsync("hidden");
-        NavigationBar.setBehaviorAsync("overlay-swipe");
-      }
-    };
+    // Configure Android system UI
+    if (Platform.OS === 'android') {
+      // Keep status bar hidden for full-screen experience
+      RNStatusBar.setHidden(true);
 
-    // Hide on mount
-    hideAndroidSystemUI();
-
-    // Re-hide when app comes to foreground
-    const appStateSubscription = AppState.addEventListener('change', (nextAppState) => {
-      if (nextAppState === 'active') {
-        hideAndroidSystemUI();
-      }
-    });
+      // Show navigation bar but make it transparent so we can control padding
+      NavigationBar.setVisibilityAsync("visible");
+      NavigationBar.setBackgroundColorAsync("#00000000"); // Transparent
+      NavigationBar.setBehaviorAsync("overlay-swipe");
+    }
 
     // Check current session
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -553,10 +475,7 @@ export default function App() {
       checkProfileCompletion(session);
     });
 
-    return () => {
-      subscription.unsubscribe();
-      appStateSubscription.remove();
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
   const checkProfileCompletion = async (session: Session | null) => {

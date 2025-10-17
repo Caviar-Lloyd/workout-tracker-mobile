@@ -41,10 +41,12 @@ export default function WorkoutScreen() {
   const route = useRoute();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const params = route.params as { week?: number; day?: number } || {};
+  const params = route.params as { week?: number; day?: number; clientEmail?: string; clientName?: string } || {};
 
   const week = (params.week || 1) as WeekNumber;
   const day = (params.day || 1) as DayNumber;
+  const clientEmail = params.clientEmail; // Client email from navigation
+  const clientName = params.clientName; // Client name from navigation
 
   const [workoutTemplate, setWorkoutTemplate] = useState<WorkoutTemplate | null>(null);
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState<number>(1);
@@ -226,13 +228,14 @@ export default function WorkoutScreen() {
 
     setIsSubmitting(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) throw new Error('No user email');
+      // Use client email from params if provided (trainer logging for client), otherwise use logged-in user
+      const emailToUse = clientEmail || (await supabase.auth.getUser()).data.user?.email;
+      if (!emailToUse) throw new Error('No user email');
 
       const { data: clientData } = await supabase
         .from('clients')
         .select('first_name, last_name')
-        .eq('email', user.email.toLowerCase())
+        .eq('email', emailToUse.toLowerCase())
         .single();
 
       const firstName = clientData?.first_name || '';
@@ -263,25 +266,38 @@ export default function WorkoutScreen() {
       const now = new Date().toISOString();
       const completionPercentage = Math.round(getProgress());
 
-      const { error } = await supabase.from(workoutTemplate.tableName).insert({
-        client_email: user.email,
+      const workoutData = {
+        client_email: emailToUse,
         client_first_name: firstName,
         client_last_name: lastName,
         workout_date: now,
-        session_completed: completionPercentage,
+        session_completed: completionPercentage === 100,
         session_start_time: startTime,
         session_end_time: now,
-        workout_duration_formatted: formatTime(elapsedTime),
+        duration_formatted: formatTime(elapsedTime),
         exercises,
         ...flatData,
-      });
+      };
 
-      if (error) throw error;
+      console.log('📊 Attempting to save workout to table:', workoutTemplate.tableName);
+      console.log('📊 Workout data:', JSON.stringify(workoutData, null, 2));
+
+      const { data: insertedData, error } = await supabase.from(workoutTemplate.tableName).insert(workoutData).select();
+
+      console.log('📊 Insert result - data:', insertedData);
+      console.log('📊 Insert result - error:', error);
+
+      if (error) {
+        console.error('❌ Supabase insert error:', error);
+        throw error;
+      }
+
+      console.log('✅ Workout saved successfully to Supabase!');
 
       // Also insert into workout_starts table for calendar tracking
       const workoutDateOnly = now.split('T')[0]; // Get just the date part (YYYY-MM-DD)
       const { error: startsError } = await supabase.from('workout_starts').insert({
-        client_email: user.email.toLowerCase(),
+        client_email: emailToUse.toLowerCase(),
         week: workoutTemplate.week,
         day: workoutTemplate.day,
         workout_date: workoutDateOnly,
@@ -373,7 +389,6 @@ export default function WorkoutScreen() {
                 <View style={styles.videoWrapper}>
                   <View style={styles.videoPlaceholder}>
                     <Text style={styles.videoPlaceholderText}>{currentExercise.name}</Text>
-                    <Text style={styles.videoPlaceholderRepRange}>{currentExercise.repRange} reps</Text>
                     <Text style={styles.videoPlaceholderSubtext}>3-5 sec demo</Text>
                   </View>
                 </View>
@@ -644,13 +659,6 @@ const styles = StyleSheet.create({
     color: '#2ddbdb',
     fontSize: 14,
     fontWeight: '600',
-  },
-  videoPlaceholderRepRange: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-    marginTop: 6,
-    marginBottom: 4,
   },
   videoPlaceholderSubtext: {
     color: '#9ca3af',

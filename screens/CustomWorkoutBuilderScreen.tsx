@@ -39,12 +39,14 @@ interface Client {
 }
 
 interface CustomWorkoutBuilderScreenProps {
-  visible: boolean;
-  onClose: () => void;
+  visible?: boolean; // Optional - if not provided, renders as standalone screen
+  onClose?: () => void; // Optional - if not provided, uses navigation.goBack()
   clientEmail?: string;
-  coachEmail: string;
+  coachEmail?: string;
   clients?: Client[];
   onSave?: () => void;
+  navigation?: any; // For standalone screen navigation
+  route?: any; // For standalone screen route params
 }
 
 export default function CustomWorkoutBuilderScreen({
@@ -54,13 +56,31 @@ export default function CustomWorkoutBuilderScreen({
   coachEmail,
   clients = [],
   onSave,
+  navigation,
+  route,
 }: CustomWorkoutBuilderScreenProps) {
+  // Determine if this is standalone screen mode or modal mode
+  const isStandaloneMode = visible === undefined;
+
+  // Get coach email from route params if in standalone mode
+  const effectiveCoachEmail = coachEmail || route?.params?.coachEmail;
+  const effectiveClients = clients.length > 0 ? clients : route?.params?.clients || [];
+
   const [workoutName, setWorkoutName] = useState('');
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [selectedClients, setSelectedClients] = useState<number[]>([]);
   const [showClientSelector, setShowClientSelector] = useState(false);
+
+  // Handle close action - use navigation.goBack() in standalone mode, onClose in modal mode
+  const handleClose = () => {
+    if (isStandaloneMode && navigation) {
+      navigation.goBack();
+    } else if (onClose) {
+      onClose();
+    }
+  };
 
   const toggleClientSelection = (clientId: number) => {
     setSelectedClients(prev =>
@@ -259,7 +279,7 @@ export default function CustomWorkoutBuilderScreen({
       const { data: workout, error: workoutError } = await supabase
         .from('custom_workouts')
         .insert({
-          coach_email: coachEmail,
+          coach_email: effectiveCoachEmail,
           workout_name: workoutName,
           exercises: formattedExercises,
           notes: notes || null,
@@ -281,7 +301,7 @@ export default function CustomWorkoutBuilderScreen({
           clientEmailsToAssign.push(clientEmail);
         } else if (selectedClients.length > 0) {
           // Multiple client assignment (from clients list view)
-          const selectedClientObjects = clients.filter(c => selectedClients.includes(c.id));
+          const selectedClientObjects = effectiveClients.filter(c => selectedClients.includes(c.id));
           clientEmailsToAssign.push(...selectedClientObjects.map(c => c.email));
         }
 
@@ -290,7 +310,7 @@ export default function CustomWorkoutBuilderScreen({
           let assignmentData: any = {
             custom_workout_id: workout.id,
             client_email: email,
-            coach_email: coachEmail,
+            coach_email: effectiveCoachEmail,
             workout_type: workoutType,
             notify_coach_on_completion: !autoResume,
             auto_switch_to_program: autoResume,
@@ -397,19 +417,18 @@ export default function CustomWorkoutBuilderScreen({
     saveWorkout(saveAsTemplate, true);
   };
 
-  return (
-    <>
-      <Modal visible={visible} animationType="slide" transparent={false}>
-        <View style={styles.container}>
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Create Custom Workout</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <XIcon size={24} color="#fff" />
-            </TouchableOpacity>
-          </View>
+  // The main content component
+  const content = (
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Create Custom Workout</Text>
+        <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+          <XIcon size={24} color="#fff" />
+        </TouchableOpacity>
+      </View>
 
-          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
             {/* Workout Name */}
             <View style={styles.section}>
               <Text style={styles.label}>Workout Name</Text>
@@ -423,7 +442,7 @@ export default function CustomWorkoutBuilderScreen({
             </View>
 
             {/* Client Selection - only show if no specific clientEmail and clients available */}
-            {!clientEmail && clients.length > 0 && (
+            {!clientEmail && effectiveClients.length > 0 && (
               <View style={styles.section}>
                 <TouchableOpacity
                   style={styles.clientSelectorToggle}
@@ -442,7 +461,7 @@ export default function CustomWorkoutBuilderScreen({
 
                 {showClientSelector && (
                   <View style={styles.clientList}>
-                    {clients.map((client) => (
+                    {effectiveClients.map((client) => (
                       <TouchableOpacity
                         key={client.id}
                         style={styles.clientItem}
@@ -664,7 +683,6 @@ export default function CustomWorkoutBuilderScreen({
             </View>
 
             <View style={{ height: 100 }} />
-          </ScrollView>
 
           {/* Save Button */}
           <View style={styles.footer}>
@@ -682,8 +700,22 @@ export default function CustomWorkoutBuilderScreen({
               )}
             </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
+      </ScrollView>
+    </View>
+  );
+
+  // Return content wrapped in Modal (if modal mode) or standalone
+  return (
+    <>
+      {isStandaloneMode ? (
+        // Standalone screen mode - render content directly
+        content
+      ) : (
+        // Modal mode - wrap in Modal component
+        <Modal visible={visible || false} animationType="slide" transparent={false}>
+          {content}
+        </Modal>
+      )}
 
       {/* Scheduler Modal */}
       <Modal visible={showScheduler} animationType="slide" transparent={true}>
