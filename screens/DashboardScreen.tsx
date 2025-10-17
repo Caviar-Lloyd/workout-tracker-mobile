@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase/client';
 import { getTotalWorkoutCount, getLastWorkout, getNextWorkout, getWorkoutTemplate, getAllCompletedWorkouts } from '../lib/supabase/workout-service';
 import { getUserProfile, updateWorkoutPreferences } from '../lib/supabase/user-service';
+import { useLoading } from '../contexts/LoadingContext';
 import type { WeekNumber, DayNumber } from '../types/workout';
 import ParticleBackground from '../components/ParticleBackground';
 import Svg, { Path } from 'react-native-svg';
@@ -109,6 +110,7 @@ function WorkoutExercisesList({ workoutDay, week, isVideoPreview = false }: { wo
 export default function DashboardScreen({ route }: any) {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { setIsDashboardLoading } = useLoading();
   const [userData, setUserData] = useState<UserData>({
     firstName: 'Loading...',
     email: '',
@@ -595,13 +597,21 @@ export default function DashboardScreen({ route }: any) {
       if (user) {
         const email = user.email || '';
 
-        // Load user profile and preferences
-        const profile = await getUserProfile(user.id);
+        // PERFORMANCE: Fetch profile and workout stats in parallel
+        const [profile, count, last] = await Promise.all([
+          getUserProfile(user.id),
+          getTotalWorkoutCount(email),
+          getLastWorkout(email)
+        ]);
         console.log('=== PROFILE DATA ===', JSON.stringify(profile, null, 2));
 
         // Use first_name from profile if available, otherwise fallback to email
         const firstName = profile?.first_name || user.email?.split('@')[0] || 'User';
         setUserData({ firstName, email });
+
+        // Set workout stats immediately
+        setTotalWorkouts(count);
+        setLastWorkout(last);
 
         // Check if profile is missing name - show completion modal
         if (profile && (!profile.first_name || profile.first_name === '' || !profile.last_name || profile.last_name === '')) {
@@ -693,16 +703,7 @@ export default function DashboardScreen({ route }: any) {
           }
         }
 
-        // Fetch workout stats
-        const [count, last] = await Promise.all([
-          getTotalWorkoutCount(email),
-          getLastWorkout(email)
-        ]);
-
-        setTotalWorkouts(count);
-        setLastWorkout(last);
-
-        // Calculate next workout
+        // Calculate next workout (stats already fetched above in parallel)
         let nextWorkoutData;
         if (last) {
           const next = getNextWorkout(last.week, last.day);
@@ -733,6 +734,8 @@ export default function DashboardScreen({ route }: any) {
       console.error('Error fetching user data:', error);
     } finally {
       setIsLoading(false);
+      // Signal that dashboard is ready - menu can now appear
+      setIsDashboardLoading(false);
     }
   };
 

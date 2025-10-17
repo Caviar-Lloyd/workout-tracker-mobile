@@ -20,6 +20,7 @@ import ParticleBackground from './components/ParticleBackground';
 import Svg, { Path } from 'react-native-svg';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import * as NavigationBar from 'expo-navigation-bar';
+import { LoadingProvider, useLoading } from './contexts/LoadingContext';
 
 const Stack = createNativeStackNavigator();
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -107,6 +108,7 @@ const SettingsIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: st
 
 function ExpandableMenu() {
   const navigation = useNavigation();
+  const { isDashboardLoading } = useLoading();
   const [menuOpen, setMenuOpen] = useState(false);
   const slideAnim = useRef(new Animated.Value(700)).current; // Start completely off-screen (7 items × 48px + padding + borders = ~336-400px, use 700 to be safe)
   const bounceAnim = useRef(new Animated.Value(0)).current; // For arrow bounce
@@ -115,16 +117,6 @@ function ExpandableMenu() {
   const insets = useSafeAreaInsets();
   const isNavigatingRef = useRef(false);
   const [isCoach, setIsCoach] = useState(false);
-  const [isVisible, setIsVisible] = useState(false); // Delay menu visibility until after initial load
-
-  // Delay menu visibility to sync with page load
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsVisible(true);
-    }, 2000); // 2000ms delay to allow page content to load first
-
-    return () => clearTimeout(timer);
-  }, []);
 
   // Check if user is a coach
   useEffect(() => {
@@ -162,7 +154,7 @@ function ExpandableMenu() {
 
   // Animated arrow bounce effect - only run when menu is visible
   useEffect(() => {
-    if (showTooltip && isVisible) {
+    if (showTooltip && !isDashboardLoading) {
       Animated.loop(
         Animated.sequence([
           Animated.timing(bounceAnim, {
@@ -189,7 +181,7 @@ function ExpandableMenu() {
 
       return () => clearTimeout(timer);
     }
-  }, [showTooltip, isVisible]);
+  }, [showTooltip, isDashboardLoading]);
 
   const toggleMenu = () => {
     // Don't toggle if currently navigating
@@ -237,7 +229,7 @@ function ExpandableMenu() {
   };
 
   // Don't render until visible
-  if (!isVisible) {
+  if (isDashboardLoading) {
     return null;
   }
 
@@ -575,6 +567,7 @@ export default function App() {
   };
 
   return (
+    <LoadingProvider>
     <SafeAreaProvider>
       <View style={styles.container}>
         <View style={styles.contentWrapper}>
@@ -590,6 +583,7 @@ export default function App() {
         {Platform.OS === "web" && <SpeedInsights />}
       </View>
     </SafeAreaProvider>
+    </LoadingProvider>
   );
 }
 
