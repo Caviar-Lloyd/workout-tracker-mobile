@@ -10,12 +10,14 @@ import {
   Modal,
   ActivityIndicator,
   Platform,
+  Image,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as NavigationBar from 'expo-navigation-bar';
 import { supabase } from '../lib/supabase/client';
-import { X as XIcon, Plus as PlusIcon, Trash as TrashIcon } from 'lucide-react-native';
+import { Plus as PlusIcon, Trash as TrashIcon } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import UniversalHeader from '../components/UniversalHeader';
 
 interface Set {
   reps: string;
@@ -49,6 +51,8 @@ interface CustomWorkoutBuilderScreenProps {
   onSave?: () => void;
   navigation?: any; // For standalone screen navigation
   route?: any; // For standalone screen route params
+  clientName?: string; // Client's full name for breadcrumb
+  clientPhotoUrl?: string; // Client's profile photo URL for breadcrumb
 }
 
 export default function CustomWorkoutBuilderScreen({
@@ -60,15 +64,19 @@ export default function CustomWorkoutBuilderScreen({
   onSave,
   navigation,
   route,
+  clientName,
+  clientPhotoUrl,
 }: CustomWorkoutBuilderScreenProps) {
   const navHook = useNavigation();
 
   // Determine if this is standalone screen mode or modal mode
   const isStandaloneMode = visible === undefined;
 
-  // Get coach email from route params if in standalone mode
+  // Get coach email and client info from route params if in standalone mode
   const effectiveCoachEmail = coachEmail || route?.params?.coachEmail;
   const effectiveClients = clients.length > 0 ? clients : route?.params?.clients || [];
+  const effectiveClientName = clientName || route?.params?.clientName;
+  const effectiveClientPhotoUrl = clientPhotoUrl || route?.params?.clientPhotoUrl;
 
   const [workoutName, setWorkoutName] = useState('');
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -80,14 +88,7 @@ export default function CustomWorkoutBuilderScreen({
   // Handle close action - use navigation.goBack() in standalone mode, onClose in modal mode
   const handleClose = () => {
     if (isStandaloneMode) {
-      // Try navigation prop first, then navHook
-      if (navigation && typeof navigation.goBack === 'function') {
-        navigation.goBack();
-      } else if (navHook && typeof navHook.goBack === 'function') {
-        navHook.goBack();
-      } else {
-        console.error('No navigation method available');
-      }
+      navigation.goBack();
     } else if (onClose) {
       onClose();
     }
@@ -446,13 +447,7 @@ export default function CustomWorkoutBuilderScreen({
   // The main content component
   const content = (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Create Custom Workout</Text>
-        <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-          <XIcon size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
+      <UniversalHeader title="Workout Builder" />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
             {/* Workout Name */}
@@ -739,13 +734,13 @@ export default function CustomWorkoutBuilderScreen({
         content
       ) : (
         // Modal mode - wrap in Modal component
-        <Modal visible={visible || false} animationType="none" transparent={false}>
+        <Modal visible={visible || false} animationType="slide" transparent={false}>
           {content}
         </Modal>
       )}
 
       {/* Scheduler Modal */}
-      <Modal visible={showScheduler} animationType="none" transparent={true}>
+      <Modal visible={showScheduler} animationType="slide" transparent={true}>
         <View style={styles.schedulerOverlay}>
           <ScrollView style={styles.schedulerScrollView} contentContainerStyle={styles.schedulerScrollContent}>
             <View style={styles.schedulerContent}>

@@ -10,6 +10,7 @@ import { useLoading } from '../contexts/LoadingContext';
 import type { WeekNumber, DayNumber } from '../types/workout';
 import ParticleBackground from '../components/ParticleBackground';
 import Svg, { Path } from 'react-native-svg';
+import UniversalBreadcrumb from '../components/UniversalHeader';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -1054,22 +1055,14 @@ export default function DashboardScreen({ route }: any) {
           }}
           showsVerticalScrollIndicator={false}
         >
-          {/* Breadcrumb Navigation - Top Right */}
-          <View style={styles.breadcrumb}>
-            <Text style={styles.breadcrumbText}>
-              <Text style={styles.breadcrumbHome} onPress={() => navigation.navigate('Dashboard')}>Home</Text>
-              <Text style={styles.breadcrumbSeparator}> / </Text>
-              <Text style={styles.breadcrumbCurrent}>Dashboard</Text>
-            </Text>
-          </View>
-
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerContent}>
               <View>
-                <Text style={styles.title}>
-                  Welcome, <Text style={styles.nameGradient}>{userData.firstName}</Text>
-                </Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={styles.title}>Welcome, <Text style={styles.nameGradient}>{userData.firstName}</Text></Text>
+                  <UniversalBreadcrumb />
+                </View>
                 <Text style={styles.subtitle}>Track your progress and crush your goals!</Text>
               </View>
             </View>

@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase/client';
 import { getWorkoutTemplate, getAllExerciseHistory } from '../lib/supabase/workout-service';
 import type { WeekNumber, DayNumber } from '../types/workout';
 import ParticleBackground from '../components/ParticleBackground';
+import UniversalHeader from '../components/UniversalHeader';
 
 const WORKOUT_DAYS = [
   { day: 1, name: "Chest, Triceps, Abs", type: "Multi-Joint" },
@@ -131,19 +132,9 @@ export default function ProgressScreen() {
           paddingBottom: Math.max(insets.bottom, 20) + 20,
         }]}
       >
-        <Text style={styles.title}>Progress Tracker</Text>
+        <UniversalHeader title="Progress" />
         <Text style={styles.subtitle}>Track your performance</Text>
-
-        {/* Breadcrumb Navigation */}
-        <View style={styles.breadcrumb}>
-          <Text style={styles.breadcrumbText}>
-            <Text style={styles.breadcrumbHome} onPress={() => navigation.navigate('Dashboard')}>Home</Text>
-            <Text style={styles.breadcrumbSeparator}> / </Text>
-            <Text style={styles.breadcrumbCurrent}>Progress</Text>
-          </Text>
-        </View>
-
-        {/* Backdrop to close dropdowns when clicking outside */}
+{/* Backdrop to close dropdowns when clicking outside */}
         {(showWorkoutDropdown || showExerciseDropdown) && (
           <TouchableOpacity
             style={styles.dropdownBackdropOverlay}

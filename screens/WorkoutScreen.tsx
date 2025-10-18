@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase/client';
 import { getWorkoutTemplate } from '../lib/supabase/workout-service';
 import type { WeekNumber, DayNumber } from '../types/workout';
 import ParticleBackground from '../components/ParticleBackground';
+import UniversalHeader from '../components/UniversalHeader';
 
 const WORKOUT_NAMES: Record<number, string> = {
   1: 'Chest, Triceps, Abs',
@@ -367,10 +368,7 @@ export default function WorkoutScreen() {
           paddingBottom: Math.max(insets.bottom, 20) + 20,
         }]}>
           {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.title}>{workoutName}</Text>
-            <Text style={styles.subtitle}>Week {week}, Day {day}</Text>
-          </View>
+          <UniversalHeader title="Workout" />
 
           {/* Breadcrumb Navigation */}
           <View style={styles.breadcrumb}>

@@ -7,6 +7,7 @@ import { getWorkoutTemplate } from '../lib/supabase/workout-service';
 import type { WeekNumber, DayNumber } from '../types/workout';
 import CustomVideoPlayer from '../components/CustomVideoPlayer';
 import ParticleBackground from '../components/ParticleBackground';
+import UniversalHeader from '../components/UniversalHeader';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -141,20 +142,8 @@ export default function ProgramScreen() {
           paddingTop: Math.max(insets.top, 20) + 10, // Minimal top padding for safe area
           paddingBottom: Math.max(insets.bottom, 20) + 60, // Space for bottom menu
         }]}>
-        {/* Breadcrumb Navigation */}
-        <View style={styles.breadcrumb}>
-          <Text style={styles.breadcrumbText}>
-            <Text style={styles.breadcrumbHome} onPress={() => navigation.navigate('Dashboard')}>Home</Text>
-            <Text style={styles.breadcrumbSeparator}> / </Text>
-            <Text style={styles.breadcrumbCurrent}>Program Overview</Text>
-          </Text>
-        </View>
-
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Program Overview</Text>
-          <Text style={styles.subtitle}>Complete Recomposition Training System</Text>
-        </View>
+<UniversalHeader title="Program" />
+        <Text style={styles.subtitle}>Complete Recomposition Training System</Text>
 
         {/* 16:9 Video Container */}
         <View style={styles.videoContainer}>

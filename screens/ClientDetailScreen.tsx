@@ -6,7 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase/client';
 import { getNextWorkout, getLastWorkout } from '../lib/supabase/workout-service';
 import ParticleBackground from '../components/ParticleBackground';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, Circle } from 'react-native-svg';
+import UniversalHeader from '../components/UniversalHeader';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
 import type { WeekNumber, DayNumber } from '../types/workout';
@@ -16,19 +17,7 @@ import CustomWorkoutBuilderScreen from './CustomWorkoutBuilderScreen';
 // Icon Components
 // =====================================================
 
-function BackIcon() {
-  return (
-    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M19 12H5M5 12L12 19M5 12L12 5"
-        stroke="#2ddbdb"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
+
 
 function SaveIcon() {
   return (
@@ -194,7 +183,6 @@ export default function ClientDetailScreen() {
   const customWorkoutName = WORKOUT_NAMES[selectedDay] || 'Unknown Workout';
 
   // Custom workout builder state
-  const [showCustomWorkoutBuilder, setShowCustomWorkoutBuilder] = useState(false);
   const [coachEmail, setCoachEmail] = useState('');
 
   useEffect(() => {
@@ -515,16 +503,7 @@ export default function ClientDetailScreen() {
             },
           ]}
         >
-          {/* Header */}
-          <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <BackIcon />
-          </TouchableOpacity>
-
-          <Text style={styles.headerTitle}>Client Details</Text>
+          <UniversalHeader title="Client Profile" />
 
           <TouchableOpacity
             style={styles.editButton}
@@ -546,19 +525,7 @@ export default function ClientDetailScreen() {
             )}
           </TouchableOpacity>
         </View>
-
-        {/* Breadcrumb Navigation */}
-        <View style={styles.breadcrumb}>
-          <Text style={styles.breadcrumbText}>
-            <Text style={styles.breadcrumbHome} onPress={() => navigation.navigate('Dashboard')}>Home</Text>
-            <Text style={styles.breadcrumbSeparator}> / </Text>
-            <Text style={styles.breadcrumbLink} onPress={() => navigation.navigate('Clients')}>My Clients</Text>
-            <Text style={styles.breadcrumbSeparator}> / </Text>
-            <Text style={styles.breadcrumbCurrent}>{client.first_name} {client.last_name}</Text>
-          </Text>
-        </View>
-
-        {/* Content */}
+{/* Content */}
         <ScrollView
           style={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
@@ -802,7 +769,12 @@ export default function ClientDetailScreen() {
                     {/* Create Custom Workout Button */}
                     <TouchableOpacity
                       style={styles.createCustomButtonCompact}
-                      onPress={() => setShowCustomWorkoutBuilder(true)}
+                      onPress={() => navigation.navigate('CustomWorkoutBuilder', {
+                        clientEmail: client?.email,
+                        coachEmail: coachEmail,
+                        clientName: `${client?.first_name} ${client?.last_name}`,
+                        clientPhotoUrl: client?.profile_photo_url,
+                      })}
                       activeOpacity={0.8}
                     >
                       <LinearGradient
@@ -820,10 +792,8 @@ export default function ClientDetailScreen() {
             )}
           </View>
         </ScrollView>
-        </View>
       </View>
 
-      {/* Week Dropdown Modal */}
       <Modal
         visible={showWeekDropdown}
         transparent={true}
@@ -904,18 +874,6 @@ export default function ClientDetailScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
-
-      {/* Custom Workout Builder Modal */}
-      <CustomWorkoutBuilderScreen
-        visible={showCustomWorkoutBuilder}
-        onClose={() => setShowCustomWorkoutBuilder(false)}
-        clientEmail={client?.email}
-        coachEmail={coachEmail}
-        onSave={() => {
-          loadClientData();
-          loadWorkoutInfo(clientEmail);
-        }}
-      />
     </View>
   );
 }
@@ -980,16 +938,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 24,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: 'rgba(45, 219, 219, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(45, 219, 219, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 20,

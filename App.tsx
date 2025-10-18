@@ -117,7 +117,6 @@ function ExpandableMenu() {
   const insets = useSafeAreaInsets();
   const isNavigatingRef = useRef(false);
   const [isCoach, setIsCoach] = useState(false);
-  const [userEmail, setUserEmail] = useState<string>("");
 
   // Check if user is a coach
   useEffect(() => {
@@ -126,7 +125,6 @@ function ExpandableMenu() {
         console.log('🔍 Checking coach status...');
         const { data: { user } } = await supabase.auth.getUser();
         console.log('User email:', user?.email);
-        setUserEmail(user?.email || "");
 
         if (user?.email) {
           const { data: profile, error } = await supabase
@@ -374,22 +372,15 @@ function ExpandableMenu() {
             activeOpacity={0.7}
             delayPressIn={0}
             onPressIn={() => {
-              // Show modal immediately for faster response
-              setShowCustomWorkoutModal(true);
-              setMenuOpen(false);
-              // Animate menu close in background
-              Animated.spring(slideAnim, {
-                toValue: 700,
-                useNativeDriver: true,
-                tension: 65,
-                friction: 11,
-              }).start(() => {
+              slideAnim.stopAnimation(() => {
                 slideAnim.setValue(700);
+                setMenuOpen(false);
+                navigateTo('CustomWorkoutBuilder');
               });
             }}
           >
             <CustomWorkoutIcon size={22} color="#2ddbdb" />
-            <Text style={styles.menuItemText}>Custom Workout Builder</Text>
+            <Text style={styles.menuItemText}>Workout Builder</Text>
           </TouchableOpacity>
         )}
 
@@ -421,14 +412,6 @@ function ExpandableMenu() {
         </TouchableOpacity>
 
       </Animated.View>
-
-      {/* Custom Workout Builder Modal */}
-      <CustomWorkoutBuilderScreen
-        visible={showCustomWorkoutModal}
-        onClose={() => setShowCustomWorkoutModal(false)}
-        coachEmail={userEmail}
-        clients={[]}
-      />
     </>
   );
 }

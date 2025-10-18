@@ -19,6 +19,7 @@ import { supabase } from '../lib/supabase/client';
 import { getNextWorkout, getLastWorkout } from '../lib/supabase/workout-service';
 import ParticleBackground from '../components/ParticleBackground';
 import Svg, { Path } from 'react-native-svg';
+import UniversalHeader from '../components/UniversalHeader';
 import type { WeekNumber, DayNumber } from '../types/workout';
 
 // =====================================================
@@ -471,10 +472,8 @@ export default function ProfileScreen() {
             },
           ]}
         >
-          {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>My Profile</Text>
-
+            <UniversalHeader title="My Profile" />
             <TouchableOpacity
               style={styles.editButton}
               onPress={() => {
@@ -494,6 +493,8 @@ export default function ProfileScreen() {
                 <EditIcon />
               )}
             </TouchableOpacity>
+          </View>
+
           </View>
 
           {/* Content */}

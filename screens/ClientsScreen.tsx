@@ -291,21 +291,7 @@ export default function ClientsScreen() {
           paddingBottom: Math.max(insets.bottom, 20) + 80,
         }]}>
           {/* Universal Header */}
-          <UniversalHeader
-            title="My Clients"
-            subtitle={`${clients.length} active clients`}
-            breadcrumbs={[
-              { icon: <DashboardIcon />, screen: 'Dashboard' },
-            ]}
-            rightComponent={
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => setShowSearchModal(true)}
-              >
-                <SearchIcon size={24} color="#2ddbdb" />
-              </TouchableOpacity>
-            }
-          />
+          <UniversalHeader title="My Clients" />
 
         {/* Clients Scroll List */}
         <ScrollView
