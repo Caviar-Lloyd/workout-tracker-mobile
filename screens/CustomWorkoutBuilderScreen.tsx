@@ -80,7 +80,14 @@ export default function CustomWorkoutBuilderScreen({
   // Handle close action - use navigation.goBack() in standalone mode, onClose in modal mode
   const handleClose = () => {
     if (isStandaloneMode) {
-      navigation.goBack();
+      // Try navigation prop first, then navHook
+      if (navigation && typeof navigation.goBack === 'function') {
+        navigation.goBack();
+      } else if (navHook && typeof navHook.goBack === 'function') {
+        navHook.goBack();
+      } else {
+        console.error('No navigation method available');
+      }
     } else if (onClose) {
       onClose();
     }
@@ -732,13 +739,13 @@ export default function CustomWorkoutBuilderScreen({
         content
       ) : (
         // Modal mode - wrap in Modal component
-        <Modal visible={visible || false} animationType="slide" transparent={false}>
+        <Modal visible={visible || false} animationType="none" transparent={false}>
           {content}
         </Modal>
       )}
 
       {/* Scheduler Modal */}
-      <Modal visible={showScheduler} animationType="slide" transparent={true}>
+      <Modal visible={showScheduler} animationType="none" transparent={true}>
         <View style={styles.schedulerOverlay}>
           <ScrollView style={styles.schedulerScrollView} contentContainerStyle={styles.schedulerScrollContent}>
             <View style={styles.schedulerContent}>
