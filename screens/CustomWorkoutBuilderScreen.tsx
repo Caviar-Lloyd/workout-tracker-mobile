@@ -15,6 +15,7 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as NavigationBar from 'expo-navigation-bar';
 import { supabase } from '../lib/supabase/client';
+import { logErrorToSupabase } from '../lib/supabase/error-tracking';
 import { Plus as PlusIcon, Trash as TrashIcon } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import UniversalHeader from '../components/UniversalHeader';
@@ -72,8 +73,9 @@ export default function CustomWorkoutBuilderScreen({
   // Determine if this is standalone screen mode or modal mode
   const isStandaloneMode = visible === undefined;
 
-  // Get coach email and client info from route params if in standalone mode
-  const effectiveCoachEmail = coachEmail || route?.params?.coachEmail;
+  // Auto-fetch logged-in user email for coach_email
+  const [loggedInUserEmail, setLoggedInUserEmail] = useState<string | null>(null);
+  const effectiveCoachEmail = coachEmail || route?.params?.coachEmail || loggedInUserEmail;
   const effectiveClients = clients.length > 0 ? clients : route?.params?.clients || [];
   const effectiveClientName = clientName || route?.params?.clientName;
   const effectiveClientPhotoUrl = clientPhotoUrl || route?.params?.clientPhotoUrl;
@@ -129,6 +131,17 @@ export default function CustomWorkoutBuilderScreen({
     { label: 'Fri', value: 5 },
     { label: 'Sat', value: 6 },
   ];
+
+  // Fetch logged-in user email on mount
+  useEffect(() => {
+    const fetchUserEmail = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        setLoggedInUserEmail(user.email);
+      }
+    };
+    fetchUserEmail();
+  }, []);
 
   // Hide Android navigation bar on mount
   useEffect(() => {
@@ -409,7 +422,7 @@ export default function CustomWorkoutBuilderScreen({
       setShowClientSelector(false);
 
       if (onSave) onSave();
-      onClose();
+      handleClose();
     } catch (error: any) {
       console.error('Error saving workout:', error);
       Alert.alert('Error', 'Failed to save workout: ' + error.message);
