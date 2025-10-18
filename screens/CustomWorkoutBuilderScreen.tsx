@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,8 +12,10 @@ import {
   Platform,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import * as NavigationBar from 'expo-navigation-bar';
 import { supabase } from '../lib/supabase/client';
 import { X as XIcon, Plus as PlusIcon, Trash as TrashIcon } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
 
 interface Set {
   reps: string;
@@ -59,6 +61,8 @@ export default function CustomWorkoutBuilderScreen({
   navigation,
   route,
 }: CustomWorkoutBuilderScreenProps) {
+  const navHook = useNavigation();
+
   // Determine if this is standalone screen mode or modal mode
   const isStandaloneMode = visible === undefined;
 
@@ -75,7 +79,7 @@ export default function CustomWorkoutBuilderScreen({
 
   // Handle close action - use navigation.goBack() in standalone mode, onClose in modal mode
   const handleClose = () => {
-    if (isStandaloneMode && navigation) {
+    if (isStandaloneMode) {
       navigation.goBack();
     } else if (onClose) {
       onClose();
@@ -117,6 +121,21 @@ export default function CustomWorkoutBuilderScreen({
     { label: 'Fri', value: 5 },
     { label: 'Sat', value: 6 },
   ];
+
+  // Hide Android navigation bar on mount
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      NavigationBar.setVisibilityAsync('hidden');
+      NavigationBar.setBehaviorAsync('overlay-swipe');
+    }
+
+    // Restore navigation bar on unmount
+    return () => {
+      if (Platform.OS === 'android') {
+        NavigationBar.setVisibilityAsync('visible');
+      }
+    };
+  }, []);
 
   const addExercise = () => {
     const newExercise: Exercise = {
@@ -660,13 +679,13 @@ export default function CustomWorkoutBuilderScreen({
                   <Text style={styles.emptySubtext}>Tap "Add Exercise" to get started</Text>
                 </View>
               )}
-
-              {/* Add Exercise Button - positioned after all exercises */}
-              <TouchableOpacity onPress={addExercise} style={styles.addExerciseButton}>
-                <PlusIcon size={20} color="#2ddbdb" />
-                <Text style={styles.addButtonText}>Add Exercise</Text>
-              </TouchableOpacity>
             </View>
+
+            {/* Add Exercise Button */}
+            <TouchableOpacity onPress={addExercise} style={styles.addExerciseButton}>
+              <PlusIcon size={20} color="#2ddbdb" />
+              <Text style={styles.addButtonText}>Add Exercise</Text>
+            </TouchableOpacity>
 
             {/* Notes */}
             <View style={styles.section}>
@@ -682,25 +701,26 @@ export default function CustomWorkoutBuilderScreen({
               />
             </View>
 
-            <View style={{ height: 100 }} />
+            {/* Save Template Button with 20px padding */}
+            <View style={{ paddingHorizontal: 20, paddingTop: 20 }}>
+              <TouchableOpacity
+                style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+                onPress={handleSaveWorkout}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator color="#0a0e27" />
+                ) : (
+                  <Text style={styles.saveButtonText}>
+                    {clientEmail || selectedClients.length > 0 ? 'Continue to Schedule' : 'Save Template'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
 
-          {/* Save Button */}
-          <View style={styles.footer}>
-            <TouchableOpacity
-              style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-              onPress={handleSaveWorkout}
-              disabled={saving}
-            >
-              {saving ? (
-                <ActivityIndicator color="#0a0e27" />
-              ) : (
-                <Text style={styles.saveButtonText}>
-                  {clientEmail || selectedClients.length > 0 ? 'Continue to Schedule' : 'Save Template'}
-                </Text>
-              )}
-            </TouchableOpacity>
-          </View>
-      </ScrollView>
+            {/* Bottom spacing for menu visibility */}
+            <View style={{ height: 120 }} />
+          </ScrollView>
     </View>
   );
 

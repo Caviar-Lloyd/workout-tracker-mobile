@@ -117,6 +117,7 @@ function ExpandableMenu() {
   const insets = useSafeAreaInsets();
   const isNavigatingRef = useRef(false);
   const [isCoach, setIsCoach] = useState(false);
+  const [showCustomWorkoutModal, setShowCustomWorkoutModal] = useState(false);
 
   // Check if user is a coach
   useEffect(() => {
@@ -372,10 +373,15 @@ function ExpandableMenu() {
             activeOpacity={0.7}
             delayPressIn={0}
             onPressIn={() => {
-              slideAnim.stopAnimation(() => {
+              Animated.spring(slideAnim, {
+                toValue: 700,
+                useNativeDriver: true,
+                tension: 65,
+                friction: 11,
+              }).start(() => {
                 slideAnim.setValue(700);
                 setMenuOpen(false);
-                navigateTo('CustomWorkoutBuilder');
+                setShowCustomWorkoutModal(true);
               });
             }}
           >
