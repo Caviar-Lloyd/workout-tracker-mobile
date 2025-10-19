@@ -1276,7 +1276,7 @@ export default function DashboardScreen({ route }: any) {
                             onPress={() => {
                               setShowWorkoutModal(false);
                               // @ts-ignore
-                              navigation.navigate('Program');
+                              navigation.navigate('Program', { week: modalWorkoutData.week, day: modalWorkoutData.day });
                             }}
                           >
                             <Text style={styles.modalPreviewButtonText}>Preview</Text>
@@ -1302,7 +1302,7 @@ export default function DashboardScreen({ route }: any) {
                             setShowWorkoutModal(false);
                             if (isFuture) {
                               // @ts-ignore
-                              navigation.navigate('Program');
+                              navigation.navigate('Program', { week: modalWorkoutData.week, day: modalWorkoutData.day });
                             } else {
                               // Past workout - go to Progress screen to view history
                               // @ts-ignore

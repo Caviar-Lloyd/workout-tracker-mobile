@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { getWorkoutTemplate } from '../lib/supabase/workout-service';
 import type { WeekNumber, DayNumber } from '../types/workout';
 import CustomVideoPlayer from '../components/CustomVideoPlayer';
@@ -30,9 +30,16 @@ interface Exercise {
 
 export default function ProgramScreen() {
   const navigation = useNavigation();
+  const route = useRoute();
   const insets = useSafeAreaInsets();
-  const [selectedWeek, setSelectedWeek] = useState<number>(1); // Week 1, 2, or 3
-  const [selectedDay, setSelectedDay] = useState<number>(1); // Day 1-6
+
+  // Get week/day from route params (from calendar preview) or default to 1
+  const routeParams = route.params as { week?: number; day?: number } | undefined;
+  const initialWeek = routeParams?.week || 1;
+  const initialDay = routeParams?.day || 1;
+
+  const [selectedWeek, setSelectedWeek] = useState<number>(initialWeek);
+  const [selectedDay, setSelectedDay] = useState<number>(initialDay);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [selectedExerciseIndex, setSelectedExerciseIndex] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
