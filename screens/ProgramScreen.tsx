@@ -301,12 +301,6 @@ export default function ProgramScreen() {
                       ]}>
                         {exercise.name}
                       </Text>
-                      <Text style={[
-                        styles.columnItemSubtitle,
-                        selectedExerciseIndex === index && styles.columnItemSubtitleActive
-                      ]}>
-                        {exercise.setCount} × {exercise.repRange}
-                      </Text>
                     </View>
                   </View>
                 </TouchableOpacity>
