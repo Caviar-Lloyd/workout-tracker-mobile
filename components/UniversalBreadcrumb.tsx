@@ -70,10 +70,16 @@ export default function UniversalBreadcrumb({ currentScreenTitle }: UniversalBre
   const routes = useNavigationState(state => state?.routes || []);
 
   // Build breadcrumb trail from navigation history
-  const breadcrumbTrail = routes.map(route => ({
+  let breadcrumbTrail = routes.map(route => ({
     name: route.name,
     params: route.params,
   }));
+
+  // ALWAYS ensure Dashboard is in the trail if not already present
+  const hasDashboard = breadcrumbTrail.some(r => r.name === 'Dashboard');
+  if (!hasDashboard && breadcrumbTrail.length > 0) {
+    breadcrumbTrail = [{ name: 'Dashboard', params: undefined }, ...breadcrumbTrail];
+  }
 
   // Get current route (last in array)
   const currentRoute = breadcrumbTrail[breadcrumbTrail.length - 1];
