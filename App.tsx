@@ -1,7 +1,7 @@
 import { NavigationContainer, DefaultTheme, useNavigation, useNavigationState } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View, TouchableOpacity, Text, Animated, Dimensions, ActivityIndicator, Platform, StatusBar as RNStatusBar } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Text, Animated, Dimensions, ActivityIndicator, Platform, StatusBar as RNStatusBar, Pressable } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from './lib/supabase/client';
@@ -442,6 +442,39 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
+  const [navBarVisible, setNavBarVisible] = useState(false);
+  const lastTapRef = useRef<number>(0);
+
+  // Toggle navigation bar visibility
+  const toggleNavBar = async () => {
+    const newVisibility = !navBarVisible;
+    setNavBarVisible(newVisibility);
+
+    if (Platform.OS === 'android') {
+      await NavigationBar.setVisibilityAsync(newVisibility ? "visible" : "hidden");
+
+      // Auto-hide after 3 seconds if shown
+      if (newVisibility) {
+        setTimeout(async () => {
+          setNavBarVisible(false);
+          await NavigationBar.setVisibilityAsync("hidden");
+        }, 3000);
+      }
+    }
+  };
+
+  // Handle double-tap detection
+  const handleDoubleTap = () => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300; // ms
+
+    if (now - lastTapRef.current < DOUBLE_TAP_DELAY) {
+      // Double tap detected
+      toggleNavBar();
+    }
+
+    lastTapRef.current = now;
+  };
 
   useEffect(() => {
     // Configure Android system UI
@@ -449,8 +482,8 @@ export default function App() {
       // Keep status bar hidden for full-screen experience
       RNStatusBar.setHidden(true);
 
-      // Show navigation bar but make it transparent so we can control padding
-      NavigationBar.setVisibilityAsync("visible");
+      // Hide navigation bar by default
+      NavigationBar.setVisibilityAsync("hidden");
       NavigationBar.setBackgroundColorAsync("#00000000"); // Transparent
       NavigationBar.setBehaviorAsync("overlay-swipe");
     }
@@ -569,19 +602,21 @@ export default function App() {
   return (
     <LoadingProvider>
     <SafeAreaProvider>
-      <View style={styles.container}>
-        <View style={styles.contentWrapper}>
-          <NavigationContainer theme={DarkTheme} linking={linking}>
-            {!session ? (
-              <AuthScreen />
-            ) : (
-              <AppNavigator />
-            )}
-          </NavigationContainer>
+      <Pressable onPress={handleDoubleTap} style={{ flex: 1 }}>
+        <View style={styles.container}>
+          <View style={styles.contentWrapper}>
+            <NavigationContainer theme={DarkTheme} linking={linking}>
+              {!session ? (
+                <AuthScreen />
+              ) : (
+                <AppNavigator />
+              )}
+            </NavigationContainer>
+          </View>
+          <StatusBar style="light" />
+          {Platform.OS === "web" && <SpeedInsights />}
         </View>
-        <StatusBar style="light" />
-        {Platform.OS === "web" && <SpeedInsights />}
-      </View>
+      </Pressable>
     </SafeAreaProvider>
     </LoadingProvider>
   );
