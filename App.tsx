@@ -15,6 +15,7 @@ import ClientDetailScreen from './screens/ClientDetailScreen';
 import CustomWorkoutBuilderScreen from './screens/CustomWorkoutBuilderScreen';
 import AuthScreen from './screens/AuthScreen';
 import ProfileCompletionScreen from './screens/ProfileCompletionScreen';
+import NutritionScreen from './screens/NutritionScreen';
 import DatabaseCheckScreen from './screens/DatabaseCheckScreen';
 import DNALoader from './components/DNALoader';
 import ParticleBackground from './components/ParticleBackground';
@@ -104,6 +105,12 @@ const SettingsIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: st
       strokeLinecap="round"
       strokeLinejoin="round"
     />
+  </Svg>
+);
+
+const NutritionIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: string }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill={color} />
   </Svg>
 );
 
@@ -347,6 +354,23 @@ function ExpandableMenu() {
           <Text style={styles.menuItemText}>Progress</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity
+          style={styles.menuItem}
+          activeOpacity={0.7}
+          delayPressIn={0}
+          onPressIn={() => {
+            // Close menu synchronously before anything else
+            slideAnim.stopAnimation(() => {
+              slideAnim.setValue(700);
+              setMenuOpen(false);
+              navigateTo('Nutrition');
+            });
+          }}
+        >
+          <NutritionIcon size={22} color="#2ddbdb" />
+          <Text style={styles.menuItemText}>Nutrition</Text>
+        </TouchableOpacity>
+
         {/* Only show My Clients for coaches/trainers */}
         {isCoach && (
           <TouchableOpacity
@@ -430,6 +454,7 @@ function AppNavigator() {
         <Stack.Screen name="Program" component={ProgramScreen} />
         <Stack.Screen name="Workout" component={WorkoutScreen} />
         <Stack.Screen name="Progress" component={ProgressScreen} />
+        <Stack.Screen name="Nutrition" component={NutritionScreen} />
         <Stack.Screen name="Clients" component={ClientsScreen} />
         <Stack.Screen name="ClientDetail" component={ClientDetailScreen} />
         <Stack.Screen name="CustomWorkoutBuilder" component={CustomWorkoutBuilderScreen} />
