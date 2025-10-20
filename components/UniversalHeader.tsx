@@ -27,7 +27,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 10,
+    paddingBottom: 15,
+    marginBottom: 10, // Visual section break
     borderBottomWidth: 1,
     borderBottomColor: '#1a1f3a',
   },
