@@ -369,15 +369,6 @@ export default function WorkoutScreen() {
           {/* Header */}
           <UniversalHeader title="Workout" />
 
-          {/* Breadcrumb Navigation */}
-          <View style={styles.breadcrumb}>
-            <Text style={styles.breadcrumbText}>
-              <Text style={styles.breadcrumbHome} onPress={() => navigation.navigate('Dashboard')}>Home</Text>
-              <Text style={styles.breadcrumbSeparator}> / </Text>
-              <Text style={styles.breadcrumbCurrent}>Workout Tracker</Text>
-            </Text>
-          </View>
-
           {/* Main Container with Video and 3 Columns */}
           <View style={styles.mainContainer}>
             {/* 16:9 Video Container */}

@@ -75,10 +75,27 @@ export default function UniversalBreadcrumb({ currentScreenTitle }: UniversalBre
     params: route.params,
   }));
 
-  // ALWAYS ensure Dashboard is in the trail if not already present
+  // Find the last Dashboard occurrence - this is our reset point
+  const lastDashboardIndex = breadcrumbTrail.map(r => r.name).lastIndexOf('Dashboard');
+
+  // If Dashboard exists, only keep routes from Dashboard onwards (Dashboard acts as reset)
+  if (lastDashboardIndex !== -1) {
+    breadcrumbTrail = breadcrumbTrail.slice(lastDashboardIndex);
+  }
+
+  // Limit to maximum 3 breadcrumbs (most recent screens)
+  if (breadcrumbTrail.length > 3) {
+    breadcrumbTrail = breadcrumbTrail.slice(-3);
+  }
+
+  // Ensure Dashboard is always first if not already present
   const hasDashboard = breadcrumbTrail.some(r => r.name === 'Dashboard');
   if (!hasDashboard && breadcrumbTrail.length > 0) {
     breadcrumbTrail = [{ name: 'Dashboard', params: undefined }, ...breadcrumbTrail];
+    // Re-apply 3 breadcrumb limit after adding Dashboard
+    if (breadcrumbTrail.length > 3) {
+      breadcrumbTrail = breadcrumbTrail.slice(-3);
+    }
   }
 
   // Get current route (last in array)
@@ -90,13 +107,14 @@ export default function UniversalBreadcrumb({ currentScreenTitle }: UniversalBre
       return;
     }
 
-    // Navigate back to the selected screen
+    // Navigate directly to the selected screen
     const targetRoute = breadcrumbTrail[index];
 
-    // Go back the correct number of times
-    const stepsBack = breadcrumbTrail.length - 1 - index;
-    for (let i = 0; i < stepsBack; i++) {
-      navigation.goBack();
+    // Use navigate to go directly to the target screen with its params
+    if (targetRoute.params) {
+      (navigation as any).navigate(targetRoute.name, targetRoute.params);
+    } else {
+      (navigation as any).navigate(targetRoute.name);
     }
   };
 
@@ -147,7 +165,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   breadcrumbItem: {
-    padding: 4,
+    padding: 8,
+    borderRadius: 8,
   },
   breadcrumbProfilePic: {
     width: 24,
