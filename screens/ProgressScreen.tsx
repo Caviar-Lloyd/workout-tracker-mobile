@@ -330,9 +330,9 @@ export default function ProgressScreen() {
                     width={Dimensions.get('window').width - 80}
                     height={240}
                     chartConfig={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                      backgroundGradientFrom: 'rgba(45, 219, 219, 0.15)',
-                      backgroundGradientTo: 'rgba(45, 219, 219, 0.05)',
+                      backgroundColor: '#0a0e27',
+                      backgroundGradientFrom: '#0a0e27',
+                      backgroundGradientTo: '#0a0e27',
                       decimalPlaces: 0,
                       color: (opacity = 1) => `rgba(45, 219, 219, ${opacity})`,
                       labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity * 0.7})`,

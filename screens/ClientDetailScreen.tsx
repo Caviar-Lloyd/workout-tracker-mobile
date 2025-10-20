@@ -494,39 +494,12 @@ export default function ClientDetailScreen() {
       <ParticleBackground />
 
       <View style={styles.contentWrapper}>
-        <View
-          style={[
-            styles.content,
-            {
-                            paddingBottom: Math.max(insets.bottom, 20) + 20,
-            },
-          ]}
-        >
-          <UniversalHeader title="Client Profile" />
-
-          <TouchableOpacity
-            style={styles.editButton}
-            onPress={() => {
-              if (isEditing) {
-                handleSave();
-              } else {
-                setIsEditing(true);
-              }
-            }}
-            disabled={saving}
-          >
-            {saving ? (
-              <ActivityIndicator size="small" color="#2ddbdb" />
-            ) : isEditing ? (
-              <SaveIcon />
-            ) : (
-              <EditIcon />
-            )}
-          </TouchableOpacity>
-        </View>
-{/* Content */}
         <ScrollView
           style={styles.scrollContainer}
+          contentContainerStyle={{
+            paddingTop: 80,
+            paddingBottom: Math.max(insets.bottom, 20) + 80,
+          }}
           showsVerticalScrollIndicator={false}
         >
           {/* Client Avatar & Name */}
@@ -791,6 +764,11 @@ export default function ClientDetailScreen() {
             )}
           </View>
         </ScrollView>
+
+        {/* Fixed Header */}
+        <View style={styles.fixedHeader}>
+          <UniversalHeader title="Client Profile" />
+        </View>
       </View>
 
       <Modal
@@ -1447,5 +1425,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  fixedHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    backgroundColor: '#0a0e27',
   },
 });
