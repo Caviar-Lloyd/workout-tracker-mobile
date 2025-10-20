@@ -272,7 +272,7 @@ function ExpandableMenu() {
           styles.slideMenu,
           {
             transform: [{ translateY: slideAnim }],
-            bottom: Math.max(insets.bottom, 20) + 60,
+            bottom: Math.max(insets.bottom, 20) + 50,
             zIndex: 1001,
           },
         ]}

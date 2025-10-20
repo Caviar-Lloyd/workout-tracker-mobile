@@ -364,8 +364,7 @@ export default function WorkoutScreen() {
       {/* Content Wrapper */}
       <View style={styles.contentWrapper}>
         <View style={[styles.content, {
-          paddingTop: Math.max(insets.top, 20) + 10,
-          paddingBottom: Math.max(insets.bottom, 20) + 20,
+                    paddingBottom: Math.max(insets.bottom, 20) + 20,
         }]}>
           {/* Header */}
           <UniversalHeader title="Workout" />

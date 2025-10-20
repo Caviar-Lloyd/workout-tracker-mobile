@@ -287,8 +287,7 @@ export default function ClientsScreen() {
 
       <View style={styles.contentWrapper}>
         <View style={[styles.content, {
-          paddingTop: Math.max(insets.top, 20) + 10,
-          paddingBottom: Math.max(insets.bottom, 20) + 80,
+                    paddingBottom: Math.max(insets.bottom, 20) + 80,
         }]}>
           {/* Universal Header */}
           <UniversalHeader title="My Clients" />

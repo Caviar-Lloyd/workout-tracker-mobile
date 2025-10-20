@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import UniversalBreadcrumb from './UniversalBreadcrumb';
 
 interface UniversalHeaderProps {
@@ -8,8 +9,12 @@ interface UniversalHeaderProps {
 }
 
 export default function UniversalHeader({ title, showBreadcrumbs = true }: UniversalHeaderProps) {
+  const insets = useSafeAreaInsets();
+  
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, {
+      paddingTop: Math.max(insets.top, 10) + 5, // 5-10px from top of device
+    }]}>
       <Text style={styles.headerTitle}>{title}</Text>
       {showBreadcrumbs && <UniversalBreadcrumb />}
     </View>
@@ -22,7 +27,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 30,
     paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#1a1f3a',

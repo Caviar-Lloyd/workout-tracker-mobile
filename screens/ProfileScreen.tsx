@@ -467,8 +467,7 @@ export default function ProfileScreen() {
           style={[
             styles.content,
             {
-              paddingTop: Math.max(insets.top, 20) + 10,
-              paddingBottom: Math.max(insets.bottom, 20) + 20,
+                            paddingBottom: Math.max(insets.bottom, 20) + 20,
             },
           ]}
         >

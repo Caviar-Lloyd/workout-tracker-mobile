@@ -10,7 +10,7 @@ import { useLoading } from '../contexts/LoadingContext';
 import type { WeekNumber, DayNumber } from '../types/workout';
 import ParticleBackground from '../components/ParticleBackground';
 import Svg, { Path } from 'react-native-svg';
-import UniversalBreadcrumb from '../components/UniversalHeader';
+import UniversalHeader from '../components/UniversalHeader';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -1049,24 +1049,13 @@ export default function DashboardScreen({ route }: any) {
         <ScrollView
           style={styles.content}
           contentContainerStyle={{
-            paddingTop: Math.max(insets.top, 20) + 10,
-            paddingBottom: Math.max(insets.bottom, 20) + 60,
+                        paddingBottom: Math.max(insets.bottom, 20) + 60,
             paddingHorizontal: 20,
           }}
           showsVerticalScrollIndicator={false}
         >
           {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerContent}>
-              <View>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text style={styles.title}>Welcome, <Text style={styles.nameGradient}>{userData.firstName}</Text></Text>
-                  <UniversalBreadcrumb />
-                </View>
-                <Text style={styles.subtitle}>Track your progress and crush your goals!</Text>
-              </View>
-            </View>
-          </View>
+          <UniversalHeader title={`Welcome, ${userData.firstName}`} />
 
         {/* Stats Grid - 3 Cards */}
         <View style={styles.statsGrid}>

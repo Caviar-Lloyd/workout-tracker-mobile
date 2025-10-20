@@ -146,8 +146,7 @@ export default function ProgramScreen() {
       {/* Content Wrapper */}
       <View style={styles.contentWrapper}>
         <View style={[styles.content, {
-          paddingTop: Math.max(insets.top, 20) + 10, // Minimal top padding for safe area
-          paddingBottom: Math.max(insets.bottom, 20) + 60, // Space for bottom menu
+                    paddingBottom: Math.max(insets.bottom, 20) + 60, // Space for bottom menu
         }]}>
 <UniversalHeader title="Program" />
         <Text style={styles.subtitle}>Complete Recomposition Training System</Text>
