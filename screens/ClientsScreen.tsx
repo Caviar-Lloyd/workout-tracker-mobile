@@ -5,8 +5,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase/client';
 import { getNextWorkoutByEmail } from '../lib/supabase/workout-service';
-import ParticleBackground from '../components/ParticleBackground';
 import UniversalHeader from '../components/UniversalHeader';
+import DNALoader from '../components/DNALoader';
 import Svg, { Path } from 'react-native-svg';
 import type { WeekNumber, DayNumber } from '../types/workout';
 
@@ -265,9 +265,8 @@ export default function ClientsScreen() {
           style={styles.gradient}
         />
         <View style={styles.darkOverlay} />
-        <ParticleBackground />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2ddbdb" />
+          <DNALoader />
           <Text style={styles.loadingText}>Loading clients...</Text>
         </View>
       </View>
@@ -283,8 +282,6 @@ export default function ClientsScreen() {
         style={styles.gradient}
       />
       <View style={styles.darkOverlay} />
-      <ParticleBackground />
-
       <View style={styles.contentWrapper}>
         <View style={[styles.content, {
                     paddingBottom: Math.max(insets.bottom, 20) + 80,

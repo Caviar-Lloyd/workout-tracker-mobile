@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase/client';
 import { createUserProfile } from '../lib/supabase/user-service';
-import ParticleBackground from '../components/ParticleBackground';
+
 
 export default function ProfileCompletionScreen() {
   const insets = useSafeAreaInsets();
@@ -60,7 +60,6 @@ export default function ProfileCompletionScreen() {
 
   return (
     <View style={styles.container}>
-      <ParticleBackground />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}

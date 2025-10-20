@@ -16,6 +16,7 @@ import CustomWorkoutBuilderScreen from './screens/CustomWorkoutBuilderScreen';
 import AuthScreen from './screens/AuthScreen';
 import ProfileCompletionScreen from './screens/ProfileCompletionScreen';
 import DatabaseCheckScreen from './screens/DatabaseCheckScreen';
+import DNALoader from './components/DNALoader';
 import ParticleBackground from './components/ParticleBackground';
 import Svg, { Path } from 'react-native-svg';
 import { SpeedInsights } from '@vercel/speed-insights/react';
@@ -579,10 +580,8 @@ export default function App() {
   if (loading) {
     return (
       <SafeAreaProvider>
-        <View style={[styles.container, styles.loadingContainer]}>
-          <ActivityIndicator size="large" color="#2ddbdb" />
-          <StatusBar style="light" />
-        </View>
+        <DNALoader />
+        <StatusBar style="light" />
       </SafeAreaProvider>
     );
   }
@@ -762,7 +761,7 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     bottom: 80,
-    backgroundColor: 'rgba(10, 14, 39, 0.85)',
+    backgroundColor: '#0a0e27',
     borderWidth: 2,
     borderColor: 'rgba(45, 219, 219, 0.4)',
     borderRadius: 20,
@@ -773,10 +772,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 20,
     elevation: 15,
-    ...(Platform.OS === 'web' && {
-      backdropFilter: 'blur(20px)',
-      WebkitBackdropFilter: 'blur(20px)',
-    }),
+
   },
   menuItem: {
     width: '100%',

@@ -6,7 +6,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { getWorkoutTemplate } from '../lib/supabase/workout-service';
 import type { WeekNumber, DayNumber } from '../types/workout';
 import CustomVideoPlayer from '../components/CustomVideoPlayer';
-import ParticleBackground from '../components/ParticleBackground';
+import DNALoader from '../components/DNALoader';
 import UniversalHeader from '../components/UniversalHeader';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -141,8 +141,6 @@ export default function ProgramScreen() {
       <View style={styles.darkOverlay} />
 
       {/* Particle Background */}
-      <ParticleBackground />
-
       {/* Content Wrapper */}
       <View style={styles.contentWrapper}>
         <View style={[styles.content, {

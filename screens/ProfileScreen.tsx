@@ -17,10 +17,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../lib/supabase/client';
 import { getNextWorkout, getLastWorkout } from '../lib/supabase/workout-service';
-import ParticleBackground from '../components/ParticleBackground';
+
 import Svg, { Path } from 'react-native-svg';
 import UniversalHeader from '../components/UniversalHeader';
 import type { WeekNumber, DayNumber } from '../types/workout';
+import DNALoader from '../components/DNALoader';
 
 // =====================================================
 // Icon Components
@@ -424,9 +425,8 @@ export default function ProfileScreen() {
           style={styles.gradient}
         />
         <View style={styles.darkOverlay} />
-        <ParticleBackground />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2ddbdb" />
+          <DNALoader />
           <Text style={styles.loadingText}>Loading profile...</Text>
         </View>
       </View>
@@ -443,7 +443,6 @@ export default function ProfileScreen() {
           style={styles.gradient}
         />
         <View style={styles.darkOverlay} />
-        <ParticleBackground />
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Profile not found</Text>
         </View>
@@ -460,8 +459,6 @@ export default function ProfileScreen() {
         style={styles.gradient}
       />
       <View style={styles.darkOverlay} />
-      <ParticleBackground />
-
       <View style={styles.contentWrapper}>
         <View
           style={[
@@ -509,9 +506,7 @@ export default function ProfileScreen() {
                 disabled={uploadingImage}
               >
                 {uploadingImage ? (
-                  <View style={styles.avatar}>
-                    <ActivityIndicator size="large" color="#2ddbdb" />
-                  </View>
+                  <DNALoader />
                 ) : profilePictureUrl ? (
                   <Image
                     source={{ uri: profilePictureUrl }}

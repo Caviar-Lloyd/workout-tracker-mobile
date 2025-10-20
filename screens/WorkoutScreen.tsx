@@ -6,8 +6,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase/client';
 import { getWorkoutTemplate } from '../lib/supabase/workout-service';
 import type { WeekNumber, DayNumber } from '../types/workout';
-import ParticleBackground from '../components/ParticleBackground';
+
 import UniversalHeader from '../components/UniversalHeader';
+import DNALoader from '../components/DNALoader';
 
 const WORKOUT_NAMES: Record<number, string> = {
   1: 'Chest, Triceps, Abs',
@@ -328,7 +329,7 @@ export default function WorkoutScreen() {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2ddbdb" />
+        <DNALoader />
         <Text style={styles.loadingText}>Loading workout...</Text>
       </View>
     );
@@ -359,8 +360,6 @@ export default function WorkoutScreen() {
       <View style={styles.darkOverlay} />
 
       {/* Particle Background */}
-      <ParticleBackground />
-
       {/* Content Wrapper */}
       <View style={styles.contentWrapper}>
         <View style={[styles.content, {

@@ -5,13 +5,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase/client';
 import { getNextWorkout, getLastWorkout } from '../lib/supabase/workout-service';
-import ParticleBackground from '../components/ParticleBackground';
+
 import Svg, { Path, Circle } from 'react-native-svg';
 import UniversalHeader from '../components/UniversalHeader';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
 import type { WeekNumber, DayNumber } from '../types/workout';
 import CustomWorkoutBuilderScreen from './CustomWorkoutBuilderScreen';
+import DNALoader from '../components/DNALoader';
 
 // =====================================================
 // Icon Components
@@ -455,9 +456,8 @@ export default function ClientDetailScreen() {
           style={styles.gradient}
         />
         <View style={styles.darkOverlay} />
-        <ParticleBackground />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2ddbdb" />
+          <DNALoader />
           <Text style={styles.loadingText}>Loading client details...</Text>
         </View>
       </View>
@@ -474,7 +474,6 @@ export default function ClientDetailScreen() {
           style={styles.gradient}
         />
         <View style={styles.darkOverlay} />
-        <ParticleBackground />
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Client not found</Text>
         </View>
@@ -491,8 +490,6 @@ export default function ClientDetailScreen() {
         style={styles.gradient}
       />
       <View style={styles.darkOverlay} />
-      <ParticleBackground />
-
       <View style={styles.contentWrapper}>
         <ScrollView
           style={styles.scrollContainer}
@@ -510,9 +507,7 @@ export default function ClientDetailScreen() {
               disabled={uploadingImage}
             >
               {uploadingImage ? (
-                <View style={styles.avatar}>
-                  <ActivityIndicator size="large" color="#2ddbdb" />
-                </View>
+                <DNALoader />
               ) : profilePictureUrl ? (
                 <Image source={{ uri: profilePictureUrl }} style={styles.avatarImage} />
               ) : (

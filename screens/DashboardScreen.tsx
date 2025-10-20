@@ -8,9 +8,9 @@ import { getTotalWorkoutCount, getLastWorkout, getNextWorkout, getWorkoutTemplat
 import { getUserProfile, updateWorkoutPreferences } from '../lib/supabase/user-service';
 import { useLoading } from '../contexts/LoadingContext';
 import type { WeekNumber, DayNumber } from '../types/workout';
-import ParticleBackground from '../components/ParticleBackground';
 import Svg, { Path } from 'react-native-svg';
 import UniversalHeader from '../components/UniversalHeader';
+import DNALoader from '../components/DNALoader';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -1012,10 +1012,7 @@ export default function DashboardScreen({ route }: any) {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2ddbdb" />
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
+      <DNALoader />
     );
   }
 
@@ -1043,8 +1040,6 @@ export default function DashboardScreen({ route }: any) {
       <View style={styles.darkOverlay} />
 
       {/* Particle Background */}
-      <ParticleBackground />
-
       <View style={styles.contentWrapper}>
         <ScrollView
           style={styles.content}

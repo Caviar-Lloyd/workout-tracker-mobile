@@ -7,8 +7,9 @@ import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabase/client';
 import { getWorkoutTemplate, getAllExerciseHistory } from '../lib/supabase/workout-service';
 import type { WeekNumber, DayNumber } from '../types/workout';
-import ParticleBackground from '../components/ParticleBackground';
+
 import UniversalHeader from '../components/UniversalHeader';
+import DNALoader from '../components/DNALoader';
 
 const WORKOUT_DAYS = [
   { day: 1, name: "Chest, Triceps, Abs", type: "Multi-Joint" },
@@ -122,8 +123,6 @@ export default function ProgressScreen() {
       <View style={styles.darkOverlay} />
 
       {/* Particle Background */}
-      <ParticleBackground />
-
       {/* Content Wrapper */}
       <ScrollView
         style={styles.container}
@@ -281,9 +280,7 @@ export default function ProgressScreen() {
         </View>
 
         {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#2ddbdb" />
-          </View>
+          <DNALoader />
         ) : (
           <>
 
