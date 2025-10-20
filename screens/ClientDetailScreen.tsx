@@ -497,7 +497,7 @@ export default function ClientDetailScreen() {
         <ScrollView
           style={styles.scrollContainer}
           contentContainerStyle={{
-            paddingTop: 80,
+            paddingTop: 100,
             paddingBottom: Math.max(insets.bottom, 20) + 80,
           }}
           showsVerticalScrollIndicator={false}
