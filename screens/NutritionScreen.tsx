@@ -22,7 +22,7 @@ export default function NutritionScreen() {
       >
         <View style={styles.comingSoonContainer}>
           <Text style={styles.comingSoonIcon}>🍎</Text>
-          <Text style={styles.comingSoonTitle}>Nutrition Tracking</Text>
+          <Text style={styles.comingSoonTitle}>FUEL - Nutrition Simplified</Text>
           <Text style={styles.comingSoonSubtitle}>Coming Soon</Text>
           <Text style={styles.comingSoonDescription}>
             We're building a comprehensive nutrition tracking system that will help you:
