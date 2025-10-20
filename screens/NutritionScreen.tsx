@@ -25,16 +25,21 @@ export default function NutritionScreen() {
           <Text style={styles.comingSoonTitle}>FUEL - Nutrition Simplified</Text>
           <Text style={styles.comingSoonSubtitle}>Coming Soon</Text>
           <Text style={styles.comingSoonDescription}>
-            We're building a comprehensive nutrition tracking system that will help you:
+            We're developing an advanced system that makes nutrition simple. No tracking. No calculating. No guesswork.
           </Text>
           <View style={styles.featureList}>
-            <Text style={styles.featureItem}>• Track daily macros and calories</Text>
-            <Text style={styles.featureItem}>• Log meals and snacks</Text>
-            <Text style={styles.featureItem}>• View nutrition trends over time</Text>
-            <Text style={styles.featureItem}>• Sync with your workout plan</Text>
-            <Text style={styles.featureItem}>• Get personalized meal recommendations</Text>
+            <Text style={styles.featureHeading}>For Clients:</Text>
+            <Text style={styles.featureItem}>• Done-for-you meal plans tailored to your goals</Text>
+            <Text style={styles.featureItem}>• We calculate exactly what you need</Text>
+            <Text style={styles.featureItem}>• No calorie counting or macro tracking required</Text>
+            <Text style={styles.featureItem}>• Simple, easy-to-follow nutrition guidance</Text>
+
+            <Text style={styles.featureHeading}>For Coaches:</Text>
+            <Text style={styles.featureItem}>• All-in-one platform with simplified nutrition</Text>
+            <Text style={styles.featureItem}>• Revolutionary system nobody else is doing</Text>
+            <Text style={styles.featureItem}>• Seamlessly integrated with workout plans</Text>
           </View>
-          <Text style={styles.stayTuned}>Stay tuned for updates!</Text>
+          <Text style={styles.stayTuned}>The only easier it gets is if your coach comes and feeds you!</Text>
         </View>
       </ScrollView>
     </View>
@@ -92,6 +97,13 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     borderWidth: 1,
     borderColor: 'rgba(45, 219, 219, 0.2)',
+  },
+  featureHeading: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    color: '#2ddbdb',
+    marginTop: 8,
+    marginBottom: 8,
   },
   featureItem: {
     fontSize: 15,
