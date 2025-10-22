@@ -522,9 +522,11 @@ export default function ClientDetailScreen() {
           style={styles.scrollContainer}
           contentContainerStyle={{
             paddingTop: 100,
-            paddingBottom: Math.max(insets.bottom, 20) + 80,
+            paddingBottom: Math.max(insets.bottom, 20) + 120,
+            paddingHorizontal: 20,
           }}
           showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
         >
           {/* Client Avatar & Name */}
           <View style={styles.avatarSection}>
