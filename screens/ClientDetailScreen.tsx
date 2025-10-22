@@ -792,7 +792,7 @@ export default function ClientDetailScreen() {
         </ScrollView>
 
         {/* Fixed Header */}
-        <View style={styles.fixedHeader}>
+        <View style={styles.fixedHeader} pointerEvents="box-none">
           <UniversalHeader title="Client Profile" />
         </View>
       </View>
