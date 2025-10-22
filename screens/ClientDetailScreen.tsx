@@ -515,6 +515,7 @@ export default function ClientDetailScreen() {
             bottom: 0
           }
         ]}
+        pointerEvents="box-none"
       />
 
       <View style={styles.contentWrapper}>
@@ -909,7 +910,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: '#0a0e27',
-    zIndex: 9997,
+    zIndex: 1,
     borderTopWidth: 1,
     borderTopColor: 'rgba(45, 219, 219, 0.2)',
   },
