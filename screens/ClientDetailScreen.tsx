@@ -505,12 +505,24 @@ export default function ClientDetailScreen() {
         style={styles.gradient}
       />
       <View style={styles.darkOverlay} />
+
+      {/* Solid Footer Background - Prevents content overlap with menu */}
+      <View
+        style={[
+          styles.footerBackground,
+          {
+            height: Math.max(insets.bottom, 20) + 60,
+            bottom: 0
+          }
+        ]}
+      />
+
       <View style={styles.contentWrapper}>
         <ScrollView
           style={styles.scrollContainer}
           contentContainerStyle={{
             paddingTop: 100,
-            paddingBottom: Math.max(insets.bottom, 20) + 100,
+            paddingBottom: Math.max(insets.bottom, 20) + 80,
           }}
           showsVerticalScrollIndicator={false}
         >
@@ -888,6 +900,16 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.25)',
+  },
+  footerBackground: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#0a0e27',
+    zIndex: 9997,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(45, 219, 219, 0.2)',
   },
   contentWrapper: {
     flex: 1,

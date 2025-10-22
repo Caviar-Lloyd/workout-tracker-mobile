@@ -248,7 +248,7 @@ function ExpandableMenu() {
         style={[
           styles.footerBackground,
           Platform.OS !== 'web' && {
-            height: Math.max(insets.bottom, 20) + 100,
+            height: Math.max(insets.bottom, 20) + 60,
             bottom: 0
           }
         ]}
