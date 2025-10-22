@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase/client';
 import { getNextWorkout, getLastWorkout } from '../lib/supabase/workout-service';
+import * as NavigationBar from 'expo-navigation-bar';
 
 import Svg, { Path, Circle } from 'react-native-svg';
 import UniversalHeader from '../components/UniversalHeader';
@@ -196,6 +197,20 @@ export default function ClientDetailScreen() {
     React.useCallback(() => {
       loadClientData();
     }, [clientEmail])
+  );
+
+  // Hide navigation bar when screen is focused (Android)
+  useFocusEffect(
+    React.useCallback(() => {
+      if (Platform.OS === 'android') {
+        NavigationBar.setVisibilityAsync('hidden');
+        NavigationBar.setBehaviorAsync('overlay-swipe');
+      }
+
+      return () => {
+        // Cleanup if needed when screen loses focus
+      };
+    }, [])
   );
 
   const loadCoachEmail = async () => {
@@ -495,9 +510,12 @@ export default function ClientDetailScreen() {
           style={styles.scrollContainer}
           contentContainerStyle={{
             paddingTop: 100,
-            paddingBottom: Math.max(insets.bottom, 20) + 80,
+            paddingBottom: Math.max(insets.bottom, 20) + 150,
+            paddingHorizontal: 20,
           }}
           showsVerticalScrollIndicator={false}
+          bounces={true}
+          alwaysBounceVertical={true}
         >
           {/* Client Avatar & Name */}
           <View style={styles.avatarSection}>
