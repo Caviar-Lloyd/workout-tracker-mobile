@@ -510,12 +510,9 @@ export default function ClientDetailScreen() {
           style={styles.scrollContainer}
           contentContainerStyle={{
             paddingTop: 100,
-            paddingBottom: Math.max(insets.bottom, 20) + 150,
-            paddingHorizontal: 20,
+            paddingBottom: Math.max(insets.bottom, 20) + 100,
           }}
           showsVerticalScrollIndicator={false}
-          bounces={true}
-          alwaysBounceVertical={true}
         >
           {/* Client Avatar & Name */}
           <View style={styles.avatarSection}>

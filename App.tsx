@@ -243,6 +243,17 @@ function ExpandableMenu() {
 
   return (
     <>
+      {/* Solid Footer Background - Prevents content overlap */}
+      <View
+        style={[
+          styles.footerBackground,
+          Platform.OS !== 'web' && {
+            height: Math.max(insets.bottom, 20) + 100,
+            bottom: 0
+          }
+        ]}
+      />
+
       {/* Animated Arrow Tooltip */}
       {showTooltip && (
         <Animated.View
@@ -711,6 +722,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#9ca3af',
     fontWeight: '400',
+  },
+  footerBackground: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#0a0e27',
+    zIndex: 9997,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(45, 219, 219, 0.2)',
   },
   tooltipContainer: {
     position: 'absolute',
