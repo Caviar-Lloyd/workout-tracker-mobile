@@ -503,8 +503,9 @@ export default function ClientDetailScreen() {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
+        pointerEvents="none"
       />
-      <View style={styles.darkOverlay} />
+      <View style={styles.darkOverlay} pointerEvents="none" />
 
       {/* Solid Footer Background - Prevents content overlap with menu */}
       <View
