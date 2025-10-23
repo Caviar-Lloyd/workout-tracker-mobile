@@ -192,6 +192,11 @@ export default function ClientDetailScreen() {
     loadCoachEmail();
   }, [clientEmail, clientId]);
 
+  // Debug: Log when isEditing changes
+  useEffect(() => {
+    console.log('isEditing changed to:', isEditing);
+  }, [isEditing]);
+
   // Reload data when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
@@ -583,8 +588,19 @@ export default function ClientDetailScreen() {
                 )}
                 <TouchableOpacity
                   style={styles.editButton}
-                  onPress={isEditing ? saveClientData : () => setIsEditing(true)}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    console.log('Edit button pressed, current isEditing:', isEditing);
+                    if (isEditing) {
+                      console.log('Saving client data...');
+                      saveClientData();
+                    } else {
+                      console.log('Entering edit mode...');
+                      setIsEditing(true);
+                    }
+                  }}
                   disabled={saving}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                   {saving ? (
                     <ActivityIndicator size="small" color="#2ddbdb" />
