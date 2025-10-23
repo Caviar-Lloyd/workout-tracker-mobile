@@ -560,7 +560,42 @@ export default function ClientDetailScreen() {
 
           {/* Profile Information */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Profile Information</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Profile Information</Text>
+              <View style={styles.editButtonGroup}>
+                {isEditing && (
+                  <TouchableOpacity
+                    style={[styles.editButton, styles.cancelButton]}
+                    onPress={() => {
+                      setIsEditing(false);
+                      // Reset fields to original values
+                      if (client) {
+                        setFirstName(client.first_name);
+                        setLastName(client.last_name);
+                        setEmail(client.email);
+                        setPhone(client.phone || '');
+                      }
+                    }}
+                    disabled={saving}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  style={styles.editButton}
+                  onPress={isEditing ? saveClientData : () => setIsEditing(true)}
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <ActivityIndicator size="small" color="#2ddbdb" />
+                  ) : isEditing ? (
+                    <SaveIcon />
+                  ) : (
+                    <EditIcon />
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
 
             <View style={styles.infoCard}>
               {/* Row 1: First Name & Last Name */}
@@ -1026,11 +1061,40 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 32,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#2ddbdb',
-    marginBottom: 16,
+  },
+  editButtonGroup: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  editButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(45, 219, 219, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(45, 219, 219, 0.3)',
+    minWidth: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButton: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    paddingHorizontal: 12,
+  },
+  cancelButtonText: {
+    fontSize: 14,
+    color: '#ef4444',
+    fontWeight: '600',
   },
   infoCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
