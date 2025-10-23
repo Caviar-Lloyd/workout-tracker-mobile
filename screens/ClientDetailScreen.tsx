@@ -593,7 +593,7 @@ export default function ClientDetailScreen() {
                     console.log('Edit button pressed, current isEditing:', isEditing);
                     if (isEditing) {
                       console.log('Saving client data...');
-                      saveClientData();
+                      handleSave();
                     } else {
                       console.log('Entering edit mode...');
                       setIsEditing(true);
