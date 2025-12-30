@@ -114,341 +114,88 @@ const NutritionIcon = ({ size = 24, color = '#fff' }: { size?: number; color?: s
   </Svg>
 );
 
-function ExpandableMenu() {
+function BottomTabBar() {
   const navigation = useNavigation();
   const { isDashboardLoading } = useLoading();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const slideAnim = useRef(new Animated.Value(800)).current; // Start completely off-screen (8 items now with Nutrition)
-  const bounceAnim = useRef(new Animated.Value(0)).current; // For arrow bounce
-  const fadeAnim = useRef(new Animated.Value(1)).current; // For tooltip fade
-  const [showTooltip, setShowTooltip] = useState(true);
   const insets = useSafeAreaInsets();
-  const isNavigatingRef = useRef(false);
   const [isCoach, setIsCoach] = useState(false);
+  const currentRoute = useNavigationState(state => state?.routes[state.index]?.name || 'Dashboard');
 
   // Check if user is a coach
   useEffect(() => {
     const checkCoachStatus = async () => {
       try {
-        console.log('🔍 Checking coach status...');
         const { data: { user } } = await supabase.auth.getUser();
-        console.log('User email:', user?.email);
-
         if (user?.email) {
-          const { data: profile, error } = await supabase
+          const { data: profile } = await supabase
             .from('clients')
             .select('is_coach')
             .eq('email', user.email)
             .single();
 
-          console.log('Coach status query result:', { profile, error });
-
           if (profile) {
-            console.log('Setting isCoach to:', profile.is_coach === true);
             setIsCoach(profile.is_coach === true);
-          } else {
-            console.log('No profile found, defaulting to false');
-            setIsCoach(false);
           }
         }
       } catch (error) {
         console.error('Error checking coach status:', error);
-        setIsCoach(false);
       }
     };
 
     checkCoachStatus();
   }, []);
 
-  // Animated arrow bounce effect - only run when menu is visible
-  useEffect(() => {
-    if (showTooltip && !isDashboardLoading) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(bounceAnim, {
-            toValue: -10,
-            duration: 600,
-            useNativeDriver: true,
-          }),
-          Animated.timing(bounceAnim, {
-            toValue: 0,
-            duration: 600,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
-
-      // Auto-hide tooltip after 5 seconds
-      const timer = setTimeout(() => {
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 500,
-          useNativeDriver: true,
-        }).start(() => setShowTooltip(false));
-      }, 5000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [showTooltip, isDashboardLoading]);
-
-  const toggleMenu = () => {
-    // Don't toggle if currently navigating
-    if (isNavigatingRef.current) return;
-
-    // Hide tooltip when user interacts
-    if (showTooltip) {
-      setShowTooltip(false);
-    }
-
-    const toValue = menuOpen ? 800 : 0; // 800 = hidden off-screen, 0 = visible
-    Animated.spring(slideAnim, {
-      toValue,
-      useNativeDriver: true,
-      tension: 65,
-      friction: 11,
-    }).start();
-    setMenuOpen(!menuOpen);
-  };
+  if (isDashboardLoading) {
+    return null;
+  }
 
   const navigateTo = (screen: string) => {
-    // Prevent multiple rapid navigations
-    if (isNavigatingRef.current) return;
-
-    isNavigatingRef.current = true;
-
     // @ts-ignore
     navigation.reset({
       index: 0,
       routes: [{ name: screen }],
     });
-
-    // Reset navigation flag after a short delay
-    setTimeout(() => {
-      isNavigatingRef.current = false;
-    }, 300);
   };
 
-  const handleLogout = async () => {
-    slideAnim.stopAnimation(() => {
-      slideAnim.setValue(800);
-      setMenuOpen(false);
-    });
-    await supabase.auth.signOut();
-  };
-
-  // Don't render until visible
-  if (isDashboardLoading) {
-    return null;
-  }
+  const tabs = [
+    { name: 'Dashboard', label: 'Home', icon: DashboardIcon, screen: 'Dashboard' },
+    { name: 'Program', label: 'Program', icon: ProgramIcon, screen: 'Program' },
+    { name: 'Progress', label: 'Progress', icon: ProgressIcon, screen: 'Progress' },
+    ...(isCoach ? [{ name: 'Clients', label: 'Clients', icon: ClientsIcon, screen: 'Clients' }] : []),
+  ];
 
   return (
-    <>
-      {/* Solid Footer Background - Prevents content overlap */}
-      <View
-        style={[
-          styles.footerBackground,
-          Platform.OS !== 'web' && {
-            height: Math.max(insets.bottom, 20) + 60,
-            bottom: 0
-          }
-        ]}
-      />
+    <View
+      style={[
+        styles.tabBar,
+        {
+          paddingBottom: Math.max(insets.bottom, 12),
+        }
+      ]}
+    >
+      {tabs.map((tab) => {
+        const Icon = tab.icon;
+        const isActive = currentRoute === tab.name;
 
-      {/* Animated Arrow Tooltip */}
-      {showTooltip && (
-        <Animated.View
-          style={[
-            styles.tooltipContainer,
-            {
-              bottom: Platform.OS === 'web' ? 50 : Math.max(insets.bottom, 20) + 30,
-              position: Platform.OS === 'web' ? 'fixed' : 'absolute',
-              opacity: fadeAnim,
-              transform: [{ translateY: bounceAnim }],
-            },
-          ]}
-        >
-          <ArrowUpIcon size={28} color="#2ddbdb" />
-          <Text style={styles.tooltipText}>Menu</Text>
-        </Animated.View>
-      )}
-
-      {/* Menu Button with Holographic Effect */}
-      <TouchableOpacity
-        style={[
-          styles.menuButton,
-          Platform.OS !== 'web' && { bottom: Math.max(insets.bottom, 20) } // Reduced by 10px padding
-        ]}
-        onPress={toggleMenu}
-        hitSlop={{ top: 40, bottom: 40, left: 40, right: 40 }} // Larger touch area - 40px all around
-      >
-        <View style={styles.menuBarGlow} />
-        <View style={styles.menuBar} />
-      </TouchableOpacity>
-
-      {/* Slide-up Menu */}
-      <Animated.View
-        style={[
-          styles.slideMenu,
-          {
-            transform: [{ translateY: slideAnim }],
-            bottom: Math.max(insets.bottom, 20) + 50,
-            zIndex: 1001,
-          },
-        ]}
-        pointerEvents={menuOpen ? 'auto' : 'none'}
-      >
-        <TouchableOpacity
-          style={styles.menuItem}
-          activeOpacity={0.7}
-          delayPressIn={0}
-          onPressIn={() => {
-            // Close menu synchronously before anything else
-            slideAnim.stopAnimation(() => {
-              slideAnim.setValue(800);
-              setMenuOpen(false);
-              navigateTo('Dashboard');
-            });
-          }}
-        >
-          <DashboardIcon size={22} color="#2ddbdb" />
-          <Text style={styles.menuItemText}>Dashboard</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.menuItem}
-          activeOpacity={0.7}
-          delayPressIn={0}
-          onPressIn={() => {
-            // Close menu synchronously before anything else
-            slideAnim.stopAnimation(() => {
-              slideAnim.setValue(800);
-              setMenuOpen(false);
-              navigateTo('Program');
-            });
-          }}
-        >
-          <ProgramIcon size={22} color="#2ddbdb" />
-          <Text style={styles.menuItemText}>Program Overview</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.menuItem}
-          activeOpacity={0.7}
-          delayPressIn={0}
-          onPressIn={() => {
-            // Close menu synchronously before anything else
-            slideAnim.stopAnimation(() => {
-              slideAnim.setValue(800);
-              setMenuOpen(false);
-              navigateTo('Workout');
-            });
-          }}
-        >
-          <WorkoutIcon size={22} color="#2ddbdb" />
-          <Text style={styles.menuItemText}>Workout Tracker</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.menuItem}
-          activeOpacity={0.7}
-          delayPressIn={0}
-          onPressIn={() => {
-            // Close menu synchronously before anything else
-            slideAnim.stopAnimation(() => {
-              slideAnim.setValue(800);
-              setMenuOpen(false);
-              navigateTo('Progress');
-            });
-          }}
-        >
-          <ProgressIcon size={22} color="#2ddbdb" />
-          <Text style={styles.menuItemText}>Progress</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.menuItem}
-          activeOpacity={0.7}
-          delayPressIn={0}
-          onPressIn={() => {
-            // Close menu synchronously before anything else
-            slideAnim.stopAnimation(() => {
-              slideAnim.setValue(800);
-              setMenuOpen(false);
-              navigateTo('Nutrition');
-            });
-          }}
-        >
-          <NutritionIcon size={22} color="#2ddbdb" />
-          <Text style={styles.menuItemText}>Nutrition</Text>
-        </TouchableOpacity>
-
-        {/* Only show My Clients for coaches/trainers */}
-        {isCoach && (
+        return (
           <TouchableOpacity
-            style={styles.menuItem}
+            key={tab.name}
+            style={styles.tabItem}
+            onPress={() => navigateTo(tab.screen)}
             activeOpacity={0.7}
-            delayPressIn={0}
-            onPressIn={() => {
-              slideAnim.stopAnimation(() => {
-                slideAnim.setValue(800);
-                setMenuOpen(false);
-                navigateTo('Clients');
-              });
-            }}
           >
-            <ClientsIcon size={22} color="#2ddbdb" />
-            <Text style={styles.menuItemText}>My Clients</Text>
+            <Icon size={24} color={isActive ? '#2ddbdb' : '#6b7280'} />
+            <Text style={[
+              styles.tabLabel,
+              isActive && styles.tabLabelActive
+            ]}>
+              {tab.label}
+            </Text>
+            {isActive && <View style={styles.activeIndicator} />}
           </TouchableOpacity>
-        )}
-
-        {/* Only show Custom Workout Builder for coaches/trainers */}
-        {isCoach && (
-          <TouchableOpacity
-            style={styles.menuItem}
-            activeOpacity={0.7}
-            delayPressIn={0}
-            onPressIn={() => {
-              slideAnim.stopAnimation(() => {
-                slideAnim.setValue(800);
-                setMenuOpen(false);
-                navigateTo('CustomWorkoutBuilder');
-              });
-            }}
-          >
-            <CustomWorkoutIcon size={22} color="#2ddbdb" />
-            <Text style={styles.menuItemText}>Workout Builder</Text>
-          </TouchableOpacity>
-        )}
-
-        <TouchableOpacity
-          style={styles.menuItem}
-          activeOpacity={0.7}
-          delayPressIn={0}
-          onPressIn={() => {
-            slideAnim.stopAnimation(() => {
-              slideAnim.setValue(800);
-              setMenuOpen(false);
-              // Navigate to Dashboard with a param to open settings
-              navigation.navigate('Dashboard', { openSettings: true });
-            });
-          }}
-        >
-          <SettingsIcon size={22} color="#2ddbdb" />
-          <Text style={styles.menuItemText}>Settings</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.menuItem}
-          activeOpacity={0.7}
-          delayPressIn={0}
-          onPress={handleLogout}
-        >
-          <LogoutIcon size={22} color="#2ddbdb" />
-          <Text style={styles.menuItemText}>Logout</Text>
-        </TouchableOpacity>
-
-      </Animated.View>
-    </>
+        );
+      })}
+    </View>
   );
 }
 
@@ -470,7 +217,7 @@ function AppNavigator() {
         <Stack.Screen name="ClientDetail" component={ClientDetailScreen} />
         <Stack.Screen name="CustomWorkoutBuilder" component={CustomWorkoutBuilderScreen} />
       </Stack.Navigator>
-      <ExpandableMenu />
+      <BottomTabBar />
     </>
   );
 }
@@ -550,67 +297,25 @@ export default function App() {
     try {
       console.log('🔍 Checking profile for:', session.user.email);
 
-      // Check if user has a client/coach profile by email with 8 second timeout
-      const profileCheckPromise = supabase
+      // Simplified: Just check if profile exists, don't auto-create
+      const { data: client, error } = await supabase
         .from('clients')
         .select('*')
         .eq('email', session.user.email)
         .maybeSingle();
 
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Profile check timeout')), 8000)
-      );
-
-      const { data: client, error } = await Promise.race([
-        profileCheckPromise,
-        timeoutPromise
-      ]) as any;
-
       console.log('Profile check result:', { client, error });
 
-      // If user doesn't exist at all, auto-create a basic profile and let them into dashboard
-      if (!client || error?.code === 'PGRST116') {
-        console.log('🆕 User not found in clients table - auto-creating profile');
-
-        try {
-          // Set program start date to today
-          const today = new Date().toISOString().split('T')[0];
-
-          const { data: newClient, error: insertError } = await supabase
-            .from('clients')
-            .insert({
-              email: session.user.email,
-              subscription_tier: 'client',
-              rest_days: [], // Empty array = no rest days initially
-              program_start_date: today,
-              first_name: '',  // Explicitly set empty string to avoid NOT NULL constraint
-              last_name: '',   // Will be filled in via profile modal
-              is_coach: false, // New users are clients by default
-            })
-            .select()
-            .single();
-
-          console.log('Auto-create result:', { newClient, insertError });
-
-          // Always let them into dashboard - they'll complete profile there via modal
-          setNeedsProfileCompletion(false);
-        } catch (createError) {
-          console.error('Exception auto-creating profile:', createError);
-          // Still let them into dashboard
-          setNeedsProfileCompletion(false);
-        }
-      } else {
-        // User exists - always let them into dashboard (modal will handle completion)
-        console.log('✅ User profile found, proceeding to dashboard');
-        setNeedsProfileCompletion(false);
-      }
-    } catch (error) {
-      // On timeout, let them into dashboard
-      console.log('Profile check timed out, allowing access');
+      // Always let them into dashboard - they'll complete profile there via modal if needed
       setNeedsProfileCompletion(false);
+    } catch (error) {
+      console.error('Profile check error:', error);
+      // On error, still let them into dashboard
+      setNeedsProfileCompletion(false);
+    } finally {
+      // ALWAYS set loading to false
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   if (loading) {
@@ -723,119 +428,50 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     fontWeight: '400',
   },
-  footerBackground: {
+  // Bottom Tab Bar - Equinox Style
+  tabBar: {
     position: 'absolute',
+    bottom: 0,
     left: 0,
     right: 0,
-    bottom: 0,
-    backgroundColor: '#0a0e27',
-    zIndex: 9997,
+    flexDirection: 'row',
+    backgroundColor: '#000000',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(45, 219, 219, 0.2)',
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    paddingTop: 8,
+    paddingHorizontal: 8,
+    zIndex: 1000,
+    ...(Platform.OS === 'web' && {
+      maxWidth: 768,
+      alignSelf: 'center',
+      width: '100%',
+    }),
   },
-  tooltipContainer: {
-    position: 'absolute',
-    left: '25%',
-    width: '50%',
+  tabItem: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 9998,
-    flexDirection: 'column',
-    gap: 4,
+    paddingVertical: 8,
+    position: 'relative',
   },
-  tooltipText: {
-    fontSize: 14,
+  tabLabel: {
+    fontSize: 11,
+    color: '#6b7280',
+    fontWeight: '500',
+    marginTop: 4,
+    letterSpacing: 0.2,
+  },
+  tabLabelActive: {
     color: '#2ddbdb',
     fontWeight: '600',
-    letterSpacing: 1,
-    textShadowColor: 'rgba(45, 219, 219, 0.5)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 8,
   },
-  menuButton: {
-    position: Platform.OS === 'web' ? 'fixed' : 'absolute', // Fixed to viewport on web
-    ...(Platform.OS === 'web' ? {
-      bottom: 10, // Positioned between content and Samsung navigation bar
-      left: '50%',
-      transform: [{ translateX: '-50%' }],
-      width: 384, // 50% of 768px max-width
-    } : {
-      bottom: 20,
-      left: '25%',
-      width: '50%',
-    }),
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 9999,
-    elevation: 9999,
-  },
-  menuBarGlow: {
-    position: 'absolute',
-    width: '100%',
-    height: 5,
-    backgroundColor: '#2ddbdb',
-    borderRadius: 10,
-    opacity: 0.4,
-    shadowColor: '#2ddbdb',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  menuBar: {
-    width: '100%',
-    height: 5,
-    backgroundColor: '#2ddbdb',
-    borderRadius: 10,
-    shadowColor: '#2ddbdb',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  overlay: {
+  activeIndicator: {
     position: 'absolute',
     top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    zIndex: 999,
-  },
-  slideMenu: {
-    position: 'absolute',
-    left: 20,
-    right: 20,
-    bottom: 80,
-    backgroundColor: '#0a0e27',
-    borderWidth: 2,
-    borderColor: 'rgba(45, 219, 219, 0.4)',
-    borderRadius: 20,
-    zIndex: 1001,
-    overflow: 'hidden',
-    shadowColor: '#2ddbdb',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 15,
-
-  },
-  menuItem: {
-    width: '100%',
-    paddingVertical: 24,
-    paddingHorizontal: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-    backgroundColor: 'transparent',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  menuItemText: {
-    fontSize: 17,
-    color: '#fff',
-    fontWeight: '500',
-    letterSpacing: 0.3,
+    left: '25%',
+    right: '25%',
+    height: 2,
+    backgroundColor: '#2ddbdb',
+    borderRadius: 1,
   },
 });
